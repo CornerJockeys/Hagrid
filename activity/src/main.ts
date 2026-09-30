@@ -147,10 +147,6 @@ function shell(): {loadPersonal: (() => Promise<void>) | null} {
       <div id="activity-status" class="activity-status" aria-live="polite"></div>
     </div>`;
 
-  document.querySelectorAll<HTMLButtonElement>(".tab").forEach(button => {
-    button.addEventListener("click", () => switchTab(button.dataset.tab ?? "availability"));
-  });
-
   const availabilityPanel = document.querySelector<HTMLElement>("#availability-panel");
   const personal = availabilityPanel
     ? mountPersonalAvailabilityPanel(
@@ -162,16 +158,33 @@ function shell(): {loadPersonal: (() => Promise<void>) | null} {
     )
     : null;
 
-  if (context.access.staff) {
-    const teamPanel = document.querySelector<HTMLElement>("#team-panel");
-    const scoutingPanel = document.querySelector<HTMLElement>("#scouting-panel");
-    if (teamPanel) {
-      mountTeamAvailabilityPanel(teamPanel, api, setStatus, context.current_week_start);
+  let teamMounted = false;
+  let scoutingMounted = false;
+  const mountStaffView = (tab: string): void => {
+    if (!context?.access.staff) return;
+    if (tab === "team" && !teamMounted) {
+      const panel = document.querySelector<HTMLElement>("#team-panel");
+      if (panel) {
+        mountTeamAvailabilityPanel(panel, api, setStatus, context.current_week_start);
+        teamMounted = true;
+      }
     }
-    if (scoutingPanel) {
-      mountScoutingPanel(scoutingPanel, api, setStatus);
+    if (tab === "scouting" && !scoutingMounted) {
+      const panel = document.querySelector<HTMLElement>("#scouting-panel");
+      if (panel) {
+        mountScoutingPanel(panel, api, setStatus);
+        scoutingMounted = true;
+      }
     }
-  }
+  };
+
+  document.querySelectorAll<HTMLButtonElement>(".tab").forEach(button => {
+    button.addEventListener("click", () => {
+      const tab = button.dataset.tab ?? "availability";
+      switchTab(tab);
+      mountStaffView(tab);
+    });
+  });
 
   return {loadPersonal: personal?.load ?? null};
 }
