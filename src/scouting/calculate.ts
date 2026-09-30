@@ -143,12 +143,12 @@ function roleScores(
   const assists = ratio(candidate.assists, averages.assists);
   const saves = ratio(candidate.saves, averages.saves);
   const shots = ratio(candidate.shots, averages.shots);
-
-  return [
+  const scores: Array<{role: RoleLabel; score: number}> = [
     {role: "1st", score: 1.8 * goals + 1.2 * assists + shots},
     {role: "2nd", score: 1.8 * assists + 1.2 * goals + shots},
     {role: "3rd", score: 1.8 * saves + 1.2 * goals + shots},
-  ].sort((left, right) => right.score - left.score || left.role.localeCompare(right.role));
+  ];
+  return scores.sort((left, right) => right.score - left.score || left.role.localeCompare(right.role));
 }
 
 function flags(candidate: Candidate): string {
