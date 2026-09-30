@@ -12,14 +12,18 @@ Hagrid is public so other franchises can adapt it. The target franchise is confi
 
 - Set the franchise Hagrid should operate for from Discord.
 - Store configuration per Discord server.
+- Validate the requested franchise against Sprocket's public `teams` dataset before saving it.
+- Store the canonical franchise name and code returned by Sprocket.
 - Use the configured franchise to filter roster, usage, salary, eligibility, and related imports.
 
-Initial command shape:
+Current command shape:
 
 ```text
 /franchise set name:Wizards
 /franchise show
 ```
+
+`/franchise set` accepts an exact franchise name or franchise code. If there is no exact match, Hagrid leaves the existing configuration unchanged and can show likely matches.
 
 Changing the franchise is restricted to members with **Manage Server** permission.
 
@@ -80,15 +84,22 @@ Later versions may port useful concepts from the existing MLE scouting sheets, p
 
 ## Data sources
 
-Hagrid is expected to consume selected public datasets published by Sprocket. The exact adapters will be added as the current-season datasets stabilize.
+Hagrid consumes selected public datasets published by Sprocket. Current dataset access uses the public CSV publication path produced by the Sprocket datasets project:
+
+```text
+https://sprocket-public-datasets.nyc3.cdn.digitaloceanspaces.com/datasets/public/data
+```
+
+The base URL can be overridden with `SPROCKET_DATASET_BASE_URL`, which is useful for testing or if Sprocket changes the publication location.
 
 Likely inputs include:
 
-- players
-- role usages
-- eligibility data
-- standings
-- identity mappings
+- `teams`
+- `players`
+- `role_usages`
+- `eligibility_data`
+- `standings`
+- `all_the_ids`
 - scrim/player statistics used for scouting
 
 Trackmania datasets are intentionally out of scope. Hagrid is a Rocket League project.
@@ -113,12 +124,12 @@ At minimum Hagrid stores:
 ```text
 guild_id
 franchise_name
-franchise_code (when resolved)
+franchise_code
 updated_by
 updated_at
 ```
 
-A future dataset adapter can validate a requested franchise against Sprocket's team/franchise dataset and store the canonical name/code.
+The franchise is resolved against Sprocket before it is written, so downstream imports can key off a canonical franchise identity rather than a free-text Discord value.
 
 ## Security
 
@@ -136,4 +147,4 @@ Public identifiers may be configured as ordinary deployment variables where appr
 
 ## Status
 
-Early development. The repository is being built from the ground up around the franchise-configurable Discord workflow described above.
+Early development. The initial Discord interaction endpoint, D1 franchise configuration, CSV dataset client, and Sprocket-backed franchise resolver are in place. Weekly sync, standings, replay analysis, availability, and scouting are still under active development.
