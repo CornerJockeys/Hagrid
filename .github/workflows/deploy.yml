@@ -1,0 +1,138 @@
+name: Deploy Hagrid
+
+on:
+  workflow_dispatch:
+    inputs:
+      guild_id:
+        description: "Discord guild ID for test command registration; falls back to repository variable DISCORD_GUILD_ID"
+        required: false
+        type: string
+      register_commands:
+        description: "Register slash commands to the test guild after deploy"
+        required: true
+        default: true
+        type: boolean
+      run_deployed_smoke:
+        description: "Run /health, /ready, and Activity-root smoke checks after deploy"
+        required: true
+        default: true
+        type: boolean
+
+permissions:
+  contents: read
+
+concurrency:
+  group: hagrid-production-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      CLOUDFLARE_D1_DATABASE_ID: ${{ vars.CLOUDFLARE_D1_DATABASE_ID }}
+      DISCORD_APPLICATION_ID: ${{ vars.DISCORD_APPLICATION_ID }}
+      DISCORD_PUBLIC_KEY: ${{ vars.DISCORD_PUBLIC_KEY }}
+      DISCORD_CLIENT_SECRET: ${{ secrets.DISCORD_CLIENT_SECRET }}
+      DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
+      DISCORD_GUILD_ID: ${{ vars.DISCORD_GUILD_ID }}
+      VITE_DISCORD_CLIENT_ID: ${{ vars.DISCORD_APPLICATION_ID }}
+      HAGRID_BASE_URL: ${{ vars.HAGRID_BASE_URL }}
+      HAGRID_SMOKE_FRANCHISE: ${{ vars.HAGRID_SMOKE_FRANCHISE || 'Wizards' }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Verify required deployment settings
+        shell: bash
+        run: |
+          set -euo pipefail
+          required=(
+            CLOUDFLARE_API_TOKEN
+            CLOUDFLARE_ACCOUNT_ID
+            DISCORD_APPLICATION_ID
+            DISCORD_PUBLIC_KEY
+            DISCORD_CLIENT_SECRET
+          )
+          for name in "${required[@]}"; do
+            if [ -z "${!name:-}" ]; then
+              echo "::error::$name is not configured for the Hagrid repository."
+              exit 1
+            fi
+          done
+
+      - name: Typecheck
+        run: npm run check
+
+      - name: Regression tests
+        run: npm test
+
+      - name: Validate live Sprocket sources
+        run: npm run smoke:live-sources
+
+      - name: Provision or reuse D1 database
+        shell: bash
+        run: |
+          set -euo pipefail
+          DATABASE_ID="$(node scripts/ensure-d1.mjs)"
+          echo "CLOUDFLARE_D1_DATABASE_ID=$DATABASE_ID" >> "$GITHUB_ENV"
+          echo "Using D1 database ${DATABASE_ID:0:8}…"
+
+      - name: Prepare production Wrangler config
+        run: npm run prepare:deploy-config
+
+      - name: Build Activity
+        run: npm run build:activity
+
+      - name: Apply D1 migrations
+        run: npx wrangler d1 migrations apply hagrid --remote --config .wrangler.deploy.toml
+
+      - name: Deploy Worker and Activity
+        run: npx wrangler deploy --config .wrangler.deploy.toml
+
+      - name: Sync Discord client secret to Worker
+        shell: bash
+        run: printf '%s' "$DISCORD_CLIENT_SECRET" | npx wrangler secret put DISCORD_CLIENT_SECRET --config .wrangler.deploy.toml
+
+      - name: Resolve deployed Worker URL
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE_URL="$(node scripts/resolve-worker-url.mjs)"
+          echo "HAGRID_BASE_URL=$BASE_URL" >> "$GITHUB_ENV"
+          echo "Hagrid URL: $BASE_URL"
+
+      - name: Register test-guild commands
+        if: ${{ inputs.register_commands }}
+        shell: bash
+        env:
+          REQUESTED_GUILD_ID: ${{ inputs.guild_id }}
+        run: |
+          set -euo pipefail
+          if [ -z "$DISCORD_BOT_TOKEN" ]; then
+            echo "::error::DISCORD_BOT_TOKEN is required when register_commands is enabled."
+            exit 1
+          fi
+          if [ -n "$REQUESTED_GUILD_ID" ]; then
+            export DISCORD_GUILD_ID="$REQUESTED_GUILD_ID"
+          fi
+          if [ -z "${DISCORD_GUILD_ID:-}" ]; then
+            echo "::error::Provide guild_id or set repository variable DISCORD_GUILD_ID. Hagrid will not register commands globally during deployment testing."
+            exit 1
+          fi
+          npm run register:commands
+
+      - name: Smoke deployed Hagrid
+        if: ${{ inputs.run_deployed_smoke }}
+        run: npm run smoke:deployed

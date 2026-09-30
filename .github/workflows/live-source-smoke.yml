@@ -1,0 +1,38 @@
+name: Live Source Smoke
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, pass3-deployment]
+    paths:
+      - "package.json"
+      - "src/sprocket/**"
+      - "src/scouting/**"
+      - "scripts/live-source-smoke.mjs"
+      - ".github/workflows/live-source-smoke.yml"
+  schedule:
+    - cron: "37 14 * * *"
+
+permissions:
+  contents: read
+
+jobs:
+  live-sources:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      HAGRID_SMOKE_FRANCHISE: ${{ vars.HAGRID_SMOKE_FRANCHISE || 'Wizards' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Validate live Sprocket datasets and Hagrid adapters
+        run: npm run smoke:live-sources
