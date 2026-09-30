@@ -1,0 +1,35 @@
+import type {Env} from "../types";
+import {exchangeActivityCode} from "./auth";
+import {
+  getActivityContext,
+  getMyAvailability,
+  saveMyAvailability,
+} from "./availability";
+
+function methodNotAllowed(): Response {
+  return Response.json({error: "Method not allowed."}, {status: 405});
+}
+
+export async function handleActivityApi(request: Request, env: Env): Promise<Response> {
+  const url = new URL(request.url);
+
+  if (url.pathname === "/api/activity/token") {
+    return request.method === "POST"
+      ? exchangeActivityCode(request, env)
+      : methodNotAllowed();
+  }
+
+  if (url.pathname === "/api/activity/context") {
+    return request.method === "GET"
+      ? getActivityContext(request, env)
+      : methodNotAllowed();
+  }
+
+  if (url.pathname === "/api/activity/availability") {
+    if (request.method === "GET") return getMyAvailability(request, env);
+    if (request.method === "PUT") return saveMyAvailability(request, env);
+    return methodNotAllowed();
+  }
+
+  return Response.json({error: "Unknown Activity API route."}, {status: 404});
+}
