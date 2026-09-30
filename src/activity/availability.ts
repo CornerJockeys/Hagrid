@@ -1,18 +1,23 @@
 import {getGuildConfig} from "../db";
 import type {Env} from "../types";
 import {
+  getActivityAccess,
+  isAccessResponse,
+  requireRosterAccess,
+} from "./access";
+import {
   authenticateActivityRequest,
   isAuthResponse,
   type ActivityPrincipal,
 } from "./auth";
 
-const EASTERN_TIME_ZONE = "America/New_York";
-const START_MINUTE = 12 * 60;
-const END_MINUTE = 24 * 60;
-const BASE_RESOLUTION_MINUTES = 30;
-const MAX_SLOTS = 7 * ((END_MINUTE - START_MINUTE) / BASE_RESOLUTION_MINUTES);
+export const EASTERN_TIME_ZONE = "America/New_York";
+export const AVAILABILITY_START_MINUTE = 12 * 60;
+export const AVAILABILITY_END_MINUTE = 24 * 60;
+export const AVAILABILITY_RESOLUTION_MINUTES = 30;
+const MAX_SLOTS = 7 * ((AVAILABILITY_END_MINUTE - AVAILABILITY_START_MINUTE) / AVAILABILITY_RESOLUTION_MINUTES);
 
-interface AvailabilitySlot {
+export interface AvailabilitySlot {
   day: number;
   minute: number;
   state: 1 | 2;
@@ -56,28 +61,30 @@ export function currentEasternWeekStart(now = new Date()): string {
   return isoDate(date);
 }
 
-function shiftWeek(weekStart: string, weeks: number): string {
+export function shiftAvailabilityWeek(weekStart: string, weeks: number): string {
   const date = new Date(`${weekStart}T00:00:00Z`);
   date.setUTCDate(date.getUTCDate() + weeks * 7);
   return isoDate(date);
 }
 
-function validWeekStart(value: string): boolean {
+export function validAvailabilityWeekStart(value: string): boolean {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
   const date = new Date(`${value}T00:00:00Z`);
   return !Number.isNaN(date.getTime()) && isoDate(date) === value && date.getUTCDay() === 1;
 }
 
-function requestedWeek(request: Request): string | Response {
+export function requestedAvailabilityWeek(request: Request): string | Response {
   const value = new URL(request.url).searchParams.get("week") ?? currentEasternWeekStart();
-  return validWeekStart(value) ? value : errorResponse("week must be a Monday in YYYY-MM-DD format.");
+  return validAvailabilityWeekStart(value)
+    ? value
+    : errorResponse("week must be a Monday in YYYY-MM-DD format.");
 }
 
 async function principal(request: Request): Promise<ActivityPrincipal | Response> {
   return authenticateActivityRequest(request);
 }
 
-function parseSlots(value: unknown): AvailabilitySlot[] | null {
+export function parseAvailabilitySlots(value: unknown): AvailabilitySlot[] | null {
   if (!Array.isArray(value) || value.length > MAX_SLOTS) return null;
   const unique = new Map<string, AvailabilitySlot>();
 
@@ -89,8 +96,8 @@ function parseSlots(value: unknown): AvailabilitySlot[] | null {
     const state = candidate.state ?? 1;
     if (
       !Number.isInteger(day) || Number(day) < 0 || Number(day) > 6 ||
-      !Number.isInteger(minute) || Number(minute) < START_MINUTE || Number(minute) >= END_MINUTE ||
-      Number(minute) % BASE_RESOLUTION_MINUTES !== 0 ||
+      !Number.isInteger(minute) || Number(minute) < AVAILABILITY_START_MINUTE || Number(minute) >= AVAILABILITY_END_MINUTE ||
+      Number(minute) % AVAILABILITY_RESOLUTION_MINUTES !== 0 ||
       (state !== 1 && state !== 2)
     ) {
       return null;
@@ -124,7 +131,7 @@ async function readAvailability(
   if (!row) return [];
 
   try {
-    return parseSlots(JSON.parse(row.slots_json)) ?? [];
+    return parseAvailabilitySlots(JSON.parse(row.slots_json)) ?? [];
   } catch {
     console.error("Invalid stored availability JSON", auth.guildId, weekStart, auth.userId);
     return [];
@@ -135,7 +142,10 @@ export async function getActivityContext(request: Request, env: Env): Promise<Re
   const auth = await principal(request);
   if (isAuthResponse(auth)) return auth;
 
-  const config = await getGuildConfig(env.DB, auth.guildId);
+  const [config, access] = await Promise.all([
+    getGuildConfig(env.DB, auth.guildId),
+    getActivityAccess(env, auth),
+  ]);
   return Response.json({
     guild_id: auth.guildId,
     user_id: auth.userId,
@@ -144,12 +154,21 @@ export async function getActivityContext(request: Request, env: Env): Promise<Re
       name: config.franchise_name,
       code: config.franchise_code,
     } : null,
+    access: {
+      roster_member: access.rosterMember,
+      staff: access.staff,
+      player_id: access.playerId,
+      player_name: access.playerName,
+      division: access.division,
+      staff_position: access.staffPosition,
+      slot: access.slot,
+    },
     current_week_start: currentEasternWeekStart(),
     timezone: EASTERN_TIME_ZONE,
     window: {
-      start_minute: START_MINUTE,
-      end_minute: END_MINUTE,
-      base_resolution_minutes: BASE_RESOLUTION_MINUTES,
+      start_minute: AVAILABILITY_START_MINUTE,
+      end_minute: AVAILABILITY_END_MINUTE,
+      base_resolution_minutes: AVAILABILITY_RESOLUTION_MINUTES,
     },
   });
 }
@@ -157,13 +176,16 @@ export async function getActivityContext(request: Request, env: Env): Promise<Re
 export async function getMyAvailability(request: Request, env: Env): Promise<Response> {
   const auth = await principal(request);
   if (isAuthResponse(auth)) return auth;
-  const weekStart = requestedWeek(request);
+  const access = await requireRosterAccess(env, auth);
+  if (isAccessResponse(access)) return access;
+
+  const weekStart = requestedAvailabilityWeek(request);
   if (weekStart instanceof Response) return weekStart;
 
   const slots = await readAvailability(env, auth, weekStart);
   return Response.json({
     week_start: weekStart,
-    previous_week_start: shiftWeek(weekStart, -1),
+    previous_week_start: shiftAvailabilityWeek(weekStart, -1),
     slots,
   });
 }
@@ -171,6 +193,8 @@ export async function getMyAvailability(request: Request, env: Env): Promise<Res
 export async function saveMyAvailability(request: Request, env: Env): Promise<Response> {
   const auth = await principal(request);
   if (isAuthResponse(auth)) return auth;
+  const access = await requireRosterAccess(env, auth);
+  if (isAccessResponse(access)) return access;
 
   let body: {week_start?: unknown; slots?: unknown};
   try {
@@ -179,10 +203,10 @@ export async function saveMyAvailability(request: Request, env: Env): Promise<Re
     return errorResponse("Invalid JSON body.");
   }
 
-  if (typeof body.week_start !== "string" || !validWeekStart(body.week_start)) {
+  if (typeof body.week_start !== "string" || !validAvailabilityWeekStart(body.week_start)) {
     return errorResponse("week_start must be a Monday in YYYY-MM-DD format.");
   }
-  const slots = parseSlots(body.slots);
+  const slots = parseAvailabilitySlots(body.slots);
   if (!slots) return errorResponse("Availability contains an invalid time slot.");
 
   const result = await env.DB
