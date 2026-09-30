@@ -2,14 +2,24 @@ export interface D1RunResult {
   success: boolean;
 }
 
+export interface D1QueryResult<T> extends D1RunResult {
+  results: T[];
+}
+
 export interface D1PreparedStatement {
   bind(...values: unknown[]): D1PreparedStatement;
   first<T = Record<string, unknown>>(): Promise<T | null>;
+  all<T = Record<string, unknown>>(): Promise<D1QueryResult<T>>;
   run(): Promise<D1RunResult>;
 }
 
 export interface D1Database {
   prepare(query: string): D1PreparedStatement;
+  batch(statements: D1PreparedStatement[]): Promise<D1RunResult[]>;
+}
+
+export interface ExecutionContextLike {
+  waitUntil(promise: Promise<unknown>): void;
 }
 
 export interface Env {
@@ -42,6 +52,8 @@ export interface DiscordInteractionData {
 
 export interface DiscordInteraction {
   id?: string;
+  application_id?: string;
+  token?: string;
   type: number;
   guild_id?: string;
   member?: DiscordMember;
