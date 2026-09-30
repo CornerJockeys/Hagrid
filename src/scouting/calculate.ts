@@ -53,7 +53,19 @@ export interface ScoutingRecord extends ProspectIdentity {
   flags: string;
 }
 
-interface Candidate extends ProspectIdentity, RawScoutingLine {
+interface Candidate extends ProspectIdentity {
+  mode: ScoutingMode;
+  games: number;
+  winPct: number | null;
+  score: number | null;
+  sprocket: number | null;
+  dpi: number | null;
+  opi: number | null;
+  goals: number | null;
+  assists: number | null;
+  saves: number | null;
+  shots: number | null;
+  demos: number | null;
   shotPct: number | null;
   rawEffSalary: number | null;
 }
@@ -158,8 +170,23 @@ function buildCandidate(identity: ProspectIdentity, line: RawScoutingLine): Cand
     : null;
 
   return {
-    ...identity,
-    ...line,
+    sprocketPlayerId: identity.sprocketPlayerId,
+    name: identity.name,
+    salary: identity.salary,
+    league: identity.league,
+    status: identity.status,
+    mode: line.mode,
+    games: line.games,
+    winPct: line.winPct,
+    score: line.score,
+    sprocket: line.sprocket,
+    dpi: line.dpi,
+    opi: line.opi,
+    goals: line.goals,
+    assists: line.assists,
+    saves: line.saves,
+    shots: line.shots,
+    demos: line.demos,
     shotPct,
     rawEffSalary,
   };
