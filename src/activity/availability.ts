@@ -1,5 +1,5 @@
 import {getGuildConfig} from "../db";
-import type {D1PreparedStatement, Env} from "../types";
+import type {Env} from "../types";
 import {
   authenticateActivityRequest,
   isAuthResponse,
@@ -19,9 +19,7 @@ interface AvailabilitySlot {
 }
 
 interface AvailabilityRow {
-  day_index: number;
-  minute_of_day: number;
-  state: number;
+  slots_json: string;
 }
 
 function errorResponse(message: string, status = 400): Response {
@@ -79,27 +77,58 @@ async function principal(request: Request): Promise<ActivityPrincipal | Response
   return authenticateActivityRequest(request);
 }
 
+function parseSlots(value: unknown): AvailabilitySlot[] | null {
+  if (!Array.isArray(value) || value.length > MAX_SLOTS) return null;
+  const unique = new Map<string, AvailabilitySlot>();
+
+  for (const item of value) {
+    if (typeof item !== "object" || item === null) return null;
+    const candidate = item as Record<string, unknown>;
+    const day = candidate.day;
+    const minute = candidate.minute;
+    const state = candidate.state ?? 1;
+    if (
+      !Number.isInteger(day) || Number(day) < 0 || Number(day) > 6 ||
+      !Number.isInteger(minute) || Number(minute) < START_MINUTE || Number(minute) >= END_MINUTE ||
+      Number(minute) % BASE_RESOLUTION_MINUTES !== 0 ||
+      (state !== 1 && state !== 2)
+    ) {
+      return null;
+    }
+
+    const slot: AvailabilitySlot = {
+      day: Number(day),
+      minute: Number(minute),
+      state: state as 1 | 2,
+    };
+    unique.set(`${slot.day}:${slot.minute}`, slot);
+  }
+
+  return [...unique.values()].sort((a, b) => a.day - b.day || a.minute - b.minute);
+}
+
 async function readAvailability(
   env: Env,
   auth: ActivityPrincipal,
   weekStart: string,
 ): Promise<AvailabilitySlot[]> {
-  const result = await env.DB
+  const row = await env.DB
     .prepare(
-      `SELECT day_index, minute_of_day, state
-       FROM availability_slots
-       WHERE guild_id = ? AND week_start = ? AND discord_user_id = ?
-       ORDER BY day_index, minute_of_day`,
+      `SELECT slots_json
+       FROM availability_submissions
+       WHERE guild_id = ? AND week_start = ? AND discord_user_id = ?`,
     )
     .bind(auth.guildId, weekStart, auth.userId)
-    .all<AvailabilityRow>();
+    .first<AvailabilityRow>();
 
-  if (!result.success) throw new Error("Failed to read availability.");
-  return result.results.map(row => ({
-    day: row.day_index,
-    minute: row.minute_of_day,
-    state: row.state === 2 ? 2 : 1,
-  }));
+  if (!row) return [];
+
+  try {
+    return parseSlots(JSON.parse(row.slots_json)) ?? [];
+  } catch {
+    console.error("Invalid stored availability JSON", auth.guildId, weekStart, auth.userId);
+    return [];
+  }
 }
 
 export async function getActivityContext(request: Request, env: Env): Promise<Response> {
@@ -139,36 +168,6 @@ export async function getMyAvailability(request: Request, env: Env): Promise<Res
   });
 }
 
-function parseSlots(value: unknown): AvailabilitySlot[] | null {
-  if (!Array.isArray(value) || value.length > MAX_SLOTS) return null;
-  const unique = new Map<string, AvailabilitySlot>();
-
-  for (const item of value) {
-    if (typeof item !== "object" || item === null) return null;
-    const candidate = item as Record<string, unknown>;
-    const day = candidate.day;
-    const minute = candidate.minute;
-    const state = candidate.state ?? 1;
-    if (
-      !Number.isInteger(day) || Number(day) < 0 || Number(day) > 6 ||
-      !Number.isInteger(minute) || Number(minute) < START_MINUTE || Number(minute) >= END_MINUTE ||
-      Number(minute) % BASE_RESOLUTION_MINUTES !== 0 ||
-      (state !== 1 && state !== 2)
-    ) {
-      return null;
-    }
-
-    const slot: AvailabilitySlot = {
-      day: Number(day),
-      minute: Number(minute),
-      state: state as 1 | 2,
-    };
-    unique.set(`${slot.day}:${slot.minute}`, slot);
-  }
-
-  return [...unique.values()].sort((a, b) => a.day - b.day || a.minute - b.minute);
-}
-
 export async function saveMyAvailability(request: Request, env: Env): Promise<Response> {
   const auth = await principal(request);
   if (isAuthResponse(auth)) return auth;
@@ -186,36 +185,18 @@ export async function saveMyAvailability(request: Request, env: Env): Promise<Re
   const slots = parseSlots(body.slots);
   if (!slots) return errorResponse("Availability contains an invalid time slot.");
 
-  const statements: D1PreparedStatement[] = [
-    env.DB
-      .prepare(
-        `INSERT INTO availability_submissions (guild_id, week_start, discord_user_id, updated_at)
-         VALUES (?, ?, ?, CURRENT_TIMESTAMP)
-         ON CONFLICT(guild_id, week_start, discord_user_id)
-         DO UPDATE SET updated_at = CURRENT_TIMESTAMP`,
-      )
-      .bind(auth.guildId, body.week_start, auth.userId),
-    env.DB
-      .prepare(
-        `DELETE FROM availability_slots
-         WHERE guild_id = ? AND week_start = ? AND discord_user_id = ?`,
-      )
-      .bind(auth.guildId, body.week_start, auth.userId),
-    ...slots.map(slot =>
-      env.DB
-        .prepare(
-          `INSERT INTO availability_slots (
-             guild_id, week_start, discord_user_id, day_index, minute_of_day, state
-           ) VALUES (?, ?, ?, ?, ?, ?)`,
-        )
-        .bind(auth.guildId, body.week_start, auth.userId, slot.day, slot.minute, slot.state),
-    ),
-  ];
+  const result = await env.DB
+    .prepare(
+      `INSERT INTO availability_submissions (
+         guild_id, week_start, discord_user_id, slots_json, updated_at
+       ) VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
+       ON CONFLICT(guild_id, week_start, discord_user_id)
+       DO UPDATE SET slots_json = excluded.slots_json, updated_at = CURRENT_TIMESTAMP`,
+    )
+    .bind(auth.guildId, body.week_start, auth.userId, JSON.stringify(slots))
+    .run();
 
-  const results = await env.DB.batch(statements);
-  if (results.some(result => !result.success)) {
-    throw new Error("D1 rejected the availability update.");
-  }
+  if (!result.success) throw new Error("D1 rejected the availability update.");
 
   return Response.json({
     ok: true,
