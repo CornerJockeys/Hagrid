@@ -38,6 +38,14 @@ interface StoredScoutingRow {
   flags: string;
 }
 
+interface StoredPoolRow {
+  sprocket_player_id: string;
+  name: string;
+  salary: number | null;
+  league: LeagueCode;
+  status: ProspectStatus;
+}
+
 interface StateRow {
   source_hash: string;
   algorithm_version: string;
@@ -283,21 +291,24 @@ export async function getPoolPlayers(
   league: LeagueCode,
   status: ProspectStatus | null,
 ): Promise<PoolPlayer[]> {
-  const records = await getCurrentScoutingRecords(env);
-  const unique = new Map<string, PoolPlayer>();
-  for (const record of records) {
-    if (record.league !== league || (status && record.status !== status)) continue;
-    unique.set(record.sprocketPlayerId, {
-      sprocketPlayerId: record.sprocketPlayerId,
-      name: record.name,
-      salary: record.salary,
-      league: record.league,
-      status: record.status,
-    });
-  }
-  return [...unique.values()].sort((left, right) =>
-    left.status.localeCompare(right.status) ||
-    (right.salary ?? -1) - (left.salary ?? -1) ||
-    left.name.localeCompare(right.name),
-  );
+  const query = status
+    ? `SELECT sprocket_player_id, name, salary, league, status
+       FROM prospect_pool_current
+       WHERE league = ? AND status = ?
+       ORDER BY status ASC, salary DESC, name COLLATE NOCASE ASC`
+    : `SELECT sprocket_player_id, name, salary, league, status
+       FROM prospect_pool_current
+       WHERE league = ?
+       ORDER BY status ASC, salary DESC, name COLLATE NOCASE ASC`;
+  const statement = status
+    ? env.DB.prepare(query).bind(league, status)
+    : env.DB.prepare(query).bind(league);
+  const result = await statement.all<StoredPoolRow>();
+  return result.results.map(row => ({
+    sprocketPlayerId: row.sprocket_player_id,
+    name: row.name,
+    salary: row.salary,
+    league: row.league,
+    status: row.status,
+  }));
 }
