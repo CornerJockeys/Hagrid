@@ -11,7 +11,7 @@ import {
   type SyncTrigger,
 } from "./db";
 
-interface PlayerChange {
+export interface PlayerChange {
   playerId: string;
   playerName: string;
   type: "joined" | "left" | "slot" | "salary" | "eligibility" | "scrim_points" | "name";
@@ -289,6 +289,7 @@ export async function runFranchiseSync(
   env: Env,
   guildId: string,
   trigger: SyncTrigger,
+  triggeredBy: string | null = null,
 ): Promise<SyncSummary> {
   const config = await getGuildConfig(env.DB, guildId);
   if (!config) {
@@ -301,6 +302,7 @@ export async function runFranchiseSync(
     runId,
     guildId,
     trigger,
+    triggeredBy,
     config.franchise_name,
     config.franchise_code,
   );
