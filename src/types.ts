@@ -30,6 +30,8 @@ export interface ScheduledEventLike {
 export interface Env {
   DB: D1Database;
   DISCORD_PUBLIC_KEY: string;
+  DISCORD_APPLICATION_ID?: string;
+  DISCORD_CLIENT_SECRET?: string;
   SPROCKET_DATASET_BASE_URL?: string;
 }
 
