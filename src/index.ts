@@ -1,3 +1,4 @@
+import {handleActivityApi} from "./activity/http";
 import {handleFranchiseCommand} from "./commands/franchise";
 import {handleReplayCommand} from "./commands/replay";
 import {handleStandingsCommand} from "./commands/standings";
@@ -68,6 +69,15 @@ export default {
 
     if (request.method === "POST" && url.pathname === "/interactions") {
       return handleInteraction(request, env, ctx);
+    }
+
+    if (url.pathname.startsWith("/api/activity/")) {
+      try {
+        return await handleActivityApi(request, env);
+      } catch (error) {
+        console.error("Activity API failed", error);
+        return Response.json({error: "Hagrid hit an internal Activity error."}, {status: 500});
+      }
     }
 
     return new Response("Hagrid", {status: 200});
