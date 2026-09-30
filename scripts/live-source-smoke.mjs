@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 
+import {fetchLegacyCsvDataset} from "../src/sprocket/client.ts";
 import {getFranchises} from "../src/sprocket/franchises.ts";
 import {getFranchisePlayers} from "../src/sprocket/players.ts";
 import {getLatestFranchiseRoleUsages} from "../src/sprocket/role-usages.ts";
@@ -47,6 +48,14 @@ assert.ok(
 assert.ok(usages.length > 0, `${franchise.name} produced zero current role-usage rows`);
 assert.ok(standings.length > 0, "standings dataset produced zero current rows");
 assert.ok(prospects.length > 0, "legacy players dataset produced zero FA/PEND prospects");
+
+if (scoutingLines.length === 0) {
+  const rawScouting = await fetchLegacyCsvDataset(env, "Avg_Scrim_Stats");
+  log("Raw legacy Avg_Scrim_Stats rows", rawScouting.length);
+  if (rawScouting.length > 0) {
+    log("Raw legacy Avg_Scrim_Stats columns", Object.keys(rawScouting[0]).join(" | "));
+  }
+}
 assert.ok(scoutingLines.length > 0, "Avg_Scrim_Stats produced zero usable scouting rows");
 
 log("Roster rows", players.length);
