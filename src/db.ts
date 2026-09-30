@@ -19,6 +19,22 @@ export async function getGuildConfig(db: D1Database, guildId: string): Promise<G
     .first<GuildConfig>();
 }
 
+export async function getConfiguredGuilds(db: D1Database): Promise<GuildConfig[]> {
+  const result = await db
+    .prepare(
+      `SELECT guild_id, franchise_name, franchise_code, updated_by, updated_at
+       FROM guild_config
+       ORDER BY guild_id`,
+    )
+    .all<GuildConfig>();
+
+  if (!result.success) {
+    throw new Error("Failed to read configured Discord servers.");
+  }
+
+  return result.results;
+}
+
 async function saveGuildFranchise(
   db: D1Database,
   guildId: string,
