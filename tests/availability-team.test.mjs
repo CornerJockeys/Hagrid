@@ -13,7 +13,7 @@ test("Activity staff access recognizes franchise staff and captains", () => {
     sprocket_player_id: "1",
     name: "GM",
     skill_group: "Champion League",
-    staff_position: "GM",
+    staff_position: "General Manager",
     slot: null,
   });
   assert.equal(gm.rosterMember, true);
@@ -23,8 +23,8 @@ test("Activity staff access recognizes franchise staff and captains", () => {
     sprocket_player_id: "2",
     name: "Captain",
     skill_group: "Champion League",
-    staff_position: null,
-    slot: "Captain",
+    staff_position: "Captain",
+    slot: "PLAYERA",
   });
   assert.equal(captain.staff, true);
 
@@ -33,7 +33,7 @@ test("Activity staff access recognizes franchise staff and captains", () => {
     name: "Player",
     skill_group: "Champion League",
     staff_position: null,
-    slot: "Starter",
+    slot: "PLAYERB",
   });
   assert.equal(player.staff, false);
 });
@@ -46,13 +46,13 @@ test("division normalization handles public MLE league names", () => {
   assert.equal(divisionCode("Premier League"), "PL");
 });
 
-test("team availability includes competitive players and preserves missing/unlinked states", () => {
+test("team availability includes PLAYER roster slots and preserves missing/unlinked states", () => {
   const roster = [
-    {sprocketPlayerId: "1", discordUserId: "101", name: "Alpha", division: "CL", salary: 12, slot: "Captain", staffPosition: null},
-    {sprocketPlayerId: "2", discordUserId: "102", name: "Bravo", division: "CL", salary: 10, slot: "Starter", staffPosition: null},
-    {sprocketPlayerId: "3", discordUserId: null, name: "Charlie", division: "CL", salary: 8, slot: "Starter", staffPosition: null},
-    {sprocketPlayerId: "4", discordUserId: "104", name: "Manager", division: "CL", salary: null, slot: null, staffPosition: "GM"},
-    {sprocketPlayerId: "5", discordUserId: "105", name: "Delta", division: "AL", salary: 7, slot: "Starter", staffPosition: null},
+    {sprocketPlayerId: "1", discordUserId: "101", name: "Alpha", division: "CL", salary: 12, slot: "PLAYERA", staffPosition: "Captain"},
+    {sprocketPlayerId: "2", discordUserId: "102", name: "Bravo", division: "CL", salary: 10, slot: "PLAYERB", staffPosition: null},
+    {sprocketPlayerId: "3", discordUserId: null, name: "Charlie", division: "CL", salary: 8, slot: "PLAYERC", staffPosition: null},
+    {sprocketPlayerId: "4", discordUserId: "104", name: "Manager", division: "CL", salary: 20, slot: "GM", staffPosition: "General Manager"},
+    {sprocketPlayerId: "5", discordUserId: "105", name: "Delta", division: "AL", salary: 7, slot: "PLAYERD", staffPosition: null},
   ];
   assert.equal(isCompetitiveAvailabilityPlayer(roster[0]), true);
   assert.equal(isCompetitiveAvailabilityPlayer(roster[3]), false);
