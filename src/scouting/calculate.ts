@@ -154,10 +154,14 @@ function roleScores(
 function flags(candidate: Candidate): string {
   const values: string[] = [];
   if (candidate.games < 9) values.push("Low games sample");
+
+  // `shots` is a per-game rate in Avg_Scrim_Stats. Sample reliability should
+  // depend on actual shot opportunities, so convert it back to an estimated
+  // total before applying the 2s/3s thresholds.
+  const totalShots = (candidate.shots ?? 0) * candidate.games;
   const shotFloor = candidate.mode === "2s" ? 20 : 15;
-  // The S19 HCPB compares its displayed per-game Shots value directly to
-  // these thresholds. Preserve that behavior so the port reproduces the board.
-  if ((candidate.shots ?? 0) < shotFloor) values.push("Low shots sample");
+  if (totalShots < shotFloor) values.push("Low shots sample");
+
   return values.join(" • ");
 }
 

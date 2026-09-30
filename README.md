@@ -128,15 +128,15 @@ The UI never needs to render the entire prospect population at once.
 
 #### HCPB calculations
 
-The V1 calculation engine mirrors the recovered S19 board behavior. Peer groups are league + mode and include current FA/PEND prospects with usable samples.
+The V1 calculation engine is based on the recovered S19 board behavior, but recovered formulas are treated as a starting point rather than something that must be preserved when a calculation is clearly misleading. Peer groups are league + mode and include current FA/PEND prospects with usable samples.
 
 - **Eff/Sal:** builds an efficiency value from OPI/DPI (with the original fallbacks), divides by salary, then indexes the prospect against the peer group's mean so `50` represents peer-average value.
 - **Temp:** compares the player's tracked per-game metrics with game-weighted peer averages using the original HCPB weights and caps.
 - **Bucket:** Hot/Cold selections are limited to the top/bottom 15% of the peer group and must pass the original breadth checks; everyone else is Warm.
 - **Roles:** Main/Alt role use the recovered 1st/2nd/3rd role formulas and confidence gap.
-- **Flags:** preserves the S19 low-games / low-shots board behavior.
+- **Flags:** a player is flagged for a low game sample below 9 games. The low-shot flag uses estimated **total shot opportunities**, not the per-game Shots value: fewer than 20 shots in 2s or fewer than 15 shots in 3s.
 
-Regression tests use a known FL 2s HCPB sample and verify Eff/Sal, Temp, Bucket, Main/Alt Roles, flags, and shooting percentage.
+Regression tests use a known FL 2s HCPB sample and verify Eff/Sal, Temp, Bucket, Main/Alt Roles, sample flags, and shooting percentage, with dedicated boundary checks for 2s/3s shot-sample thresholds.
 
 ### Scouting refresh cadence
 
