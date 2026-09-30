@@ -14,7 +14,7 @@
     "db:migrate:local": "wrangler d1 migrations apply hagrid --local",
     "db:migrate:remote": "wrangler d1 migrations apply hagrid --remote",
     "register:commands": "node scripts/register-commands.mjs",
-    "smoke:live-sources": "node --experimental-strip-types scripts/live-source-smoke.mjs",
+    "smoke:live-sources": "tsx scripts/live-source-smoke.mjs",
     "smoke:deployed": "node scripts/deployed-smoke.mjs",
     "prepare:deploy-config": "node scripts/prepare-deploy-config.mjs"
   },
@@ -22,6 +22,7 @@
     "@discord/embedded-app-sdk": "^2.5.0"
   },
   "devDependencies": {
+    "tsx": "^4.20.0",
     "typescript": "^5.9.0",
     "vite": "^7.1.0",
     "wrangler": "^4.0.0"
