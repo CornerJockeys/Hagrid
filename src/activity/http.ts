@@ -6,6 +6,7 @@ import {
   saveMyAvailability,
 } from "./availability";
 import {getActivityScouting, getActivityScoutingPlayer} from "./scouting";
+import {getTeamAvailability} from "./team-availability";
 
 function methodNotAllowed(): Response {
   return Response.json({error: "Method not allowed."}, {status: 405});
@@ -30,6 +31,12 @@ export async function handleActivityApi(request: Request, env: Env): Promise<Res
     if (request.method === "GET") return getMyAvailability(request, env);
     if (request.method === "PUT") return saveMyAvailability(request, env);
     return methodNotAllowed();
+  }
+
+  if (url.pathname === "/api/activity/availability/team") {
+    return request.method === "GET"
+      ? getTeamAvailability(request, env)
+      : methodNotAllowed();
   }
 
   if (url.pathname === "/api/activity/scouting") {

@@ -42,7 +42,7 @@ Features that depend on Season 20-specific datasets or schemas are deferred to V
 
 `/sync run` requires **Manage Server** and provides the manual rerun path for the same franchise pipeline used by the Monday scheduled refresh.
 
-The franchise sync currently imports the configured franchise's Rocket League roster, slots, salaries, current scrim-point/eligibility fields, and current 2v2/3v3/total role usage. Roster movement is treated as normal effective-dated data rather than an integrity error.
+The franchise sync imports the configured franchise's Rocket League roster, slots, salaries, current scrim-point/eligibility fields, and current 2v2/3v3/total role usage. Roster movement is treated as normal effective-dated data rather than an integrity error.
 
 ### Standings
 
@@ -81,7 +81,17 @@ When `status` is omitted the command includes both FA and PEND players, grouped 
 
 The Activity is the richer UI layer for features that do not fit cleanly into Discord messages, modals, buttons, or select menus. It is built with TypeScript, Vite, and Discord's Embedded App SDK and is served as static assets by the same Cloudflare Worker deployment.
 
-### Availability
+### Activity access
+
+The Activity verifies the Discord user and server, then links that Discord ID to the current franchise roster imported by Hagrid.
+
+- **Current roster members** can use `My Availability`.
+- **Current franchise staff and captains** can additionally use `Team Availability` and the `HC Prospect Board`.
+- Users who are in the Discord server but cannot be matched to the current franchise roster receive a clear roster-link error instead of being allowed to write availability under an untrusted identity.
+
+Staff status is derived from the current franchise data (`Franchise Staff Position`), with a captain-slot fallback for compatibility. Staff-only panels are lazy-loaded so opening Hagrid solely to submit availability does not trigger unnecessary team/HCPB requests.
+
+### My Availability
 
 Availability is an internal franchise tool only. Hagrid does **not** ingest opponent availability, negotiate match times, or schedule official MLE matches.
 
@@ -97,11 +107,26 @@ The player workflow uses a When2Meet-style grid:
 - **Copy Previous Week** into the current unsaved draft
 - explicit **Save Availability** action
 
-Selections are stored internally at 30-minute resolution even when the player uses the hourly view. Availability is stored compactly as one D1 row per player/week.
+Selections are stored internally at 30-minute resolution even when the player uses the hourly view. Availability is stored compactly as one D1 row per player/week. Saving an empty week is still a real submission and means the player is unavailable for the entire window.
+
+### Team Availability
+
+The staff view uses the same underlying 30-minute data and presents it as a scheduling heatmap.
+
+- filter by **FL / AL / CL / ML / PL** or view the full franchise
+- switch between **1-hour** and **30-minute** heatmap cells
+- hourly cells count a player only when that player is available for the entire hour
+- click a time block to see **Available / Unavailable / Missing** players
+- click a player to see that player's full weekly availability in readable time ranges
+- show missing submissions separately
+- distinguish a missing submission from an **unlinked Discord identity**
+- show roster / submitted / missing / Discord-linked counts
+
+Only competitive MLE roster spots (`PLAYERA`, `PLAYERB`, etc.) participate in team overlap counts. Franchise-only staff records are excluded so they cannot inflate the denominator or make a time window look worse than it actually is.
 
 ### HC Prospect Board
 
-Hagrid ports the existing HC Prospect Board behavior into the backend and uses the Activity only as the presentation layer.
+Hagrid ports the useful HC Prospect Board behavior into the backend and uses the Activity as the presentation layer. The HCPB Activity is staff/captain-only.
 
 The main board is intentionally a first-glance performance/value table with exactly these columns:
 
@@ -163,7 +188,7 @@ https://sprocket-public-datasets.nyc3.cdn.digitaloceanspaces.com/datasets/public
 Current adapters include:
 
 - `teams` — franchise validation / canonical name and code
-- `players` — configured-franchise roster, salary, slot, and eligibility-related fields
+- `players` — configured-franchise roster, salary, slot, Discord identity, staff position, and eligibility-related fields
 - `role_usages` — franchise role usage
 - `standings` — on-demand standings
 - `Avg_Scrim_Stats` — current HCPB scouting metrics
@@ -247,7 +272,7 @@ Set `DISCORD_APPLICATION_ID` and `DISCORD_BOT_TOKEN`. For faster development reg
 
 ## V1 development status
 
-Implemented through Pass 1:
+Implemented through **Pass 2**:
 
 - Cloudflare Worker Discord interaction endpoint
 - Discord Ed25519 request verification
@@ -259,7 +284,12 @@ Implemented through Pass 1:
 - standings command
 - Rocket League replay parser + MVPR/OPI/DPI/GPI
 - Discord Activity shell/authentication
+- roster-backed Activity identity/access checks
 - player availability grid, hourly/half-hour modes, drag/checkbox editing, copy previous week, save
+- staff Team Availability heatmap with division filtering
+- missing-submission and unlinked-Discord views
+- time-block and per-player availability drilldowns
+- staff/captain-only HCPB Activity access
 - HCPB calculation engine
 - HCPB filtered Activity table
 - HCPB click-player detail view
@@ -267,16 +297,18 @@ Implemented through Pass 1:
 - daily scouting history
 - complete FA/PEND pool snapshot
 - required-division `/pool` command
-- HCPB regression tests
+- replay, scouting, access, and availability regression tests
 
-Remaining before V1 moves primarily into testing:
+Remaining for **Pass 3**, after which V1 should move primarily into live testing:
 
-- staff/team availability heatmap and missing-submission view
-- staff permissions for staff-only Activity surfaces
-- production Cloudflare/D1 deployment configuration
-- Discord Developer Portal Activity URL mapping / launch configuration
-- live-source schema/import smoke tests
-- staff-channel scheduled-run notifications if retained for V1
+- create/configure the production Cloudflare D1 database
+- apply migrations remotely
+- deploy the Worker + Activity assets
+- configure Discord application secrets and Activity URL mapping
+- register production commands
+- validate live Sprocket imports against production schemas/data
+- run end-to-end smoke tests for every V1 workflow
+- decide whether staff-channel scheduled-run notifications belong in V1 or V1+
 
 V1+ is intentionally held for Season 20 dataset/schema availability.
 

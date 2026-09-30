@@ -7,6 +7,7 @@ import {
   type ScoutingFilters,
   type ScoutingViewMode,
 } from "../scouting/query";
+import {isAccessResponse, requireStaffAccess} from "./access";
 import {authenticateActivityRequest, isAuthResponse} from "./auth";
 
 const LEAGUES = new Set<LeagueCode>(["FL", "AL", "CL", "ML", "PL"]);
@@ -41,6 +42,8 @@ function cleanSearch(value: string | null): string | null {
 export async function getActivityScouting(request: Request, env: Env): Promise<Response> {
   const auth = await authenticateActivityRequest(request);
   if (isAuthResponse(auth)) return auth;
+  const access = await requireStaffAccess(env, auth);
+  if (isAccessResponse(access)) return access;
 
   await ensureScoutingSnapshot(env);
 
@@ -75,6 +78,8 @@ export async function getActivityScouting(request: Request, env: Env): Promise<R
 export async function getActivityScoutingPlayer(request: Request, env: Env): Promise<Response> {
   const auth = await authenticateActivityRequest(request);
   if (isAuthResponse(auth)) return auth;
+  const access = await requireStaffAccess(env, auth);
+  if (isAccessResponse(access)) return access;
 
   await ensureScoutingSnapshot(env);
 
