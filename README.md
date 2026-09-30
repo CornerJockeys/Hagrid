@@ -6,6 +6,22 @@ The project combines normal Discord commands with a Discord Activity for workflo
 
 Hagrid is public so other franchises can adapt it. The target franchise is configured per Discord server rather than hard-coded to the Wizards.
 
+## V1 scope
+
+Hagrid V1 is intentionally limited to the data and workflows that can be built against the currently published Rocket League datasets. V1 includes:
+
+- per-server franchise configuration
+- weekly franchise roster / salary / eligibility / usage sync
+- current standings lookup
+- Rocket League replay analysis with MVPR / OPI / DPI / GPI
+- player availability entry through the Hagrid Activity
+- staff/team availability overview
+- HC Prospect Board calculations and filtered Activity UI
+- hourly HC Prospect Board refresh, offset from Sprocket's hourly publication cycle
+- FA/PEND player-pool lookup by league/division
+
+Features that depend on Season 20-specific datasets or schemas are deferred to V1+ until those sources are published and can be validated rather than guessed.
+
 ## Current Discord commands
 
 ### Franchise configuration
@@ -82,6 +98,18 @@ The parser currently uses replay-header `PlayerStats`, not full network-frame de
 
 MVPR uses the legacy formula recovered from the old MVPR plugin. OPI/DPI use the Sprocket rating implementation identified in Sprocket's public code, with separate 2s and 3s constants. GPI is the mean of OPI and DPI.
 
+### FA/PEND pool
+
+The final V1 Discord lookup will expose the current free-agent / pending pool by league:
+
+```text
+/pool league:CL
+/pool league:CL status:FA
+/pool league:CL status:PEND
+```
+
+The pool will use the same current scouting dataset as the HC Prospect Board rather than maintaining a second copy of player data. The default status view will include both `FA` and `PEND`. Results should remain compact enough for Discord and include only the fields useful for a quick pool scan; deeper player analysis belongs in the HC Prospect Board Activity.
+
 ## Hagrid Activity
 
 The Activity is the richer UI layer for features that do not fit cleanly into Discord messages, modals, buttons, or select menus.
@@ -129,6 +157,8 @@ The current UI shell includes filters for:
 
 The scouting data adapter/calculation backend is the next step. The intent is to filter before returning results so the Activity never needs to dump the entire prospect pool onto one screen.
 
+The live HC Prospect Board target cadence is once per hour, shortly after Sprocket's own hourly dataset publication. Hagrid should use source/change detection so an unchanged upstream publication does not cause unnecessary D1 rewrites. Trend/history archival can run less frequently than the live board refresh.
+
 ## Scheduled weekly sync
 
 Hagrid targets **Monday at 1:00 PM America/New_York** for the automated franchise refresh.
@@ -170,7 +200,7 @@ The initial hosting target is Cloudflare:
 - **Workers Static Assets** — built Hagrid Activity frontend
 - **D1** — current franchise state, roster history, configuration, change history, availability, and sync metadata
 - **R2 (optional)** — raw source archives or replay retention if needed later
-- **Cron Triggers** — scheduled Monday refresh
+- **Cron Triggers** — scheduled Monday refresh plus hourly scouting refresh
 
 Hagrid does not mirror the entire MLE database. It stores the configured franchise's operational state plus broader league context only when a feature requires it. For example, standings are currently read on demand instead of copied wholesale into D1.
 
@@ -300,7 +330,9 @@ Not yet implemented:
 - Discord Developer Portal Activity URL mapping / launch configuration
 - staff/team availability heatmap and missing-submission view
 - HC Prospect Board dataset adapters and backend calculations
+- hourly HC Prospect Board refresh/change detection
 - HC Prospect Board result table/player detail views
+- `/pool` FA/PEND lookup backed by the scouting dataset
 - staff-channel scheduled-run notifications
 - deeper identity/eligibility adapters
 - network-frame replay parsing for join/drop edge cases
