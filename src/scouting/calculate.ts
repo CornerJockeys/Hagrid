@@ -154,9 +154,10 @@ function roleScores(
 function flags(candidate: Candidate): string {
   const values: string[] = [];
   if (candidate.games < 9) values.push("Low games sample");
-  const totalShots = (candidate.shots ?? 0) * candidate.games;
   const shotFloor = candidate.mode === "2s" ? 20 : 15;
-  if (totalShots < shotFloor) values.push("Low shots sample");
+  // The S19 HCPB compares its displayed per-game Shots value directly to
+  // these thresholds. Preserve that behavior so the port reproduces the board.
+  if ((candidate.shots ?? 0) < shotFloor) values.push("Low shots sample");
   return values.join(" • ");
 }
 
