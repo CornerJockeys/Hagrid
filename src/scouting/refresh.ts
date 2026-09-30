@@ -86,6 +86,22 @@ async function getState(env: Env): Promise<ScoutingStateRow | null> {
     .first<ScoutingStateRow>();
 }
 
+function insertPoolStatement(env: Env, identity: ProspectIdentity, sourceHash: string, now: string) {
+  return env.DB.prepare(
+    `INSERT INTO prospect_pool_current (
+       sprocket_player_id, league, status, name, salary, source_hash, refreshed_at
+     ) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+  ).bind(
+    identity.sprocketPlayerId,
+    identity.league,
+    identity.status,
+    identity.name,
+    identity.salary,
+    sourceHash,
+    now,
+  );
+}
+
 function insertCurrentStatement(env: Env, record: ScoutingRecord, sourceHash: string, now: string) {
   return env.DB.prepare(
     `INSERT INTO scouting_players_current (
@@ -186,7 +202,13 @@ export async function refreshScouting(env: Env, reason = "manual"): Promise<Scou
     throw new Error("The scouting calculation produced zero player/mode records.");
   }
 
-  const statements = [env.DB.prepare("DELETE FROM scouting_players_current")];
+  const statements = [
+    env.DB.prepare("DELETE FROM prospect_pool_current"),
+    env.DB.prepare("DELETE FROM scouting_players_current"),
+  ];
+  for (const identity of identities) {
+    statements.push(insertPoolStatement(env, identity, sourceHash, checkedAt));
+  }
   for (const record of records) {
     statements.push(insertCurrentStatement(env, record, sourceHash, checkedAt));
   }
