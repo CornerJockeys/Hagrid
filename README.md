@@ -2,13 +2,13 @@
 
 Hagrid is a Discord-first operations and analytics app for a single Major League Esports (MLE) Rocket League franchise.
 
-The project combines normal Discord commands with a Discord Activity for workflows that need more UI than chat components can reasonably provide. Hagrid consumes selected public Sprocket/MLE datasets, tracks franchise-specific operational data, and exposes the useful pieces without trying to manage MLE as a whole.
+It combines normal Discord slash commands with a Discord Activity for workflows that need more UI than chat components can reasonably provide. Hagrid consumes selected public Sprocket/MLE datasets, tracks franchise-specific operational data, and exposes broader league context only where a feature needs it.
 
 Hagrid is public so other franchises can adapt it. The target franchise is configured per Discord server rather than hard-coded to the Wizards.
 
 ## V1 scope
 
-Hagrid V1 is intentionally limited to the data and workflows that can be built against the currently published Rocket League datasets. V1 includes:
+Hagrid V1 is intentionally limited to the data and workflows that can be built against the currently published Rocket League datasets:
 
 - per-server franchise configuration
 - weekly franchise roster / salary / eligibility / usage sync
@@ -17,12 +17,12 @@ Hagrid V1 is intentionally limited to the data and workflows that can be built a
 - player availability entry through the Hagrid Activity
 - staff/team availability overview
 - HC Prospect Board calculations and filtered Activity UI
-- hourly HC Prospect Board refresh, offset from Sprocket's hourly publication cycle
-- FA/PEND player-pool lookup by league/division
+- hourly HC Prospect Board refresh with source-change detection
+- division-scoped FA/PEND pool lookup
 
 Features that depend on Season 20-specific datasets or schemas are deferred to V1+ until those sources are published and can be validated rather than guessed.
 
-## Current Discord commands
+## Discord commands
 
 ### Franchise configuration
 
@@ -31,7 +31,7 @@ Features that depend on Season 20-specific datasets or schemas are deferred to V
 /franchise show
 ```
 
-`/franchise set` requires **Manage Server**. The requested name or code is validated against Sprocket's public `teams` dataset before it is saved. Hagrid stores the canonical franchise name/code and leaves the existing configuration unchanged if validation fails.
+`/franchise set` requires **Manage Server**. The requested name/code is validated against Sprocket before Hagrid stores the canonical franchise configuration for that Discord server.
 
 ### Franchise data sync
 
@@ -40,21 +40,9 @@ Features that depend on Season 20-specific datasets or schemas are deferred to V
 /sync status
 ```
 
-`/sync run` requires **Manage Server** and runs the same franchise data pipeline used by the scheduled weekly refresh. The command is intended to provide a manual rerun path if an automatic import fails.
+`/sync run` requires **Manage Server** and provides the manual rerun path for the same franchise pipeline used by the Monday scheduled refresh.
 
-The current sync imports:
-
-- Rocket League players for the configured franchise
-- roster slot assignments
-- salary
-- current scrim points / eligibility-through data exposed by `players`
-- current 2v2 / 3v3 / total role usage
-
-Each run receives a unique run ID and is logged as `RUNNING`, `SUCCESS`, or `FAILED`. Current franchise data is only replaced after the source data has been fetched and validated. D1 promotion uses a batch so a failed promotion does not intentionally leave a half-updated current state.
-
-Only one sync can be `RUNNING` for a Discord server at a time. A run left stuck for more than 30 minutes is marked failed before a replacement run is allowed.
-
-Roster movement is normal data, not an integrity error. Hagrid logs joins, departures, slot changes, salary changes, eligibility changes, scrim-point changes, and display-name changes. Slot assignments are kept as effective history rather than rewriting the past when a player joins or leaves the team.
+The franchise sync currently imports the configured franchise's Rocket League roster, slots, salaries, current scrim-point/eligibility fields, and current 2v2/3v3/total role usage. Roster movement is treated as normal effective-dated data rather than an integrity error.
 
 ### Standings
 
@@ -65,15 +53,7 @@ Roster movement is normal data, not an integrity error. Hagrid logs joins, depar
 /standings league:Champion League (CL) mode:Standard
 ```
 
-Standings are fetched on demand from Sprocket rather than being tied to the Monday batch.
-
-Without a league option, Hagrid shows the configured franchise's current position and record in FL, AL, CL, and ML. Supplying a league shows the complete relevant division/conference table and highlights the configured franchise.
-
-Modes are:
-
-- Overall
-- Doubles
-- Standard
+Standings are fetched on demand. Without a league option Hagrid shows the configured franchise's current positions; choosing a league returns the relevant table and highlights the configured franchise.
 
 ### Replay analysis
 
@@ -81,46 +61,31 @@ Modes are:
 /replay analyze file:<match.replay>
 ```
 
-Hagrid can parse the header of a normal Rocket League `.replay` attachment and calculate per-player:
+Hagrid parses Rocket League replay-header `PlayerStats` and calculates goals, assists, saves, shots, MVPR, OPI, DPI, and GPI. Runtime parsing is dependency-free and does not require Ballchasing or BakkesMod.
 
-- goals
-- assists
-- saves
-- shots
-- MVPR
-- OPI
-- DPI
-- GPI
-
-The command is intentionally dependency-free at runtime: it does not require Ballchasing or BakkesMod. It validates the attachment type/size, only downloads Discord attachment URLs, caps replay uploads at 15 MiB, and includes a short SHA-256 fingerprint in the response.
-
-The parser currently uses replay-header `PlayerStats`, not full network-frame decoding. Rocket League replay headers can omit players who join or drop during a match, so Hagrid warns when the declared team size and header player counts disagree. Full network parsing remains a later hardening option for competitive submission workflows.
-
-MVPR uses the legacy formula recovered from the old MVPR plugin. OPI/DPI use the Sprocket rating implementation identified in Sprocket's public code, with separate 2s and 3s constants. GPI is the mean of OPI and DPI.
+The parser currently uses replay-header data rather than full network-frame decoding, so it warns when declared team size and header participant counts disagree.
 
 ### FA/PEND pool
 
-The final V1 Discord lookup will expose the current free-agent / pending pool by league:
-
 ```text
-/pool league:CL
-/pool league:CL status:FA
-/pool league:CL status:PEND
+/pool division:CL
+/pool division:CL status:FA
+/pool division:CL status:PEND
 ```
 
-The pool will use the same current scouting dataset as the HC Prospect Board rather than maintaining a second copy of player data. The default status view will include both `FA` and `PEND`. Results should remain compact enough for Discord and include only the fields useful for a quick pool scan; deeper player analysis belongs in the HC Prospect Board Activity.
+`division` is deliberately required. Hagrid will not dump every division's player pool into one Discord response. Supported divisions are FL, AL, CL, ML, and PL.
+
+When `status` is omitted the command includes both FA and PEND players, grouped by status. The pool snapshot is stored separately from HCPB stat rows so a player remains visible even when they do not yet have a usable scouting sample.
 
 ## Hagrid Activity
 
-The Activity is the richer UI layer for features that do not fit cleanly into Discord messages, modals, buttons, or select menus.
-
-It is built with TypeScript, Vite, and Discord's Embedded App SDK and is served as static assets by the same Cloudflare Worker deployment.
+The Activity is the richer UI layer for features that do not fit cleanly into Discord messages, modals, buttons, or select menus. It is built with TypeScript, Vite, and Discord's Embedded App SDK and is served as static assets by the same Cloudflare Worker deployment.
 
 ### Availability
 
 Availability is an internal franchise tool only. Hagrid does **not** ingest opponent availability, negotiate match times, or schedule official MLE matches.
 
-The first Activity workflow implements player availability with a When2Meet-style grid:
+The player workflow uses a When2Meet-style grid:
 
 - Monday through Sunday
 - **12:00 PM through 12:00 AM Eastern Time**
@@ -129,25 +94,29 @@ The first Activity workflow implements player availability with a When2Meet-styl
 - drag-to-select editing
 - optional checkbox editing
 - previous/next week navigation
-- **Copy Previous Week** to load the prior week's selections into the current unsaved draft
+- **Copy Previous Week** into the current unsaved draft
 - explicit **Save Availability** action
 
-Hagrid stores availability internally at 30-minute resolution regardless of whether the player is viewing the grid in one-hour or half-hour mode. This means a player can normally use the simpler hourly grid without losing the ability to make a half-hour adjustment when necessary.
-
-The Activity labels the timezone as Eastern Time (`America/New_York`) so the intended local noon-to-midnight window remains correct through daylight-saving changes.
-
-Availability is stored compactly as one D1 row per player/week instead of one database row per grid cell. This keeps reads and writes small while still allowing a later staff overview to reconstruct and aggregate the full grid.
+Selections are stored internally at 30-minute resolution even when the player uses the hourly view. Availability is stored compactly as one D1 row per player/week.
 
 ### HC Prospect Board
 
-The Activity also contains the initial HC Prospect Board surface. The spreadsheet is treated as a behavior/calculation specification; the long-term source of truth will be Hagrid's backend calculations rather than the Google Sheet itself.
+Hagrid ports the existing HC Prospect Board behavior into the backend and uses the Activity only as the presentation layer.
 
-The current UI shell includes filters for:
+The main board is intentionally a first-glance performance/value table with exactly these columns:
+
+```text
+Name | Status | Salary | Games | Eff/Sal | Win% | Sprocket | OPI | DPI
+```
+
+Selecting a player opens the deeper detail view containing Temp, Bucket, Main Role, Alt Role, Score, Goals, Assists, Saves, Shots, SH%, Demos, sample flags, and role confidence.
+
+The board can be filtered before results are returned by:
 
 - player search
-- FL / AL / CL / ML
+- FL / AL / CL / ML / PL
 - 2v2 / 3v3 / combined mode
-- Hot / Warm / Cold temperature
+- Hot / Warm / Cold temperature bucket
 - role
 - minimum games
 - salary min/max
@@ -155,70 +124,92 @@ The current UI shell includes filters for:
 - sort field
 - 10 / 25 / 50 row limits
 
-The scouting data adapter/calculation backend is the next step. The intent is to filter before returning results so the Activity never needs to dump the entire prospect pool onto one screen.
+The UI never needs to render the entire prospect population at once.
 
-The live HC Prospect Board target cadence is once per hour, shortly after Sprocket's own hourly dataset publication. Hagrid should use source/change detection so an unchanged upstream publication does not cause unnecessary D1 rewrites. Trend/history archival can run less frequently than the live board refresh.
+#### HCPB calculations
 
-## Scheduled weekly sync
+The V1 calculation engine mirrors the recovered S19 board behavior. Peer groups are league + mode and include current FA/PEND prospects with usable samples.
 
-Hagrid targets **Monday at 1:00 PM America/New_York** for the automated franchise refresh.
+- **Eff/Sal:** builds an efficiency value from OPI/DPI (with the original fallbacks), divides by salary, then indexes the prospect against the peer group's mean so `50` represents peer-average value.
+- **Temp:** compares the player's tracked per-game metrics with game-weighted peer averages using the original HCPB weights and caps.
+- **Bucket:** Hot/Cold selections are limited to the top/bottom 15% of the peer group and must pass the original breadth checks; everyone else is Warm.
+- **Roles:** Main/Alt role use the recovered 1st/2nd/3rd role formulas and confidence gap.
+- **Flags:** preserves the S19 low-games / low-shots board behavior.
 
-Cloudflare cron expressions are UTC, so the Worker is configured for both 17:00 and 18:00 UTC on Mondays. The scheduled handler checks the actual `America/New_York` local time and only executes when it is 1:00 PM Eastern. This keeps the intended local time through daylight-saving changes.
+Regression tests use a known FL 2s HCPB sample and verify Eff/Sal, Temp, Bucket, Main/Alt Roles, flags, and shooting percentage.
 
-The automatic and manual sync paths call the same underlying sync service.
+### Scouting refresh cadence
+
+Sprocket's public dataset generation runs hourly. Hagrid schedules its scouting refresh for **`:20` past every hour** to leave time for the upstream build/CDN publication to finish.
+
+Each refresh:
+
+1. fetches the current FA/PEND identity/status source and current scouting stat source,
+2. computes a stable source hash that also includes the HCPB algorithm version,
+3. skips recalculation/D1 replacement if the effective source is unchanged,
+4. recalculates and promotes the live pool + HCPB snapshot when it changes,
+5. keeps a compact daily HCPB history rather than writing 24 historical copies every day.
 
 ## Data sources
 
-Hagrid consumes selected public datasets published by Sprocket. Dataset access currently targets the CSV publication path produced by the Sprocket datasets project:
+Hagrid consumes selected public Sprocket datasets.
+
+Current normal dataset base:
 
 ```text
 https://sprocket-public-datasets.nyc3.cdn.digitaloceanspaces.com/datasets/public/data
 ```
 
-The base URL can be overridden with `SPROCKET_DATASET_BASE_URL` for development/testing or if the publication location changes.
+Current adapters include:
 
-Current adapters exist for:
+- `teams` — franchise validation / canonical name and code
+- `players` — configured-franchise roster, salary, slot, and eligibility-related fields
+- `role_usages` — franchise role usage
+- `standings` — on-demand standings
+- `Avg_Scrim_Stats` — current HCPB scouting metrics
 
-- `teams` — franchise validation and canonical name/code
-- `players` — current franchise Rocket League roster, salary, slot and eligibility-related fields
-- `role_usages` — franchise role usage by season/league/slot
-- `standings` — on-demand current-season standings
+The HCPB/pool implementation also uses the legacy root `players.csv` publication as the current FA/PEND status authority because that source exposes the player-pool states used by the existing MLE tooling.
 
-Likely future inputs include:
+The bases can be overridden for development/testing:
 
-- `eligibility_data` for deeper eligibility auditing if needed
-- `all_the_ids` for additional identity reconciliation
-- scrim/player statistics used for scouting / HC Prospect Board calculations
+```text
+SPROCKET_DATASET_BASE_URL
+SPROCKET_LEGACY_DATASET_BASE_URL
+```
 
 Trackmania datasets are intentionally out of scope. Hagrid is a Rocket League project.
 
+## Scheduling
+
+The franchise sync targets **Monday at 1:00 PM America/New_York**. Cloudflare cron is UTC, so Hagrid registers both possible UTC Monday times and verifies the actual Eastern clock before executing. This keeps the intended local time through daylight-saving changes.
+
+The HCPB/pool snapshot uses a separate hourly cron at `20 * * * *`.
+
 ## Architecture
 
-The initial hosting target is Cloudflare:
+Initial hosting target:
 
-- **Workers** — Discord interactions, Activity API, dataset processing, replay analysis, and scheduled tasks
-- **Workers Static Assets** — built Hagrid Activity frontend
-- **D1** — current franchise state, roster history, configuration, change history, availability, and sync metadata
-- **R2 (optional)** — raw source archives or replay retention if needed later
-- **Cron Triggers** — scheduled Monday refresh plus hourly scouting refresh
+- **Cloudflare Workers** — Discord interactions, Activity API, dataset processing, replay analysis, scheduled tasks
+- **Workers Static Assets** — built Activity frontend
+- **D1** — current franchise state, history, configuration, availability, scouting snapshots, pool snapshot, and sync metadata
+- **R2 (optional)** — source archives/replay retention if later needed
+- **Cron Triggers** — Monday franchise sync + hourly scouting refresh
 
-Hagrid does not mirror the entire MLE database. It stores the configured franchise's operational state plus broader league context only when a feature requires it. For example, standings are currently read on demand instead of copied wholesale into D1.
+Hagrid does not mirror the entire MLE database.
 
 ## Activity authentication
 
-The Activity uses Discord's authorization-code flow through the Embedded App SDK.
+The Activity uses Discord's authorization-code flow through the Embedded App SDK. The browser receives a short-lived authorization code and sends it to Hagrid's Worker for exchange. Authenticated Activity API requests verify the Discord user and the guild from which the Activity was opened.
 
-The browser receives a short-lived authorization code from Discord, sends it to Hagrid's `/api/activity/token` endpoint, and the Worker exchanges it using the application's client secret. Authenticated Activity requests also verify the current Discord user and that the user belongs to the Discord server from which the Activity was opened.
+Never expose the Discord client secret to the Vite client.
 
-Do not expose the Discord client secret in Vite/client-side environment variables.
-
-The Activity build needs:
+Activity build variable:
 
 ```text
 VITE_DISCORD_CLIENT_ID=<Discord application ID>
 ```
 
-The Worker deployment needs:
+Worker secrets/variables include:
 
 ```text
 DISCORD_PUBLIC_KEY
@@ -226,121 +217,73 @@ DISCORD_APPLICATION_ID
 DISCORD_CLIENT_SECRET
 ```
 
-`DISCORD_CLIENT_SECRET` must be configured as a Worker secret.
+The Discord Developer Portal still needs the deployed Activity URL mapping/configuration before the Activity can launch in Discord.
 
-The Discord Developer Portal still needs the deployed Activity URL mapping / Activity settings configured before the UI can be launched inside Discord.
-
-## Local build
-
-Install dependencies:
+## Local development
 
 ```text
 npm install
-```
-
-Typecheck both the Worker and Activity:
-
-```text
 npm run check
-```
-
-Build the Activity:
-
-```text
 npm run build:activity
-```
-
-Run the Worker locally after building the Activity:
-
-```text
 npm run dev
 ```
 
-Run only Vite's Activity development server:
-
-```text
-npm run dev:activity
-```
-
-## Database migrations
-
-Apply D1 migrations locally with:
+D1 migrations:
 
 ```text
 npm run db:migrate:local
-```
-
-Apply them to the configured remote D1 database with:
-
-```text
 npm run db:migrate:remote
 ```
 
-`wrangler.toml` intentionally contains a placeholder D1 database ID until the deployment database is created.
+`wrangler.toml` intentionally contains a placeholder D1 database ID until the production D1 database is created.
 
-## Discord command registration
-
-Set the application ID and bot token in your local environment, then run:
+Register Discord commands:
 
 ```text
 npm run register:commands
 ```
 
-For faster development registration in one server, also set `DISCORD_GUILD_ID`. Without it, commands are registered globally.
+Set `DISCORD_APPLICATION_ID` and `DISCORD_BOT_TOKEN`. For faster development registration in one server, also set `DISCORD_GUILD_ID`.
 
-The Discord bot token is only needed by the command-registration script. The Worker interaction endpoint validates Discord requests with `DISCORD_PUBLIC_KEY`.
+## V1 development status
 
-## Security
-
-Never commit Discord tokens, Discord client secrets, Cloudflare credentials, GitHub tokens, or other secrets to this repository.
-
-Public identifiers can be ordinary deployment/build variables where appropriate; credentials and tokens belong in the hosting platform's secret store.
-
-## Development status
-
-Implemented foundation:
+Implemented through Pass 1:
 
 - Cloudflare Worker Discord interaction endpoint
 - Discord Ed25519 request verification
-- D1-backed per-server franchise configuration and audit history
-- Sprocket CSV client
-- Sprocket-backed franchise resolution
-- current Rocket League franchise-player adapter
-- role-usage adapter
-- atomic current-state promotion with roster/change history
-- manual sync and sync-status commands
-- overlapping/stale sync protection
-- Monday 1 PM Eastern scheduled sync trigger
-- on-demand standings command
-- Rocket League replay-header parser
-- MVPR / OPI / DPI / GPI calculations
-- `/replay analyze` Discord workflow
-- Discord Activity shell
-- Activity OAuth/token exchange API
-- noon-to-midnight availability grid
-- 1-hour / 30-minute availability views
-- drag and checkbox availability editing
-- previous-week draft copy and explicit save
-- HC Prospect Board filter UI shell
-- GitHub Actions TypeScript/replay CI
+- D1-backed per-server franchise configuration/history
+- Sprocket dataset clients/adapters
+- weekly franchise current-state promotion + roster history
+- manual sync/status commands
+- Monday 1 PM Eastern scheduled sync
+- standings command
+- Rocket League replay parser + MVPR/OPI/DPI/GPI
+- Discord Activity shell/authentication
+- player availability grid, hourly/half-hour modes, drag/checkbox editing, copy previous week, save
+- HCPB calculation engine
+- HCPB filtered Activity table
+- HCPB click-player detail view
+- hourly HCPB refresh + source-change detection
+- daily scouting history
+- complete FA/PEND pool snapshot
+- required-division `/pool` command
+- HCPB regression tests
 
-Not yet implemented:
+Remaining before V1 moves primarily into testing:
 
+- staff/team availability heatmap and missing-submission view
+- staff permissions for staff-only Activity surfaces
 - production Cloudflare/D1 deployment configuration
 - Discord Developer Portal Activity URL mapping / launch configuration
-- staff/team availability heatmap and missing-submission view
-- HC Prospect Board dataset adapters and backend calculations
-- hourly HC Prospect Board refresh/change detection
-- HC Prospect Board result table/player detail views
-- `/pool` FA/PEND lookup backed by the scouting dataset
-- staff-channel scheduled-run notifications
-- deeper identity/eligibility adapters
-- network-frame replay parsing for join/drop edge cases
+- live-source schema/import smoke tests
+- staff-channel scheduled-run notifications if retained for V1
 
-The codebase is still early development. Dataset schemas and deployment behavior should be validated against live Sprocket output before Hagrid is treated as production-critical.
+V1+ is intentionally held for Season 20 dataset/schema availability.
+
+## Security
+
+Never commit Discord tokens, Discord client secrets, Cloudflare credentials, GitHub tokens, or other secrets. Public identifiers can be deployment variables; credentials belong in the hosting platform's secret store.
 
 ## References
 
-The replay header format implementation was informed by the open-source `nickbabcock/boxcars` Rocket League replay parser. Hagrid only parses the small header subset it currently needs rather than implementing Boxcars' full network decoder.
-
-Sprocket's public datasets and rating implementation are upstream data/behavior references for the MLE-specific portions of Hagrid.
+The replay-header implementation was informed by the open-source `nickbabcock/boxcars` parser. Sprocket's public datasets and rating implementation are upstream data/behavior references for the MLE-specific portions of Hagrid.
