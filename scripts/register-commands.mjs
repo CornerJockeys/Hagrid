@@ -21,7 +21,7 @@ const commands = [
           {
             type: 3,
             name: "name",
-            description: "Franchise name, for example Wizards.",
+            description: "Franchise name or code, for example Wizards.",
             required: true,
             min_length: 2,
             max_length: 100,
@@ -32,6 +32,23 @@ const commands = [
         type: 1,
         name: "show",
         description: "Show the franchise configured for this Discord server.",
+      },
+    ],
+  },
+  {
+    name: "sync",
+    description: "Run or inspect Hagrid's franchise data sync.",
+    type: 1,
+    options: [
+      {
+        type: 1,
+        name: "run",
+        description: "Run the franchise data sync now.",
+      },
+      {
+        type: 1,
+        name: "status",
+        description: "Show the latest franchise data sync status.",
       },
     ],
   },
