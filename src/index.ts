@@ -1,7 +1,13 @@
 import {handleFranchiseCommand} from "./commands/franchise";
 import {handleSyncCommand} from "./commands/sync";
 import {discordMessage, discordPong, verifyDiscordRequest} from "./discord";
-import type {DiscordInteraction, Env, ExecutionContextLike} from "./types";
+import {runScheduledSyncs} from "./sync/scheduled";
+import type {
+  DiscordInteraction,
+  Env,
+  ExecutionContextLike,
+  ScheduledEventLike,
+} from "./types";
 
 async function handleInteraction(
   request: Request,
@@ -59,5 +65,9 @@ export default {
     }
 
     return new Response("Hagrid", {status: 200});
+  },
+
+  scheduled(event: ScheduledEventLike, env: Env, ctx: ExecutionContextLike): void {
+    ctx.waitUntil(runScheduledSyncs(env, event));
   },
 };
