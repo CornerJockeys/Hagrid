@@ -36,6 +36,26 @@ const commands = [
     ],
   },
   {
+    name: "replay",
+    description: "Analyze a Rocket League replay.",
+    type: 1,
+    options: [
+      {
+        type: 1,
+        name: "analyze",
+        description: "Calculate player stats, MVPR, OPI, DPI, and GPI from one replay.",
+        options: [
+          {
+            type: 11,
+            name: "file",
+            description: "Rocket League .replay file.",
+            required: true,
+          },
+        ],
+      },
+    ],
+  },
+  {
     name: "standings",
     description: "Show current standings for the configured franchise.",
     type: 1,
