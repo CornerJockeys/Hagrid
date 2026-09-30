@@ -1,9 +1,11 @@
 import {handleActivityApi} from "./activity/http";
 import {handleFranchiseCommand} from "./commands/franchise";
+import {handlePoolCommand} from "./commands/pool";
 import {handleReplayCommand} from "./commands/replay";
 import {handleStandingsCommand} from "./commands/standings";
 import {handleSyncCommand} from "./commands/sync";
 import {discordMessage, discordPong, verifyDiscordRequest} from "./discord";
+import {runScheduledScoutingRefresh} from "./scouting/refresh";
 import {runScheduledSyncs} from "./sync/scheduled";
 import type {
   DiscordInteraction,
@@ -41,6 +43,8 @@ async function handleInteraction(
     switch (interaction.data?.name) {
       case "franchise":
         return await handleFranchiseCommand(interaction, env);
+      case "pool":
+        return await handlePoolCommand(interaction, env, ctx);
       case "replay":
         return await handleReplayCommand(interaction, env, ctx);
       case "standings":
@@ -84,6 +88,9 @@ export default {
   },
 
   scheduled(event: ScheduledEventLike, env: Env, ctx: ExecutionContextLike): void {
-    ctx.waitUntil(runScheduledSyncs(env, event));
+    ctx.waitUntil(Promise.all([
+      runScheduledSyncs(env, event),
+      runScheduledScoutingRefresh(env, event),
+    ]));
   },
 };
