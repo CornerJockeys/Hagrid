@@ -7,7 +7,7 @@ import {
   type ScoutingRecord,
 } from "./calculate";
 
-export const SCOUTING_ALGORITHM_VERSION = "hcpb-v1-2026-09-30";
+export const SCOUTING_ALGORITHM_VERSION = "hcpb-v1.1-2026-09-30";
 export const SCOUTING_CRON = "20 * * * *";
 
 interface ScoutingStateRow {
