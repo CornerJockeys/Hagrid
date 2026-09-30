@@ -7,6 +7,7 @@ export interface SyncRun {
   run_id: string;
   guild_id: string;
   trigger_type: SyncTrigger;
+  triggered_by: string | null;
   status: SyncStatus;
   franchise_name: string;
   franchise_code: string | null;
@@ -42,6 +43,7 @@ export async function createSyncRun(
   runId: string,
   guildId: string,
   trigger: SyncTrigger,
+  triggeredBy: string | null,
   franchiseName: string,
   franchiseCode: string | null,
 ): Promise<void> {
@@ -51,12 +53,13 @@ export async function createSyncRun(
          run_id,
          guild_id,
          trigger_type,
+         triggered_by,
          status,
          franchise_name,
          franchise_code
-       ) VALUES (?, ?, ?, 'RUNNING', ?, ?)`,
+       ) VALUES (?, ?, ?, ?, 'RUNNING', ?, ?)`,
     )
-    .bind(runId, guildId, trigger, franchiseName, franchiseCode)
+    .bind(runId, guildId, trigger, triggeredBy, franchiseName, franchiseCode)
     .run();
 
   if (!result.success) {
@@ -91,7 +94,7 @@ export async function getLatestSyncRun(
 ): Promise<SyncRun | null> {
   return db
     .prepare(
-      `SELECT run_id, guild_id, trigger_type, status, franchise_name, franchise_code,
+      `SELECT run_id, guild_id, trigger_type, triggered_by, status, franchise_name, franchise_code,
               started_at, completed_at, error_message, player_count, usage_count, change_count
        FROM sync_runs
        WHERE guild_id = ?
