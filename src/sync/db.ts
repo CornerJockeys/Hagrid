@@ -47,23 +47,48 @@ export async function createSyncRun(
   franchiseName: string,
   franchiseCode: string | null,
 ): Promise<void> {
-  const result = await db
+  const stale = await db
     .prepare(
-      `INSERT INTO sync_runs (
-         run_id,
-         guild_id,
-         trigger_type,
-         triggered_by,
-         status,
-         franchise_name,
-         franchise_code
-       ) VALUES (?, ?, ?, ?, 'RUNNING', ?, ?)`,
+      `UPDATE sync_runs
+       SET status = 'FAILED',
+           completed_at = CURRENT_TIMESTAMP,
+           error_message = 'Sync was left RUNNING for more than 30 minutes and was marked stale before a new run.'
+       WHERE guild_id = ?
+         AND status = 'RUNNING'
+         AND datetime(started_at) < datetime('now', '-30 minutes')`,
     )
-    .bind(runId, guildId, trigger, triggeredBy, franchiseName, franchiseCode)
+    .bind(guildId)
     .run();
 
-  if (!result.success) {
-    throw new Error("Failed to create sync run.");
+  if (!stale.success) {
+    throw new Error("Failed to clear stale sync state.");
+  }
+
+  try {
+    const result = await db
+      .prepare(
+        `INSERT INTO sync_runs (
+           run_id,
+           guild_id,
+           trigger_type,
+           triggered_by,
+           status,
+           franchise_name,
+           franchise_code
+         ) VALUES (?, ?, ?, ?, 'RUNNING', ?, ?)`,
+      )
+      .bind(runId, guildId, trigger, triggeredBy, franchiseName, franchiseCode)
+      .run();
+
+    if (!result.success) {
+      throw new Error("Failed to create sync run.");
+    }
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    if (/unique|constraint/i.test(message)) {
+      throw new Error("A franchise sync is already running for this Discord server.");
+    }
+    throw error;
   }
 }
 
