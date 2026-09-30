@@ -1,8 +1,13 @@
 import {handleFranchiseCommand} from "./commands/franchise";
+import {handleSyncCommand} from "./commands/sync";
 import {discordMessage, discordPong, verifyDiscordRequest} from "./discord";
-import type {DiscordInteraction, Env} from "./types";
+import type {DiscordInteraction, Env, ExecutionContextLike} from "./types";
 
-async function handleInteraction(request: Request, env: Env): Promise<Response> {
+async function handleInteraction(
+  request: Request,
+  env: Env,
+  ctx: ExecutionContextLike,
+): Promise<Response> {
   const rawBody = await verifyDiscordRequest(request, env.DISCORD_PUBLIC_KEY);
   if (!rawBody) {
     return new Response("Invalid request signature.", {status: 401});
@@ -27,6 +32,8 @@ async function handleInteraction(request: Request, env: Env): Promise<Response> 
     switch (interaction.data?.name) {
       case "franchise":
         return await handleFranchiseCommand(interaction, env);
+      case "sync":
+        return await handleSyncCommand(interaction, env, ctx);
       default:
         return discordMessage("Unknown command.");
     }
@@ -37,7 +44,7 @@ async function handleInteraction(request: Request, env: Env): Promise<Response> 
 }
 
 export default {
-  async fetch(request: Request, env: Env): Promise<Response> {
+  async fetch(request: Request, env: Env, ctx: ExecutionContextLike): Promise<Response> {
     const url = new URL(request.url);
 
     if (request.method === "GET" && url.pathname === "/health") {
@@ -48,7 +55,7 @@ export default {
     }
 
     if (request.method === "POST" && url.pathname === "/interactions") {
-      return handleInteraction(request, env);
+      return handleInteraction(request, env, ctx);
     }
 
     return new Response("Hagrid", {status: 200});
