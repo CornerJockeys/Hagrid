@@ -50,9 +50,23 @@ export interface DiscordCommandOption {
   options?: DiscordCommandOption[];
 }
 
+export interface DiscordAttachment {
+  id: string;
+  filename: string;
+  size: number;
+  url: string;
+  proxy_url?: string;
+  content_type?: string;
+}
+
+export interface DiscordResolvedData {
+  attachments?: Record<string, DiscordAttachment>;
+}
+
 export interface DiscordInteractionData {
   name?: string;
   options?: DiscordCommandOption[];
+  resolved?: DiscordResolvedData;
 }
 
 export interface DiscordInteraction {
