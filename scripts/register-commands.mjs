@@ -36,6 +36,36 @@ const commands = [
     ],
   },
   {
+    name: "standings",
+    description: "Show current standings for the configured franchise.",
+    type: 1,
+    options: [
+      {
+        type: 3,
+        name: "league",
+        description: "Show the full relevant division table for one league.",
+        required: false,
+        choices: [
+          {name: "Foundation League (FL)", value: "Foundation League"},
+          {name: "Academy League (AL)", value: "Academy League"},
+          {name: "Champion League (CL)", value: "Champion League"},
+          {name: "Master League (ML)", value: "Master League"},
+        ],
+      },
+      {
+        type: 3,
+        name: "mode",
+        description: "Overall, Doubles, or Standard standings.",
+        required: false,
+        choices: [
+          {name: "Overall", value: "Overall"},
+          {name: "Doubles", value: "Doubles"},
+          {name: "Standard", value: "Standard"},
+        ],
+      },
+    ],
+  },
+  {
     name: "sync",
     description: "Run or inspect Hagrid's franchise data sync.",
     type: 1,
