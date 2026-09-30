@@ -36,8 +36,8 @@ export function prospectStatus(value: string | null): ProspectStatus | null {
 export function scoutingMode(value: string | null): ScoutingMode | null {
   if (!value) return null;
   const normalized = value.trim().toLocaleLowerCase("en-US");
-  if (["2s", "2v2", "doubles", "double"].includes(normalized)) return "2s";
-  if (["3s", "3v3", "standard"].includes(normalized)) return "3s";
+  if (["2s", "2v2", "doubles", "double", "rl_doubles"].includes(normalized)) return "2s";
+  if (["3s", "3v3", "standard", "rl_standard"].includes(normalized)) return "3s";
   return null;
 }
 
