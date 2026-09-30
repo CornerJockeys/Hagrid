@@ -1,4 +1,5 @@
 import {handleFranchiseCommand} from "./commands/franchise";
+import {handleStandingsCommand} from "./commands/standings";
 import {handleSyncCommand} from "./commands/sync";
 import {discordMessage, discordPong, verifyDiscordRequest} from "./discord";
 import {runScheduledSyncs} from "./sync/scheduled";
@@ -38,6 +39,8 @@ async function handleInteraction(
     switch (interaction.data?.name) {
       case "franchise":
         return await handleFranchiseCommand(interaction, env);
+      case "standings":
+        return await handleStandingsCommand(interaction, env, ctx);
       case "sync":
         return await handleSyncCommand(interaction, env, ctx);
       default:
