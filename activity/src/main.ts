@@ -3,6 +3,7 @@ import {mountPersonalAvailabilityPanel, type AvailabilityWindow} from "./persona
 import {mountScoutingPanel} from "./scouting";
 import {mountTeamAvailabilityPanel} from "./team-availability";
 import "./style.css";
+import "./team-availability.css";
 
 interface ActivityContext {
   guild_id: string;
