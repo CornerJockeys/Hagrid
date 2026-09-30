@@ -36,6 +36,36 @@ const commands = [
     ],
   },
   {
+    name: "pool",
+    description: "Show the FA/PEND player pool for one division.",
+    type: 1,
+    options: [
+      {
+        type: 3,
+        name: "division",
+        description: "Division to show. A division is always required.",
+        required: true,
+        choices: [
+          {name: "Foundation League (FL)", value: "FL"},
+          {name: "Academy League (AL)", value: "AL"},
+          {name: "Champion League (CL)", value: "CL"},
+          {name: "Master League (ML)", value: "ML"},
+          {name: "Premier League (PL)", value: "PL"},
+        ],
+      },
+      {
+        type: 3,
+        name: "status",
+        description: "Optionally show only free agents or pending players.",
+        required: false,
+        choices: [
+          {name: "Free Agents (FA)", value: "FA"},
+          {name: "Pending (PEND)", value: "PEND"},
+        ],
+      },
+    ],
+  },
+  {
     name: "replay",
     description: "Analyze a Rocket League replay.",
     type: 1,
