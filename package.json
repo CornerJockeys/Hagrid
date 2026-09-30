@@ -1,0 +1,19 @@
+{
+  "name": "hagrid",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Discord-first Rocket League franchise operations and analytics bot.",
+  "type": "module",
+  "scripts": {
+    "check": "tsc --noEmit",
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "db:migrate:local": "wrangler d1 migrations apply hagrid --local",
+    "db:migrate:remote": "wrangler d1 migrations apply hagrid --remote",
+    "register:commands": "node scripts/register-commands.mjs"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.0",
+    "wrangler": "^4.0.0"
+  }
+}
