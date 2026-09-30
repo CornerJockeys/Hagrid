@@ -3,6 +3,8 @@ import type {Env} from "../types";
 
 const DEFAULT_DATASET_BASE_URL =
   "https://sprocket-public-datasets.nyc3.cdn.digitaloceanspaces.com/datasets/public/data";
+const DEFAULT_LEGACY_DATASET_BASE_URL =
+  "https://sprocket-public-datasets.nyc3.cdn.digitaloceanspaces.com/datasets";
 
 export class DatasetFetchError extends Error {
   readonly dataset: string;
@@ -16,13 +18,18 @@ export class DatasetFetchError extends Error {
   }
 }
 
-export async function fetchCsvDataset(env: Env, dataset: string): Promise<CsvRecord[]> {
+function validateDatasetPath(dataset: string): void {
   if (!/^[a-z0-9_/-]+$/i.test(dataset) || dataset.includes("..")) {
     throw new Error(`Invalid dataset path: ${dataset}`);
   }
+}
 
-  const baseUrl = (env.SPROCKET_DATASET_BASE_URL ?? DEFAULT_DATASET_BASE_URL).replace(/\/+$/, "");
-  const url = `${baseUrl}/${dataset}.csv`;
+async function fetchCsvAtBase(
+  dataset: string,
+  baseUrl: string,
+): Promise<CsvRecord[]> {
+  validateDatasetPath(dataset);
+  const url = `${baseUrl.replace(/\/+$/, "")}/${dataset}.csv`;
 
   let response: Response;
   try {
@@ -56,4 +63,18 @@ export async function fetchCsvDataset(env: Env, dataset: string): Promise<CsvRec
       response.status,
     );
   }
+}
+
+export async function fetchCsvDataset(env: Env, dataset: string): Promise<CsvRecord[]> {
+  return fetchCsvAtBase(
+    dataset,
+    env.SPROCKET_DATASET_BASE_URL ?? DEFAULT_DATASET_BASE_URL,
+  );
+}
+
+export async function fetchLegacyCsvDataset(env: Env, dataset: string): Promise<CsvRecord[]> {
+  return fetchCsvAtBase(
+    dataset,
+    env.SPROCKET_LEGACY_DATASET_BASE_URL ?? DEFAULT_LEGACY_DATASET_BASE_URL,
+  );
 }

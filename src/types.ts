@@ -33,6 +33,7 @@ export interface Env {
   DISCORD_APPLICATION_ID?: string;
   DISCORD_CLIENT_SECRET?: string;
   SPROCKET_DATASET_BASE_URL?: string;
+  SPROCKET_LEGACY_DATASET_BASE_URL?: string;
 }
 
 export interface DiscordUser {

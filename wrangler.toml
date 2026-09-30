@@ -3,7 +3,7 @@ main = "src/index.ts"
 compatibility_date = "2026-09-30"
 
 [triggers]
-crons = ["0 17 * * 1", "0 18 * * 1"]
+crons = ["20 * * * *", "0 17 * * 1", "0 18 * * 1"]
 
 [assets]
 directory = "./activity/dist"
