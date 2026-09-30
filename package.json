@@ -6,13 +6,17 @@
   "type": "module",
   "scripts": {
     "check": "tsc --noEmit && tsc -p activity/tsconfig.json --noEmit",
+    "test": "node --experimental-strip-types --test tests/*.test.mjs",
     "build:activity": "vite build activity",
     "dev": "npm run build:activity && wrangler dev",
     "dev:activity": "vite activity",
     "deploy": "npm run build:activity && wrangler deploy",
     "db:migrate:local": "wrangler d1 migrations apply hagrid --local",
     "db:migrate:remote": "wrangler d1 migrations apply hagrid --remote",
-    "register:commands": "node scripts/register-commands.mjs"
+    "register:commands": "node scripts/register-commands.mjs",
+    "smoke:live-sources": "node --experimental-strip-types scripts/live-source-smoke.mjs",
+    "smoke:deployed": "node scripts/deployed-smoke.mjs",
+    "prepare:deploy-config": "node scripts/prepare-deploy-config.mjs"
   },
   "dependencies": {
     "@discord/embedded-app-sdk": "^2.5.0"
