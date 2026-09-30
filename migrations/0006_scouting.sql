@@ -8,6 +8,19 @@ CREATE TABLE IF NOT EXISTS scouting_refresh_state (
   row_count INTEGER NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS prospect_pool_current (
+  sprocket_player_id TEXT PRIMARY KEY,
+  league TEXT NOT NULL,
+  status TEXT NOT NULL,
+  name TEXT NOT NULL,
+  salary REAL,
+  source_hash TEXT NOT NULL,
+  refreshed_at TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS prospect_pool_league_status_idx
+  ON prospect_pool_current (league, status, name);
+
 CREATE TABLE IF NOT EXISTS scouting_players_current (
   sprocket_player_id TEXT NOT NULL,
   mode TEXT NOT NULL,
