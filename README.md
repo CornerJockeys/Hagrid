@@ -179,11 +179,13 @@ Each refresh:
 
 Hagrid consumes selected public Sprocket datasets.
 
-Current normal dataset base:
+The working public CSV publication is currently:
 
 ```text
-https://sprocket-public-datasets.nyc3.cdn.digitaloceanspaces.com/datasets/public/data
+https://sprocket-public-datasets.nyc3.cdn.digitaloceanspaces.com/datasets
 ```
+
+The Sprocket dataset repository also describes a namespaced `public/data` publication, but live validation on September 30, 2026 returned HTTP 403 for those CSV URLs while the root CSV publication succeeded. Hagrid therefore defaults to the working root publication and retains configurable primary/fallback base URLs.
 
 Current adapters include:
 
@@ -193,7 +195,7 @@ Current adapters include:
 - `standings` — on-demand standings
 - `Avg_Scrim_Stats` — current HCPB scouting metrics
 
-The HCPB/pool implementation also uses the legacy root `players.csv` publication as the current FA/PEND status authority because that source exposes the player-pool states used by the existing MLE tooling.
+Live `Avg_Scrim_Stats` uses Sprocket mode codes `RL_DOUBLES` and `RL_STANDARD`; Hagrid normalizes those to 2s and 3s along with the human-readable aliases used by the older sheet tooling.
 
 The bases can be overridden for development/testing:
 
@@ -228,29 +230,78 @@ The Activity uses Discord's authorization-code flow through the Embedded App SDK
 
 Never expose the Discord client secret to the Vite client.
 
-Activity build variable:
+## Production deployment
+
+Hagrid includes a manual GitHub Actions workflow at `.github/workflows/deploy.yml`. It validates the build and live Sprocket sources before touching production, creates or reuses the `hagrid` D1 database, applies all migrations, builds/deploys the Worker and Activity, installs the Discord client secret, registers commands to a test guild, resolves the workers.dev URL, and runs deployed health/readiness checks.
+
+### GitHub repository settings
+
+Configure these **Actions secrets**:
 
 ```text
-VITE_DISCORD_CLIENT_ID=<Discord application ID>
-```
-
-Worker secrets/variables include:
-
-```text
-DISCORD_PUBLIC_KEY
-DISCORD_APPLICATION_ID
+CLOUDFLARE_API_TOKEN
+CLOUDFLARE_ACCOUNT_ID
 DISCORD_CLIENT_SECRET
+DISCORD_BOT_TOKEN
 ```
 
-The Discord Developer Portal still needs the deployed Activity URL mapping/configuration before the Activity can launch in Discord.
+Configure these **Actions variables**:
 
-## Local development
+```text
+DISCORD_APPLICATION_ID
+DISCORD_PUBLIC_KEY
+DISCORD_GUILD_ID
+```
+
+Optional variables:
+
+```text
+CLOUDFLARE_D1_DATABASE_ID   # workflow otherwise finds/creates a DB named hagrid
+HAGRID_BASE_URL             # workflow otherwise derives hagrid.<account>.workers.dev
+HAGRID_SMOKE_FRANCHISE      # defaults to Wizards
+```
+
+For a completely new Cloudflare deployment, the API token must have permission to create/deploy the Worker and create/manage D1. Once those resources exist, the token can be narrowed if desired.
+
+The deployment workflow deliberately registers commands to a **guild** during testing. It will not bulk-overwrite global commands when no test guild is supplied.
+
+### Discord Developer Portal
+
+Before launching the Activity in Discord:
+
+1. Enable **Activities** for the Hagrid application.
+2. Set the application's **Interactions Endpoint URL** to `https://<hagrid-host>/interactions`.
+3. Add an Activity URL Mapping for `/` to the deployed Hagrid host.
+4. Confirm the OAuth/application settings expose the Activity scopes used by Hagrid (`identify`, `applications.commands`, and `guilds.members.read`).
+5. Invite/install the application in the test server if it is not there already.
+
+The deploy workflow prints the resolved Hagrid workers.dev URL so the portal mapping can be filled in after the first deployment.
+
+### Deployment health checks
+
+Hagrid exposes:
+
+```text
+GET /health
+GET /ready
+```
+
+`/health` confirms the Worker is running. `/ready` additionally verifies the required D1 tables and Discord Worker configuration are present. `npm run smoke:deployed` checks both plus the Activity root.
+
+## Local development and testing
 
 ```text
 npm install
 npm run check
+npm test
 npm run build:activity
 npm run dev
+```
+
+Validate the public Sprocket sources and Hagrid adapters without deploying:
+
+```text
+npm run smoke:live-sources
 ```
 
 D1 migrations:
@@ -260,19 +311,19 @@ npm run db:migrate:local
 npm run db:migrate:remote
 ```
 
-`wrangler.toml` intentionally contains a placeholder D1 database ID until the production D1 database is created.
+`wrangler.toml` intentionally contains a placeholder D1 database ID. Production deployment generates `.wrangler.deploy.toml` with the real D1 UUID so account-specific infrastructure IDs are not committed.
 
-Register Discord commands:
+Register Discord commands locally:
 
 ```text
 npm run register:commands
 ```
 
-Set `DISCORD_APPLICATION_ID` and `DISCORD_BOT_TOKEN`. For faster development registration in one server, also set `DISCORD_GUILD_ID`.
+Set `DISCORD_APPLICATION_ID` and `DISCORD_BOT_TOKEN`. During testing, also set `DISCORD_GUILD_ID` so registration remains guild-scoped and updates immediately.
 
 ## V1 development status
 
-Implemented through **Pass 2**:
+Implemented through **Pass 3 wiring**:
 
 - Cloudflare Worker Discord interaction endpoint
 - Discord Ed25519 request verification
@@ -298,17 +349,14 @@ Implemented through **Pass 2**:
 - complete FA/PEND pool snapshot
 - required-division `/pool` command
 - replay, scouting, access, and availability regression tests
+- automated live-source smoke validation
+- production D1 provisioning/migrations
+- production Worker/Activity deployment workflow
+- deployed `/health` + `/ready` smoke validation
 
-Remaining for **Pass 3**, after which V1 should move primarily into live testing:
+Live-source validation currently confirms the Wizards source path resolves a current six-player franchise roster with linked Discord IDs and competitive slots, plus current role usage, standings, FA/PEND identities, and 984 usable scouting rows.
 
-- create/configure the production Cloudflare D1 database
-- apply migrations remotely
-- deploy the Worker + Activity assets
-- configure Discord application secrets and Activity URL mapping
-- register production commands
-- validate live Sprocket imports against production schemas/data
-- run end-to-end smoke tests for every V1 workflow
-- decide whether staff-channel scheduled-run notifications belong in V1 or V1+
+The remaining V1 work is now primarily **live deployment and user testing**: configure the account/application credentials, run the deployment workflow, complete the Discord Activity URL mapping, then exercise each command and Activity workflow with real users.
 
 V1+ is intentionally held for Season 20 dataset/schema availability.
 
