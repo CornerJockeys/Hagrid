@@ -36,6 +36,8 @@ The current sync imports:
 
 Each run receives a unique run ID and is logged as `RUNNING`, `SUCCESS`, or `FAILED`. Current franchise data is only replaced after the source data has been fetched and validated. D1 promotion uses a batch so a failed promotion does not intentionally leave a half-updated current state.
 
+Only one sync can be `RUNNING` for a Discord server at a time. A run left stuck for more than 30 minutes is marked failed before a replacement run is allowed.
+
 Roster movement is normal data, not an integrity error. Hagrid logs joins, departures, slot changes, salary changes, eligibility changes, scrim-point changes, and display-name changes. Slot assignments are kept as effective history rather than rewriting the past when a player joins or leaves the team.
 
 ### Standings
@@ -57,21 +59,13 @@ Modes are:
 - Doubles
 - Standard
 
-## Scheduled weekly sync
-
-Hagrid targets **Monday at 1:00 PM America/New_York** for the automated franchise refresh.
-
-Cloudflare cron expressions are UTC, so the Worker is configured for both 17:00 and 18:00 UTC on Mondays. The scheduled handler checks the actual `America/New_York` local time and only executes when it is 1:00 PM Eastern. This keeps the intended local time through daylight-saving changes.
-
-The automatic and manual sync paths call the same underlying sync service.
-
-## Planned capabilities
-
 ### Replay analysis
 
-Hagrid will support direct analysis of standard Rocket League `.replay` files submitted through Discord.
+```text
+/replay analyze file:<match.replay>
+```
 
-Planned output includes:
+Hagrid can parse the header of a normal Rocket League `.replay` attachment and calculate per-player:
 
 - goals
 - assists
@@ -82,7 +76,21 @@ Planned output includes:
 - DPI
 - GPI
 
-The existing prototype can obtain these values from normal completed replay headers without Ballchasing or BakkesMod. That parser still needs to be ported into Hagrid.
+The command is intentionally dependency-free at runtime: it does not require Ballchasing or BakkesMod. It validates the attachment type/size, only downloads Discord attachment URLs, caps replay uploads at 15 MiB, and includes a short SHA-256 fingerprint in the response.
+
+The parser currently uses replay-header `PlayerStats`, not full network-frame decoding. Rocket League replay headers can omit players who join or drop during a match, so Hagrid warns when the declared team size and header player counts disagree. Full network parsing remains a later hardening option for competitive submission workflows.
+
+MVPR uses the legacy formula recovered from the old MVPR plugin. OPI/DPI use the current Sprocket rating implementation previously identified in Sprocket's public code, with separate 2s and 3s constants. GPI is the mean of OPI and DPI.
+
+## Scheduled weekly sync
+
+Hagrid targets **Monday at 1:00 PM America/New_York** for the automated franchise refresh.
+
+Cloudflare cron expressions are UTC, so the Worker is configured for both 17:00 and 18:00 UTC on Mondays. The scheduled handler checks the actual `America/New_York` local time and only executes when it is 1:00 PM Eastern. This keeps the intended local time through daylight-saving changes.
+
+The automatic and manual sync paths call the same underlying sync service.
+
+## Planned capabilities
 
 ### Availability
 
@@ -193,17 +201,28 @@ Implemented foundation:
 - role-usage adapter
 - atomic current-state promotion with roster/change history
 - manual sync and sync-status commands
+- overlapping/stale sync protection
 - Monday 1 PM Eastern scheduled sync trigger
 - on-demand standings command
+- Rocket League replay-header parser
+- MVPR / OPI / DPI / GPI calculations
+- `/replay analyze` Discord workflow
 - GitHub Actions TypeScript CI
 
 Not yet implemented:
 
 - production Cloudflare/D1 deployment configuration
-- replay command/parser port
+- live end-to-end replay validation inside the deployed Worker
 - availability workflows
 - scouting/prospect commands
 - staff-channel scheduled-run notifications
 - deeper identity/eligibility adapters
+- network-frame replay parsing for join/drop edge cases
 
 The codebase is still early development. Dataset schemas and deployment behavior should be validated against live Sprocket output before Hagrid is treated as production-critical.
+
+## References
+
+The replay header format implementation was informed by the open-source `nickbabcock/boxcars` Rocket League replay parser. Hagrid only parses the small header subset it currently needs rather than implementing Boxcars' full network decoder.
+
+Sprocket's public datasets and rating implementation are upstream data/behavior references for the MLE-specific portions of Hagrid.
