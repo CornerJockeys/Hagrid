@@ -5,6 +5,7 @@ import {handleReplayCommand} from "./commands/replay";
 import {handleStandingsCommand} from "./commands/standings";
 import {handleSyncCommand} from "./commands/sync";
 import {discordMessage, discordPong, verifyDiscordRequest} from "./discord";
+import {readinessResponse} from "./readiness";
 import {runScheduledScoutingRefresh} from "./scouting/refresh";
 import {runScheduledSyncs} from "./sync/scheduled";
 import type {
@@ -69,6 +70,10 @@ export default {
         ok: true,
         service: "hagrid",
       });
+    }
+
+    if (request.method === "GET" && url.pathname === "/ready") {
+      return readinessResponse(env);
     }
 
     if (request.method === "POST" && url.pathname === "/interactions") {
