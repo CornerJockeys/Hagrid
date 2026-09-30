@@ -1,4 +1,5 @@
 import {handleFranchiseCommand} from "./commands/franchise";
+import {handleReplayCommand} from "./commands/replay";
 import {handleStandingsCommand} from "./commands/standings";
 import {handleSyncCommand} from "./commands/sync";
 import {discordMessage, discordPong, verifyDiscordRequest} from "./discord";
@@ -39,6 +40,8 @@ async function handleInteraction(
     switch (interaction.data?.name) {
       case "franchise":
         return await handleFranchiseCommand(interaction, env);
+      case "replay":
+        return await handleReplayCommand(interaction, env, ctx);
       case "standings":
         return await handleStandingsCommand(interaction, env, ctx);
       case "sync":
