@@ -1,4 +1,5 @@
 import {DiscordSDK} from "@discord/embedded-app-sdk";
+import {mountScoutingPanel} from "./scouting";
 import "./style.css";
 
 type SlotState = 1 | 2;
@@ -424,40 +425,7 @@ async function saveAvailability(): Promise<void> {
 function renderScoutingPanel(): void {
   const panel = document.querySelector<HTMLElement>("#scouting-panel");
   if (!panel) return;
-  panel.innerHTML = `
-    <div class="panel-heading"><div><div class="eyebrow">Scouting</div><h2>HC Prospect Board</h2>
-      <p>Filter first, then compare a manageable set of prospects instead of rendering the entire player pool.</p></div></div>
-    <form id="prospect-filters" class="filter-grid">
-      <label>Search<input name="search" type="search" placeholder="Player name" /></label>
-      <label>League<select name="league"><option value="">Any</option><option>FL</option><option>AL</option><option>CL</option><option>ML</option></select></label>
-      <label>Mode<select name="mode"><option value="">Any</option><option value="2s">2v2</option><option value="3s">3v3</option><option value="combined">Combined</option></select></label>
-      <label>Temperature<select name="temperature"><option value="">Any</option><option>Hot</option><option>Warm</option><option>Cold</option></select></label>
-      <label>Role<input name="role" type="text" placeholder="Any role" /></label>
-      <label>Min games<input name="min_games" type="number" min="0" value="10" /></label>
-      <label>Salary min<input name="salary_min" type="number" min="0" step="0.5" /></label>
-      <label>Salary max<input name="salary_max" type="number" min="0" step="0.5" /></label>
-      <label>Sort by<select name="sort"><option value="efficiency">Efficiency / Salary</option><option value="gpi">GPI</option><option value="opi">OPI</option><option value="dpi">DPI</option><option value="win_pct">Win %</option><option value="games">Games</option><option value="salary">Salary</option></select></label>
-      <label>Rows<select name="limit"><option>10</option><option selected>25</option><option>50</option></select></label>
-      <label class="check-option"><input name="hide_low_sample" type="checkbox" checked /> Hide low-sample players</label>
-      <button class="primary-button" type="submit">Apply Filters</button>
-    </form>
-    <div class="table-card"><div class="table-empty" id="prospect-results">
-      <strong>Prospect data is not connected yet.</strong>
-      <span>The Activity filter surface is ready; the next scouting pass will wire these controls to the HCPB backend calculations.</span>
-    </div></div>`;
-
-  panel.querySelector<HTMLFormElement>("#prospect-filters")?.addEventListener("submit", event => {
-    event.preventDefault();
-    const formElement = event.currentTarget as HTMLFormElement;
-    const form = new FormData(formElement);
-    const active = [...form.entries()]
-      .filter(([, value]) => String(value).trim() !== "")
-      .map(([key, value]) => `${key.replaceAll("_", " ")}: ${String(value)}`);
-    const output = panel.querySelector<HTMLDivElement>("#prospect-results");
-    if (output) {
-      output.innerHTML = `<strong>Filters ready.</strong><span>${escapeHtml(active.join(" · ") || "No filters")}</span><span>The scouting dataset adapter will populate this table in the next implementation pass.</span>`;
-    }
-  });
+  mountScoutingPanel(panel, api, setStatus);
 }
 
 async function start(): Promise<void> {
