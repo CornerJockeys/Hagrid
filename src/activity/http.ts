@@ -5,6 +5,7 @@ import {
   getMyAvailability,
   saveMyAvailability,
 } from "./availability";
+import {getActivityScouting, getActivityScoutingPlayer} from "./scouting";
 
 function methodNotAllowed(): Response {
   return Response.json({error: "Method not allowed."}, {status: 405});
@@ -29,6 +30,18 @@ export async function handleActivityApi(request: Request, env: Env): Promise<Res
     if (request.method === "GET") return getMyAvailability(request, env);
     if (request.method === "PUT") return saveMyAvailability(request, env);
     return methodNotAllowed();
+  }
+
+  if (url.pathname === "/api/activity/scouting") {
+    return request.method === "GET"
+      ? getActivityScouting(request, env)
+      : methodNotAllowed();
+  }
+
+  if (url.pathname === "/api/activity/scouting/player") {
+    return request.method === "GET"
+      ? getActivityScoutingPlayer(request, env)
+      : methodNotAllowed();
   }
 
   return Response.json({error: "Unknown Activity API route."}, {status: 404});
