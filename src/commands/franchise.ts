@@ -1,5 +1,7 @@
-import {getGuildConfig, setGuildFranchise} from "../db";
+import {getGuildConfig, setResolvedGuildFranchise} from "../db";
 import {discordMessage} from "../discord";
+import {DatasetFetchError} from "../sprocket/client";
+import {resolveFranchise, type SprocketFranchise} from "../sprocket/franchises";
 import type {DiscordCommandOption, DiscordInteraction, Env} from "../types";
 
 const MANAGE_GUILD = 0x20n;
@@ -31,6 +33,10 @@ function getStringOption(option: DiscordCommandOption, name: string): string | n
 
 function normalizeFranchiseName(value: string): string {
   return value.trim().replace(/\s+/g, " ");
+}
+
+function formatFranchise(franchise: SprocketFranchise): string {
+  return franchise.code ? `${franchise.name} (${franchise.code})` : franchise.name;
 }
 
 export async function handleFranchiseCommand(
@@ -82,22 +88,62 @@ export async function handleFranchiseCommand(
     return discordMessage("Franchise names must be between 2 and 100 characters.");
   }
 
-  const previous = await getGuildConfig(env.DB, guildId);
-  const updated = await setGuildFranchise(env.DB, guildId, franchiseName, userId);
-
-  if (previous?.franchise_name === updated.franchise_name) {
-    return discordMessage(`Hagrid is already configured for **${updated.franchise_name}**.`);
+  let resolution;
+  try {
+    resolution = await resolveFranchise(env, franchiseName);
+  } catch (error) {
+    if (error instanceof DatasetFetchError) {
+      console.error("Franchise dataset lookup failed", error);
+      return discordMessage(
+        "I could not reach or parse the current Sprocket franchise dataset. No configuration was changed.",
+      );
+    }
+    throw error;
   }
 
-  if (previous) {
+  if (!resolution.match) {
+    const suggestions = resolution.suggestions.length > 0
+      ? `\nPossible matches: ${resolution.suggestions.map(formatFranchise).join(", ")}`
+      : "";
     return discordMessage(
-      `Franchise changed from **${previous.franchise_name}** to **${updated.franchise_name}**.\n` +
-      "The next dataset sync will resolve and validate the canonical Sprocket franchise entry.",
+      `I could not find an exact Sprocket franchise match for \`${franchiseName}\`.${suggestions}\n` +
+      "No configuration was changed.",
+    );
+  }
+
+  const match = resolution.match;
+  const previous = await getGuildConfig(env.DB, guildId);
+
+  if (
+    previous?.franchise_name === match.name &&
+    (previous.franchise_code ?? null) === (match.code ?? null)
+  ) {
+    return discordMessage(`Hagrid is already configured for **${formatFranchise(match)}**.`);
+  }
+
+  const updated = await setResolvedGuildFranchise(
+    env.DB,
+    guildId,
+    match.name,
+    match.code,
+    userId,
+  );
+  const updatedLabel = updated.franchise_code
+    ? `${updated.franchise_name} (${updated.franchise_code})`
+    : updated.franchise_name;
+
+  if (previous) {
+    const previousLabel = previous.franchise_code
+      ? `${previous.franchise_name} (${previous.franchise_code})`
+      : previous.franchise_name;
+    return discordMessage(
+      `Franchise changed from **${previousLabel}** to **${updatedLabel}**.\n` +
+      "The new franchise was validated against the current Sprocket teams dataset.",
     );
   }
 
   return discordMessage(
-    `Hagrid is now configured for **${updated.franchise_name}**.\n` +
-    "The next dataset sync will resolve and validate the canonical Sprocket franchise entry.",
+    `Hagrid is now configured for **${updatedLabel}**.\n` +
+    "The franchise was validated against the current Sprocket teams dataset.",
   );
 }
