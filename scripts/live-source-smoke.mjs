@@ -54,6 +54,10 @@ if (scoutingLines.length === 0) {
   log("Raw legacy Avg_Scrim_Stats rows", rawScouting.length);
   if (rawScouting.length > 0) {
     log("Raw legacy Avg_Scrim_Stats columns", Object.keys(rawScouting[0]).join(" | "));
+    const modes = [...new Set(rawScouting.map(row => row.gamemode).filter(Boolean))].slice(0, 20);
+    const games = [...new Set(rawScouting.map(row => row.scrim_games_played).filter(Boolean))].slice(0, 10);
+    log("Raw legacy gamemode values", modes.join(" | ") || "none");
+    log("Raw legacy scrim_games_played examples", games.join(" | ") || "none");
   }
 }
 assert.ok(scoutingLines.length > 0, "Avg_Scrim_Stats produced zero usable scouting rows");
