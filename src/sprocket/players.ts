@@ -52,6 +52,10 @@ function fromRow(row: CsvRecord): FranchisePlayer | null {
   };
 }
 
+function isRocketLeague(player: FranchisePlayer): boolean {
+  return player.gameTitle !== null && sameText(player.gameTitle, "Rocket League");
+}
+
 export async function getFranchisePlayers(
   env: Env,
   franchiseName: string,
@@ -60,7 +64,9 @@ export async function getFranchisePlayers(
   const players = rows
     .map(fromRow)
     .filter((player): player is FranchisePlayer =>
-      player !== null && sameText(player.franchise, franchiseName),
+      player !== null &&
+      sameText(player.franchise, franchiseName) &&
+      isRocketLeague(player),
     );
 
   const seen = new Set<string>();
