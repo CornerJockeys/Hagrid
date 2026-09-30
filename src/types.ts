@@ -15,6 +15,7 @@ export interface D1Database {
 export interface Env {
   DB: D1Database;
   DISCORD_PUBLIC_KEY: string;
+  SPROCKET_DATASET_BASE_URL?: string;
 }
 
 export interface DiscordUser {
