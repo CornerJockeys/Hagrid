@@ -22,3 +22,6 @@ jobs:
 
       - name: Typecheck
         run: npm run check
+
+      - name: Replay regression tests
+        run: node --experimental-strip-types --test tests/*.test.mjs
