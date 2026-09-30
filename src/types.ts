@@ -22,6 +22,11 @@ export interface ExecutionContextLike {
   waitUntil(promise: Promise<unknown>): void;
 }
 
+export interface ScheduledEventLike {
+  scheduledTime: number;
+  cron: string;
+}
+
 export interface Env {
   DB: D1Database;
   DISCORD_PUBLIC_KEY: string;
