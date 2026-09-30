@@ -53,10 +53,12 @@ export function divisionCode(value: string | null): DivisionCode | null {
 }
 
 export function isCompetitiveAvailabilityPlayer(player: AvailabilityRosterPlayer): boolean {
-  // Salary is the most stable public-data indicator that this is an active competitive
-  // roster entry rather than franchise-only staff. Captains remain included because
-  // they carry a player salary like the rest of the roster.
-  return player.salary !== null && player.division !== null;
+  if (player.division === null || !player.slot) return false;
+  // MLE competitive roster spots are published as PLAYERA, PLAYERB, etc.
+  // Use the structural roster slot instead of salary so franchise-only staff
+  // cannot accidentally inflate overlap counts merely because they have a
+  // player record or salary in an upstream system.
+  return /^PLAYER[A-Z0-9]+$/i.test(player.slot.trim());
 }
 
 function slotKey(day: number, minute: number): string {
