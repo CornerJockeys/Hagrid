@@ -19,10 +19,11 @@ export async function getGuildConfig(db: D1Database, guildId: string): Promise<G
     .first<GuildConfig>();
 }
 
-export async function setGuildFranchise(
+async function saveGuildFranchise(
   db: D1Database,
   guildId: string,
   franchiseName: string,
+  franchiseCode: string | null,
   changedBy: string,
 ): Promise<GuildConfig> {
   const previous = await getGuildConfig(db, guildId);
@@ -35,14 +36,14 @@ export async function setGuildFranchise(
          franchise_code,
          updated_by,
          updated_at
-       ) VALUES (?, ?, NULL, ?, CURRENT_TIMESTAMP)
+       ) VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
        ON CONFLICT(guild_id) DO UPDATE SET
          franchise_name = excluded.franchise_name,
-         franchise_code = NULL,
+         franchise_code = excluded.franchise_code,
          updated_by = excluded.updated_by,
          updated_at = CURRENT_TIMESTAMP`,
     )
-    .bind(guildId, franchiseName, changedBy)
+    .bind(guildId, franchiseName, franchiseCode, changedBy)
     .run();
 
   if (!upsert.success) {
@@ -71,4 +72,23 @@ export async function setGuildFranchise(
   }
 
   return updated;
+}
+
+export function setGuildFranchise(
+  db: D1Database,
+  guildId: string,
+  franchiseName: string,
+  changedBy: string,
+): Promise<GuildConfig> {
+  return saveGuildFranchise(db, guildId, franchiseName, null, changedBy);
+}
+
+export function setResolvedGuildFranchise(
+  db: D1Database,
+  guildId: string,
+  franchiseName: string,
+  franchiseCode: string | null,
+  changedBy: string,
+): Promise<GuildConfig> {
+  return saveGuildFranchise(db, guildId, franchiseName, franchiseCode, changedBy);
 }
