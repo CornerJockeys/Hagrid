@@ -1,6 +1,6 @@
 const encoder = new TextEncoder();
 
-function hexToBytes(value: string): Uint8Array {
+function hexToBuffer(value: string): ArrayBuffer {
   if (value.length % 2 !== 0 || !/^[0-9a-f]+$/i.test(value)) {
     throw new Error("Invalid hex value.");
   }
@@ -9,7 +9,11 @@ function hexToBytes(value: string): Uint8Array {
   for (let i = 0; i < value.length; i += 2) {
     output[i / 2] = Number.parseInt(value.slice(i, i + 2), 16);
   }
-  return output;
+  return output.buffer as ArrayBuffer;
+}
+
+function textToBuffer(value: string): ArrayBuffer {
+  return encoder.encode(value).buffer as ArrayBuffer;
 }
 
 export async function verifyDiscordRequest(
@@ -28,7 +32,7 @@ export async function verifyDiscordRequest(
   try {
     const publicKey = await crypto.subtle.importKey(
       "raw",
-      hexToBytes(publicKeyHex),
+      hexToBuffer(publicKeyHex),
       {name: "Ed25519"},
       false,
       ["verify"],
@@ -37,8 +41,8 @@ export async function verifyDiscordRequest(
     const valid = await crypto.subtle.verify(
       {name: "Ed25519"},
       publicKey,
-      hexToBytes(signature),
-      encoder.encode(timestamp + body),
+      hexToBuffer(signature),
+      textToBuffer(timestamp + body),
     );
 
     return valid ? body : null;
