@@ -1,4 +1,5 @@
 import {discordDeferred, discordMessage, editOriginalInteraction} from "../discord";
+import {CURRENT_MLE_SEASON} from "../season-policy";
 import {getLatestSyncRun} from "../sync/db";
 import {
   FranchiseSyncError,
@@ -69,7 +70,7 @@ function formatSuccess(summary: SyncSummary): string {
     ? `${summary.franchiseName} (${summary.franchiseCode})`
     : summary.franchiseName;
   const usage = summary.usageSeason === null
-    ? `${summary.usageCount} role-usage rows`
+    ? `awaiting S${CURRENT_MLE_SEASON} role-usage data`
     : `${summary.usageCount} role-usage rows (Season ${summary.usageSeason})`;
 
   return [
