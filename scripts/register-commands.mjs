@@ -75,6 +75,67 @@ const commands = [
     ],
   },
   {
+    name: "team",
+    description: "Show a league franchise roster with salary, eligibility, and usage.",
+    type: 1,
+    options: [
+      {
+        type: 3,
+        name: "team",
+        description: "Franchise to look up.",
+        required: true,
+        autocomplete: true,
+      },
+      {
+        type: 3,
+        name: "division",
+        description: "Optionally show one divisional team only.",
+        required: false,
+        choices: [
+          {name: "Foundation League (FL)", value: "FL"},
+          {name: "Academy League (AL)", value: "AL"},
+          {name: "Champion League (CL)", value: "CL"},
+          {name: "Master League (ML)", value: "ML"},
+        ],
+      },
+    ],
+  },
+  {
+    name: "player",
+    description: "Show a league player profile and S20 game or scrim stats.",
+    type: 1,
+    options: [
+      {
+        type: 3,
+        name: "player",
+        description: "Player to look up.",
+        required: true,
+        autocomplete: true,
+      },
+      {
+        type: 3,
+        name: "stats",
+        description: "Choose official game stats or scrim stats.",
+        required: true,
+        choices: [
+          {name: "Game", value: "Game"},
+          {name: "Scrim", value: "Scrim"},
+        ],
+      },
+      {
+        type: 3,
+        name: "mode",
+        description: "Show 2s, 3s, or both modes.",
+        required: false,
+        choices: [
+          {name: "Both", value: "Both"},
+          {name: "2s", value: "2s"},
+          {name: "3s", value: "3s"},
+        ],
+      },
+    ],
+  },
+  {
     name: "replay",
     description: "Analyze a Rocket League replay.",
     type: 1,
