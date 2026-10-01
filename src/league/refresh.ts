@@ -48,6 +48,8 @@ export interface LeagueRefreshSummary {
   usageCount: number;
 }
 
+// Source timestamps are deliberately excluded. They describe freshness, not a
+// roster-state change, so an hourly as_of bump must not create history rows.
 function playerKey(player: FranchisePlayer | CurrentLeaguePlayerRow): string {
   const isCurrent = "sprocket_player_id" in player;
   return JSON.stringify(isCurrent
@@ -65,7 +67,6 @@ function playerKey(player: FranchisePlayer | CurrentLeaguePlayerRow): string {
         player.slot,
         player.current_scrim_points,
         player.eligible_through,
-        player.source_as_of,
       ]
     : [
         player.sprocketPlayerId,
@@ -81,7 +82,6 @@ function playerKey(player: FranchisePlayer | CurrentLeaguePlayerRow): string {
         player.slot,
         player.currentScrimPoints,
         player.eligibleThrough,
-        player.sourceAsOf,
       ]);
 }
 
@@ -113,7 +113,6 @@ function normalizeHashInput(
         value.doublesUses,
         value.standardUses,
         value.totalUses,
-        value.sourceAsOf,
       ]),
     scrimStats: [...scrimStats]
       .sort((a, b) => a.sprocketPlayerId.localeCompare(b.sprocketPlayerId) || a.mode.localeCompare(b.mode))
