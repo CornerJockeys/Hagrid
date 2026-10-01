@@ -53,6 +53,11 @@ export async function getStandings(env: Env): Promise<StandingRow[]> {
   return rows.map(fromRow).filter((row): row is StandingRow => row !== null);
 }
 
+export async function getSeasonStandings(env: Env, targetSeason: number): Promise<StandingRow[]> {
+  const rows = await getStandings(env);
+  return rows.filter(row => seasonNumber(row.season) === targetSeason);
+}
+
 export async function getLatestStandings(env: Env): Promise<StandingRow[]> {
   const rows = await getStandings(env);
   if (rows.length === 0) return [];

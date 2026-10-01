@@ -1,8 +1,9 @@
 import {getGuildConfig} from "../db";
 import {discordDeferred, discordMessage, editOriginalInteraction} from "../discord";
+import {CURRENT_MLE_SEASON} from "../season-policy";
 import {DatasetFetchError} from "../sprocket/client";
 import {sameText} from "../sprocket/fields";
-import {getLatestStandings, type StandingRow} from "../sprocket/standings";
+import {getSeasonStandings, type StandingRow} from "../sprocket/standings";
 import type {
   DiscordCommandOption,
   DiscordInteraction,
@@ -90,7 +91,7 @@ function formatLeagueTable(
 ): string {
   const franchiseRow = findFranchiseRow(rows, franchiseName, league.name, mode);
   if (!franchiseRow) {
-    return `No ${league.short} ${mode.toLowerCase()} standings were found for ${franchiseName}.`;
+    return `No S${CURRENT_MLE_SEASON} ${league.short} ${mode.toLowerCase()} standings were found for ${franchiseName}.`;
   }
 
   const peers = relevantTable(rows, franchiseRow);
@@ -122,7 +123,7 @@ function formatOverview(
     .filter((entry): entry is {league: LeagueChoice; row: StandingRow} => entry.row !== null);
 
   if (franchiseRows.length === 0) {
-    return `No ${mode.toLowerCase()} standings were found for ${franchiseName}.`;
+    return `No S${CURRENT_MLE_SEASON} ${mode.toLowerCase()} standings were found for ${franchiseName}.`;
   }
 
   const season = franchiseRows[0].row.season;
@@ -147,10 +148,12 @@ async function fetchAndRespond(
   mode: ModeChoice,
 ): Promise<void> {
   try {
-    const rows = await getLatestStandings(env);
-    const content = league
-      ? formatLeagueTable(rows, franchiseName, league, mode)
-      : formatOverview(rows, franchiseName, mode);
+    const rows = await getSeasonStandings(env, CURRENT_MLE_SEASON);
+    const content = rows.length === 0
+      ? `S${CURRENT_MLE_SEASON} standings are not available in the Sprocket dataset yet.`
+      : league
+        ? formatLeagueTable(rows, franchiseName, league, mode)
+        : formatOverview(rows, franchiseName, mode);
     await editOriginalInteraction(interaction, content.slice(0, 1900));
   } catch (error) {
     console.error("Standings lookup failed", error);
