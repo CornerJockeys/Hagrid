@@ -2,6 +2,41 @@
 .user-chip small { margin-top: 1px; color: #8f96a1; font-size: 10px; text-align: right; }
 .access-card h2 { margin-bottom: 8px; }
 
+.team-toolbar { align-items: end; }
+.team-division-control {
+  display: grid;
+  gap: 5px;
+}
+.team-division-control > span {
+  color: #aeb4bd;
+  font-size: 12px;
+  font-weight: 650;
+}
+.team-division-filter {
+  display: flex;
+  gap: 3px;
+  padding: 3px;
+  border: 1px solid #383d47;
+  border-radius: 8px;
+  background: #171a20;
+}
+.team-division-button {
+  min-width: 42px;
+  min-height: 30px;
+  padding: 5px 9px;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: #9ba2ac;
+  font-size: 12px;
+  font-weight: 750;
+}
+.team-division-button:hover { background: #252a32; color: #e4e7eb; }
+.team-division-button.active {
+  background: #f2f3f5;
+  color: #16181d;
+}
+
 .staff-summary {
   display: grid;
   grid-template-columns: repeat(4, minmax(110px, 1fr));
@@ -110,6 +145,8 @@
 .player-day-row span { color: #b7bcc4; }
 
 @media (max-width: 760px) {
+  .team-division-filter { flex-wrap: wrap; }
+  .team-division-button { flex: 1 1 42px; }
   .staff-summary { grid-template-columns: repeat(2, minmax(110px, 1fr)); }
   .time-detail-columns { grid-template-columns: 1fr; }
 }
