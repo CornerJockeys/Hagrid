@@ -51,6 +51,7 @@ export interface DiscordCommandOption {
   type: number;
   value?: string | number | boolean;
   options?: DiscordCommandOption[];
+  focused?: boolean;
 }
 
 export interface DiscordAttachment {
