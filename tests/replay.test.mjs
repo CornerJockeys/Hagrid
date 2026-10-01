@@ -125,20 +125,19 @@ test("Sprocket 3s ratings match the known regression replay values", () => {
 
   const rated = rateReplayPlayers(players, 3);
   const expected = new Map([
-    ["rex", [2.02, 39.56, 59.43, 49.50]],
-    ["ChilledPanda117", [1.60, 9.29, 59.43, 34.36]],
-    ["koloa", [2.88, 37.03, 65.56, 51.29]],
-    ["awaree.", [5.87, 95.26, 79.16, 87.21]],
-    ["AK-47_SENATRA", [3.53, 38.14, 42.33, 40.24]],
-    ["WhySoBad-0", [2.68, 76.09, 22.07, 49.08]],
+    ["rex", [39.56, 59.43, 49.50]],
+    ["ChilledPanda117", [9.29, 59.43, 34.36]],
+    ["koloa", [37.03, 65.56, 51.29]],
+    ["awaree.", [95.26, 79.16, 87.21]],
+    ["AK-47_SENATRA", [38.14, 42.33, 40.24]],
+    ["WhySoBad-0", [76.09, 22.07, 49.08]],
   ]);
 
   for (const player of rated) {
     const row = expected.get(player.name);
     assert.ok(row, `missing expected row for ${player.name}`);
-    assert.equal(player.mvpr.toFixed(2), row[0].toFixed(2));
-    assert.equal(player.opi?.toFixed(2), row[1].toFixed(2));
-    assert.equal(player.dpi?.toFixed(2), row[2].toFixed(2));
-    assert.equal(player.gpi?.toFixed(2), row[3].toFixed(2));
+    assert.equal(player.opi?.toFixed(2), row[0].toFixed(2));
+    assert.equal(player.dpi?.toFixed(2), row[1].toFixed(2));
+    assert.equal(player.sr?.toFixed(2), row[2].toFixed(2));
   }
 });

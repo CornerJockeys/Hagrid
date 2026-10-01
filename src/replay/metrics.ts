@@ -14,10 +14,9 @@ export interface ReplayPlayerStats {
 export interface RatedReplayPlayer extends ReplayPlayerStats {
   goalsAgainst: number;
   shotsAgainst: number;
-  mvpr: number;
   opi: number | null;
   dpi: number | null;
-  gpi: number | null;
+  sr: number | null;
 }
 
 interface SprocketConstants {
@@ -60,10 +59,6 @@ const STANDARD: SprocketConstants = {
 
 function logistic(raw: number, x: number, y: number): number {
   return 100 / (1 + Math.exp(BETA * ((raw - x) / y)));
-}
-
-export function calculateMvpr(player: ReplayPlayerStats): number {
-  return player.goals + 0.75 * player.assists + 0.6 * player.saves + player.shots / 3;
 }
 
 function sprocketConstants(teamSize: number): SprocketConstants | null {
@@ -124,7 +119,6 @@ export function rateReplayPlayers(
 
   return players.map(player => {
     const opponent = totals.get(player.team === 0 ? 1 : 0)!;
-    const mvpr = calculateMvpr(player);
     const opi = calculateOpi(player, teamSize);
     const dpi = calculateDpi(player, teamSize, opponent.goals, opponent.shots);
 
@@ -132,10 +126,9 @@ export function rateReplayPlayers(
       ...player,
       goalsAgainst: opponent.goals,
       shotsAgainst: opponent.shots,
-      mvpr,
       opi,
       dpi,
-      gpi: opi === null || dpi === null ? null : (opi + dpi) / 2,
+      sr: opi === null || dpi === null ? null : (opi + dpi) / 2,
     };
   });
 }

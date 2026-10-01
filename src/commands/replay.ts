@@ -83,7 +83,7 @@ function teamSection(analysis: ReplayAnalysis, team: 0 | 1): string[] {
       `**${player.name}** — ${player.goals} G · ${player.assists} A · ${player.saves} SV · ${player.shots} SH`,
     );
     lines.push(
-      `MVPR \`${metric(player.mvpr)}\` · OPI \`${metric(player.opi)}\` · DPI \`${metric(player.dpi)}\` · GPI \`${metric(player.gpi)}\``,
+      `SR \`${metric(player.sr)}\` · OPI \`${metric(player.opi)}\` · DPI \`${metric(player.dpi)}\``,
     );
   }
 
