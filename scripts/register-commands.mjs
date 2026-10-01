@@ -82,7 +82,7 @@ const commands = [
       {
         type: 1,
         name: "analyze",
-        description: "Calculate player stats, MVPR, OPI, DPI, and GPI from one replay.",
+        description: "Calculate player stats, SR, OPI, and DPI from one replay.",
         options: [
           {
             type: 11,
