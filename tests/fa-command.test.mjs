@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import {buildFaPages, parseFaCustomId} from "../src/commands/pool.ts";
+import {buildFaPages, parseFaCustomId} from "../src/commands/fa-format.ts";
 
 function player(index, status = "FA") {
   return {
