@@ -34,16 +34,25 @@ function fromRow(row: CsvRecord): RoleUsage | null {
   };
 }
 
+export async function getRoleUsages(env: Env): Promise<RoleUsage[]> {
+  const rows = await fetchCsvDataset(env, "role_usages");
+  return rows.map(fromRow).filter((usage): usage is RoleUsage => usage !== null);
+}
+
+export async function getRoleUsagesForSeason(
+  env: Env,
+  seasonNumber: number,
+): Promise<RoleUsage[]> {
+  const usages = await getRoleUsages(env);
+  return usages.filter(usage => usage.seasonNumber === seasonNumber);
+}
+
 export async function getFranchiseRoleUsages(
   env: Env,
   franchiseName: string,
 ): Promise<RoleUsage[]> {
-  const rows = await fetchCsvDataset(env, "role_usages");
-  return rows
-    .map(fromRow)
-    .filter((usage): usage is RoleUsage =>
-      usage !== null && sameText(usage.teamName, franchiseName),
-    );
+  const usages = await getRoleUsages(env);
+  return usages.filter(usage => sameText(usage.teamName, franchiseName));
 }
 
 export async function getFranchiseRoleUsagesForSeason(
