@@ -72,9 +72,17 @@ export function discordDeferred(ephemeral = true): Response {
   });
 }
 
+export function discordUpdateMessage(content: string, components: unknown[] = []): Response {
+  return Response.json({
+    type: 7,
+    data: {content, components},
+  });
+}
+
 export async function editOriginalInteraction(
   interaction: DiscordInteraction,
   content: string,
+  components: unknown[] = [],
 ): Promise<void> {
   if (!interaction.application_id || !interaction.token) {
     throw new Error("Discord interaction is missing application_id or token.");
@@ -85,7 +93,7 @@ export async function editOriginalInteraction(
     {
       method: "PATCH",
       headers: {"Content-Type": "application/json"},
-      body: JSON.stringify({content}),
+      body: JSON.stringify({content, components}),
     },
   );
 
