@@ -70,6 +70,8 @@ export interface DiscordInteractionData {
   name?: string;
   options?: DiscordCommandOption[];
   resolved?: DiscordResolvedData;
+  custom_id?: string;
+  component_type?: number;
 }
 
 export interface DiscordInteraction {
