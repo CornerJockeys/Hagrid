@@ -61,8 +61,16 @@ function scrimLine(stat: LeagueScrimStatRow): string[] {
   ];
 }
 
-function profileLines(player: LeaguePlayerRow, weekStart: string): string[] {
+function profileLines(player: LeaguePlayerRow, weekStart: string, rostered: boolean): string[] {
   const division = teamDivision(player.skill_group) ?? player.skill_group ?? "Unknown division";
+  if (!rostered) {
+    return [
+      `**${player.name}**`,
+      `Status ${player.franchise_name} · ${division}`,
+      `Salary ${formatSalary(player.salary)}`,
+    ];
+  }
+
   const eligible = isEligibleForWeek(player.eligible_through, weekStart);
   const through = eligibilityCalendarDate(player.eligible_through);
   return [
@@ -71,6 +79,16 @@ function profileLines(player: LeaguePlayerRow, weekStart: string): string[] {
     `Salary ${formatSalary(player.salary)} · Scrim points ${player.current_scrim_points}`,
     `${eligible ? "✅ Eligible" : "❌ Not eligible"} for week of ${weekStart}${through ? ` · source through ${through}` : ""}`,
   ];
+}
+
+function latestTimestamp(values: string[]): string | null {
+  let latest: {raw: string; time: number} | null = null;
+  for (const raw of values) {
+    const time = Date.parse(raw);
+    if (!Number.isFinite(time)) continue;
+    if (!latest || time > latest.time) latest = {raw, time};
+  }
+  return latest?.raw ?? null;
 }
 
 async function fetchAndRespond(
@@ -99,7 +117,8 @@ async function fetchAndRespond(
     ]);
 
     const weekStart = currentLeagueWeekStart();
-    const lines = profileLines(player, weekStart);
+    const rostered = rosterTeam !== null;
+    const lines = profileLines(player, weekStart, rostered);
 
     if (rosterTeam && player.slot && teamDivision(player.skill_group)) {
       const usages = await getTeamRoleUsage(env.DB, rosterTeam.franchise_name, CURRENT_MLE_SEASON);
@@ -115,6 +134,7 @@ async function fetchAndRespond(
       }
     }
 
+    let statsRefreshedAt: string | null = null;
     lines.push("");
     if (stats === "Game") {
       lines.push(
@@ -127,6 +147,7 @@ async function fetchAndRespond(
       if (selected.length === 0) {
         lines.push(`No ${mode === "Both" ? "2s/3s" : mode} scrim stats were found for this player.`);
       } else {
+        statsRefreshedAt = latestTimestamp(selected.map(stat => stat.refreshed_at));
         for (const stat of selected) {
           lines.push(...scrimLine(stat), "");
         }
@@ -135,8 +156,16 @@ async function fetchAndRespond(
     }
 
     lines.push("");
-    if (state?.source_as_of) lines.push(`Source as of ${formatEasternTimestamp(state.source_as_of)}.`);
-    if (state?.refreshed_at) lines.push(`Hagrid refreshed ${formatEasternTimestamp(state.refreshed_at)}.`);
+    if (player.source_as_of) {
+      lines.push(`Profile source as of ${formatEasternTimestamp(player.source_as_of)}.`);
+    } else if (player.refreshed_at) {
+      lines.push(`Profile refreshed ${formatEasternTimestamp(player.refreshed_at)}.`);
+    }
+    if (statsRefreshedAt) lines.push(`Scrim stats refreshed ${formatEasternTimestamp(statsRefreshedAt)}.`);
+    if (rostered && state?.refreshed_at) {
+      lines.push(`League map refreshed ${formatEasternTimestamp(state.refreshed_at)}.`);
+    }
+
     await editOriginalInteraction(interaction, lines.join("\n").slice(0, 1950));
   } catch (error) {
     console.error("Player lookup failed", error);
