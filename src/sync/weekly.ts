@@ -1,6 +1,7 @@
 import {getGuildConfig} from "../db";
+import {CURRENT_MLE_SEASON} from "../season-policy";
 import {getFranchisePlayers, type FranchisePlayer} from "../sprocket/players";
-import {getLatestFranchiseRoleUsages, type RoleUsage} from "../sprocket/role-usages";
+import {getFranchiseRoleUsagesForSeason, type RoleUsage} from "../sprocket/role-usages";
 import type {D1PreparedStatement, Env} from "../types";
 import {
   completeSyncStatement,
@@ -310,7 +311,7 @@ export async function runFranchiseSync(
   try {
     const [players, usages, previousPlayers] = await Promise.all([
       getFranchisePlayers(env, config.franchise_name),
-      getLatestFranchiseRoleUsages(env, config.franchise_name),
+      getFranchiseRoleUsagesForSeason(env, config.franchise_name, CURRENT_MLE_SEASON),
       getCurrentPlayers(env.DB, guildId),
     ]);
 
