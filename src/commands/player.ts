@@ -134,7 +134,9 @@ async function fetchAndRespond(
       }
     }
 
-    lines.push("", `Data as of ${formatEasternTimestamp(state?.source_as_of ?? state?.refreshed_at ?? null)}.`);
+    lines.push("");
+    if (state?.source_as_of) lines.push(`Source as of ${formatEasternTimestamp(state.source_as_of)}.`);
+    if (state?.refreshed_at) lines.push(`Hagrid refreshed ${formatEasternTimestamp(state.refreshed_at)}.`);
     await editOriginalInteraction(interaction, lines.join("\n").slice(0, 1950));
   } catch (error) {
     console.error("Player lookup failed", error);
