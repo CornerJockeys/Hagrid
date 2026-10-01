@@ -72,6 +72,15 @@ export function discordDeferred(ephemeral = true): Response {
   });
 }
 
+export function discordAutocomplete(
+  choices: Array<{name: string; value: string | number}>,
+): Response {
+  return Response.json({
+    type: 8,
+    data: {choices: choices.slice(0, 25)},
+  });
+}
+
 export function discordUpdateMessage(content: string, components: unknown[] = []): Response {
   return Response.json({
     type: 7,
