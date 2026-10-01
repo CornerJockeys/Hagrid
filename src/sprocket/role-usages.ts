@@ -46,6 +46,15 @@ export async function getFranchiseRoleUsages(
     );
 }
 
+export async function getFranchiseRoleUsagesForSeason(
+  env: Env,
+  franchiseName: string,
+  seasonNumber: number,
+): Promise<RoleUsage[]> {
+  const usages = await getFranchiseRoleUsages(env, franchiseName);
+  return usages.filter(usage => usage.seasonNumber === seasonNumber);
+}
+
 export async function getLatestFranchiseRoleUsages(
   env: Env,
   franchiseName: string,
