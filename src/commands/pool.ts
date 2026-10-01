@@ -87,7 +87,7 @@ export async function handleFaCommand(
   const division = divisionRaw as LeagueCode;
   const status = statusRaw as FaStatusFilter;
   ctx.waitUntil(fetchAndRespond(interaction, env, division, status, salary));
-  return discordDeferred();
+  return discordDeferred(false);
 }
 
 export async function handleFaComponent(
