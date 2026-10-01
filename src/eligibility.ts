@@ -11,6 +11,20 @@ function canonicalDateParts(year: number, month: number, day: number): string | 
   return `${String(year).padStart(4, "0")}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
 }
 
+function easternDateParts(now: Date): {year: number; month: number; day: number} {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: EASTERN_TIME_ZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(now);
+  return {
+    year: Number(parts.find(part => part.type === "year")?.value),
+    month: Number(parts.find(part => part.type === "month")?.value),
+    day: Number(parts.find(part => part.type === "day")?.value),
+  };
+}
+
 export function eligibilityCalendarDate(value: string | null): string | null {
   if (!value) return null;
   const trimmed = value.trim();
@@ -31,15 +45,7 @@ export function eligibilityCalendarDate(value: string | null): string | null {
   if (/[zZ]|[+-]\d{2}:?\d{2}$/.test(trimmed)) {
     const parsed = new Date(trimmed);
     if (Number.isNaN(parsed.getTime())) return null;
-    const parts = new Intl.DateTimeFormat("en-US", {
-      timeZone: EASTERN_TIME_ZONE,
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-    }).formatToParts(parsed);
-    const year = Number(parts.find(part => part.type === "year")?.value);
-    const month = Number(parts.find(part => part.type === "month")?.value);
-    const day = Number(parts.find(part => part.type === "day")?.value);
+    const {year, month, day} = easternDateParts(parsed);
     return canonicalDateParts(year, month, day);
   }
 
@@ -51,6 +57,14 @@ export function eligibilityCalendarDate(value: string | null): string | null {
   }
 
   return null;
+}
+
+export function currentLeagueWeekStart(now = new Date()): string {
+  const {year, month, day} = easternDateParts(now);
+  const easternDate = new Date(Date.UTC(year, month - 1, day));
+  const daysSinceMonday = (easternDate.getUTCDay() + 6) % 7;
+  easternDate.setUTCDate(easternDate.getUTCDate() - daysSinceMonday);
+  return easternDate.toISOString().slice(0, 10);
 }
 
 /**
