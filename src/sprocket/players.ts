@@ -56,26 +56,27 @@ function isRocketLeague(player: FranchisePlayer): boolean {
   return player.gameTitle !== null && sameText(player.gameTitle, "Rocket League");
 }
 
+function dedupePlayers(players: FranchisePlayer[]): FranchisePlayer[] {
+  const byId = new Map<string, FranchisePlayer>();
+  for (const player of players) {
+    if (!byId.has(player.sprocketPlayerId)) byId.set(player.sprocketPlayerId, player);
+  }
+  return [...byId.values()];
+}
+
+export async function getRocketLeaguePlayers(env: Env): Promise<FranchisePlayer[]> {
+  const rows = await fetchCsvDataset(env, "players");
+  return dedupePlayers(
+    rows
+      .map(fromRow)
+      .filter((player): player is FranchisePlayer => player !== null && isRocketLeague(player)),
+  );
+}
+
 export async function getFranchisePlayers(
   env: Env,
   franchiseName: string,
 ): Promise<FranchisePlayer[]> {
-  const rows = await fetchCsvDataset(env, "players");
-  const players = rows
-    .map(fromRow)
-    .filter((player): player is FranchisePlayer =>
-      player !== null &&
-      sameText(player.franchise, franchiseName) &&
-      isRocketLeague(player),
-    );
-
-  const seen = new Set<string>();
-  const unique: FranchisePlayer[] = [];
-  for (const player of players) {
-    if (seen.has(player.sprocketPlayerId)) continue;
-    seen.add(player.sprocketPlayerId);
-    unique.push(player);
-  }
-
-  return unique;
+  const players = await getRocketLeaguePlayers(env);
+  return players.filter(player => sameText(player.franchise, franchiseName));
 }

@@ -1,0 +1,207 @@
+import type {D1Database} from "../types";
+
+export interface LeagueTeamRow {
+  franchise_name: string;
+  franchise_code: string | null;
+  conference: string | null;
+  super_division: string | null;
+  division: string | null;
+  refreshed_at: string;
+}
+
+export interface LeaguePlayerRow {
+  sprocket_player_id: string;
+  member_id: string | null;
+  discord_id: string | null;
+  name: string;
+  salary: number | null;
+  skill_group: string | null;
+  game_id: string | null;
+  game_title: string | null;
+  franchise_name: string;
+  staff_position: string | null;
+  slot: string | null;
+  current_scrim_points: number;
+  eligible_through: string | null;
+  source_as_of: string | null;
+  refreshed_at: string;
+}
+
+export interface LeagueUsageRow {
+  team_name: string;
+  season_number: number;
+  league: string;
+  role: string;
+  doubles_uses: number;
+  standard_uses: number;
+  total_uses: number;
+  source_as_of: string | null;
+  refreshed_at: string;
+}
+
+export interface LeagueScrimStatRow {
+  sprocket_player_id: string;
+  mode: "2s" | "3s";
+  league: string | null;
+  games: number;
+  win_pct: number | null;
+  score: number | null;
+  sprocket: number | null;
+  dpi: number | null;
+  opi: number | null;
+  goals: number | null;
+  assists: number | null;
+  saves: number | null;
+  shots: number | null;
+  demos: number | null;
+  refreshed_at: string;
+}
+
+export interface LeagueSnapshotInfo {
+  source_hash: string;
+  refreshed_at: string;
+  checked_at: string;
+  source_as_of: string | null;
+  team_count: number;
+  player_count: number;
+  scrim_stat_count: number;
+  usage_count: number;
+}
+
+function normalize(value: string): string {
+  return value.trim().replace(/\s+/g, " ").toLocaleLowerCase("en-US");
+}
+
+export async function getLeagueSnapshotInfo(db: D1Database): Promise<LeagueSnapshotInfo | null> {
+  return db.prepare(
+    `SELECT source_hash, refreshed_at, checked_at, source_as_of, team_count, player_count,
+            scrim_stat_count, usage_count
+     FROM league_snapshot_state
+     WHERE singleton = 1`,
+  ).first<LeagueSnapshotInfo>();
+}
+
+export async function searchLeagueTeams(
+  db: D1Database,
+  query: string,
+  limit = 25,
+): Promise<LeagueTeamRow[]> {
+  const needle = `%${query.trim().toLocaleLowerCase("en-US")}%`;
+  const result = await db.prepare(
+    `SELECT franchise_name, franchise_code, conference, super_division, division, refreshed_at
+     FROM league_teams_current
+     WHERE LOWER(franchise_name) LIKE ? OR LOWER(COALESCE(franchise_code, '')) LIKE ?
+     ORDER BY franchise_name COLLATE NOCASE
+     LIMIT ?`,
+  ).bind(needle, needle, limit).all<LeagueTeamRow>();
+  return result.results;
+}
+
+export async function resolveLeagueTeam(
+  db: D1Database,
+  requested: string,
+): Promise<LeagueTeamRow | null> {
+  const normalized = normalize(requested);
+  const exact = await db.prepare(
+    `SELECT franchise_name, franchise_code, conference, super_division, division, refreshed_at
+     FROM league_teams_current
+     WHERE LOWER(franchise_name) = ? OR LOWER(COALESCE(franchise_code, '')) = ?
+     ORDER BY franchise_name COLLATE NOCASE
+     LIMIT 1`,
+  ).bind(normalized, normalized).first<LeagueTeamRow>();
+  if (exact) return exact;
+
+  const suggestions = await searchLeagueTeams(db, requested, 2);
+  return suggestions.length === 1 ? suggestions[0] : null;
+}
+
+export async function getLeagueTeamPlayers(
+  db: D1Database,
+  franchiseName: string,
+): Promise<LeaguePlayerRow[]> {
+  const result = await db.prepare(
+    `SELECT sprocket_player_id, member_id, discord_id, name, salary, skill_group, game_id,
+            game_title, franchise_name, staff_position, slot, current_scrim_points,
+            eligible_through, source_as_of, refreshed_at
+     FROM league_players_current
+     WHERE LOWER(franchise_name) = LOWER(?)
+     ORDER BY skill_group COLLATE NOCASE, slot COLLATE NOCASE, name COLLATE NOCASE`,
+  ).bind(franchiseName).all<LeaguePlayerRow>();
+  return result.results;
+}
+
+export async function searchLeaguePlayers(
+  db: D1Database,
+  query: string,
+  limit = 25,
+): Promise<LeaguePlayerRow[]> {
+  const needle = `%${query.trim().toLocaleLowerCase("en-US")}%`;
+  const result = await db.prepare(
+    `SELECT sprocket_player_id, member_id, discord_id, name, salary, skill_group, game_id,
+            game_title, franchise_name, staff_position, slot, current_scrim_points,
+            eligible_through, source_as_of, refreshed_at
+     FROM league_players_current
+     WHERE LOWER(name) LIKE ? OR LOWER(sprocket_player_id) LIKE ?
+     ORDER BY name COLLATE NOCASE, franchise_name COLLATE NOCASE
+     LIMIT ?`,
+  ).bind(needle, needle, limit).all<LeaguePlayerRow>();
+  return result.results;
+}
+
+export async function resolveLeaguePlayer(
+  db: D1Database,
+  requested: string,
+): Promise<LeaguePlayerRow | null> {
+  const exactId = await db.prepare(
+    `SELECT sprocket_player_id, member_id, discord_id, name, salary, skill_group, game_id,
+            game_title, franchise_name, staff_position, slot, current_scrim_points,
+            eligible_through, source_as_of, refreshed_at
+     FROM league_players_current
+     WHERE sprocket_player_id = ?
+     LIMIT 1`,
+  ).bind(requested.trim()).first<LeaguePlayerRow>();
+  if (exactId) return exactId;
+
+  const exactName = await db.prepare(
+    `SELECT sprocket_player_id, member_id, discord_id, name, salary, skill_group, game_id,
+            game_title, franchise_name, staff_position, slot, current_scrim_points,
+            eligible_through, source_as_of, refreshed_at
+     FROM league_players_current
+     WHERE LOWER(name) = ?
+     ORDER BY franchise_name COLLATE NOCASE
+     LIMIT 2`,
+  ).bind(normalize(requested)).all<LeaguePlayerRow>();
+  if (exactName.results.length === 1) return exactName.results[0];
+
+  const suggestions = await searchLeaguePlayers(db, requested, 2);
+  return suggestions.length === 1 ? suggestions[0] : null;
+}
+
+export async function getTeamRoleUsage(
+  db: D1Database,
+  franchiseName: string,
+  seasonNumber: number,
+): Promise<LeagueUsageRow[]> {
+  const result = await db.prepare(
+    `SELECT team_name, season_number, league, role, doubles_uses, standard_uses,
+            total_uses, source_as_of, refreshed_at
+     FROM league_role_usage_current
+     WHERE LOWER(team_name) = LOWER(?) AND season_number = ?
+     ORDER BY league COLLATE NOCASE, role COLLATE NOCASE`,
+  ).bind(franchiseName, seasonNumber).all<LeagueUsageRow>();
+  return result.results;
+}
+
+export async function getPlayerScrimStats(
+  db: D1Database,
+  sprocketPlayerId: string,
+): Promise<LeagueScrimStatRow[]> {
+  const result = await db.prepare(
+    `SELECT sprocket_player_id, mode, league, games, win_pct, score, sprocket, dpi, opi,
+            goals, assists, saves, shots, demos, refreshed_at
+     FROM league_scrim_stats_current
+     WHERE sprocket_player_id = ?
+     ORDER BY mode`,
+  ).bind(sprocketPlayerId).all<LeagueScrimStatRow>();
+  return result.results;
+}

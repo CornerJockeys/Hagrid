@@ -1,9 +1,13 @@
 import assert from "node:assert/strict";
 
 import {fetchLegacyCsvDataset} from "../src/sprocket/client.ts";
+import {CURRENT_MLE_SEASON} from "../src/season-policy.ts";
 import {getFranchises} from "../src/sprocket/franchises.ts";
-import {getFranchisePlayers} from "../src/sprocket/players.ts";
-import {getLatestFranchiseRoleUsages} from "../src/sprocket/role-usages.ts";
+import {getFranchisePlayers, getRocketLeaguePlayers} from "../src/sprocket/players.ts";
+import {
+  getLatestFranchiseRoleUsages,
+  getRoleUsagesForSeason,
+} from "../src/sprocket/role-usages.ts";
 import {getProspectIdentities, getScoutingStatLines} from "../src/sprocket/scouting.ts";
 import {getLatestStandings} from "../src/sprocket/standings.ts";
 
@@ -28,14 +32,17 @@ const franchise = franchises.find(value =>
 assert.ok(franchise, `Could not resolve smoke franchise ${requestedFranchise}`);
 log("Smoke franchise", `${franchise.name}${franchise.code ? ` (${franchise.code})` : ""}`);
 
-const [players, usages, standings, prospects, scoutingLines] = await Promise.all([
+const [players, allPlayers, usages, seasonUsages, standings, prospects, scoutingLines] = await Promise.all([
   getFranchisePlayers(env, franchise.name),
+  getRocketLeaguePlayers(env),
   getLatestFranchiseRoleUsages(env, franchise.name),
+  getRoleUsagesForSeason(env, CURRENT_MLE_SEASON),
   getLatestStandings(env),
   getProspectIdentities(env),
   getScoutingStatLines(env),
 ]);
 
+assert.ok(allPlayers.length > 0, "players dataset produced zero Rocket League players league-wide");
 assert.ok(players.length > 0, `${franchise.name} produced zero Rocket League roster rows`);
 assert.ok(
   players.some(player => player.discordId),
@@ -62,6 +69,17 @@ if (scoutingLines.length === 0) {
 }
 assert.ok(scoutingLines.length > 0, "Avg_Scrim_Stats produced zero usable scouting rows");
 
+const franchiseNames = new Set(franchises.map(value => value.name.toLocaleLowerCase("en-US")));
+const rosteredLeaguePlayers = allPlayers.filter(player =>
+  franchiseNames.has(player.franchise.toLocaleLowerCase("en-US")),
+);
+const scoutingIds = new Set(scoutingLines.map(value => value.sprocketPlayerId));
+const rosteredWithScrimStats = rosteredLeaguePlayers.filter(player => scoutingIds.has(player.sprocketPlayerId));
+
+log("League-wide Rocket League players", allPlayers.length);
+log("League-wide rostered players", rosteredLeaguePlayers.length);
+log("Rostered players with scrim stats", rosteredWithScrimStats.length);
+log(`S${CURRENT_MLE_SEASON} usage rows`, seasonUsages.length);
 log("Roster rows", players.length);
 log("Current usage rows", usages.length);
 log("Current standing rows", standings.length);

@@ -1,10 +1,13 @@
 import {handleActivityApi} from "./activity/http";
 import {handleFranchiseCommand} from "./commands/franchise";
 import {handleFaCommand, handleFaComponent} from "./commands/pool";
+import {handlePlayerAutocomplete, handlePlayerCommand} from "./commands/player";
 import {handleReplayCommand} from "./commands/replay";
 import {handleStandingsCommand} from "./commands/standings";
 import {handleSyncCommand} from "./commands/sync";
+import {handleTeamAutocomplete, handleTeamCommand} from "./commands/team";
 import {discordMessage, discordPong, verifyDiscordRequest} from "./discord";
+import {runScheduledLeagueRefresh} from "./league/refresh";
 import {readinessResponse} from "./readiness";
 import {runScheduledScoutingRefresh} from "./scouting/refresh";
 import {runScheduledSyncs} from "./sync/scheduled";
@@ -44,6 +47,17 @@ async function handleInteraction(
       return discordMessage("That Discord component is not supported yet.");
     }
 
+    if (interaction.type === 4) {
+      switch (interaction.data?.name) {
+        case "team":
+          return await handleTeamAutocomplete(interaction, env);
+        case "player":
+          return await handlePlayerAutocomplete(interaction, env);
+        default:
+          return Response.json({type: 8, data: {choices: []}});
+      }
+    }
+
     if (interaction.type !== 2) {
       return discordMessage("That Discord interaction type is not supported yet.");
     }
@@ -53,12 +67,16 @@ async function handleInteraction(
         return await handleFranchiseCommand(interaction, env);
       case "fa":
         return await handleFaCommand(interaction, env, ctx);
+      case "player":
+        return await handlePlayerCommand(interaction, env, ctx);
       case "replay":
         return await handleReplayCommand(interaction, env, ctx);
       case "standings":
         return await handleStandingsCommand(interaction, env, ctx);
       case "sync":
         return await handleSyncCommand(interaction, env, ctx);
+      case "team":
+        return await handleTeamCommand(interaction, env, ctx);
       default:
         return discordMessage("Unknown command.");
     }
@@ -103,6 +121,7 @@ export default {
     ctx.waitUntil(Promise.all([
       runScheduledSyncs(env, event),
       runScheduledScoutingRefresh(env, event),
+      runScheduledLeagueRefresh(env, event),
     ]));
   },
 };
