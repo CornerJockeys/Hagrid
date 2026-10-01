@@ -61,6 +61,13 @@ function playerLine(
   return parts.join(" · ");
 }
 
+function freshnessLines(sourceAsOf: string | null, refreshedAt: string | null): string[] {
+  const lines: string[] = [];
+  if (sourceAsOf) lines.push(`Source as of ${formatEasternTimestamp(sourceAsOf)}.`);
+  if (refreshedAt) lines.push(`Hagrid refreshed ${formatEasternTimestamp(refreshedAt)}.`);
+  return lines;
+}
+
 function teamContent(
   teamName: string,
   teamCode: string | null,
@@ -69,6 +76,7 @@ function teamContent(
   division: TeamDivision | null,
   usageCount: number,
   sourceAsOf: string | null,
+  refreshedAt: string | null,
 ): string {
   const weekStart = currentLeagueWeekStart();
   const competitive = players
@@ -87,7 +95,7 @@ function teamContent(
     return [
       heading,
       division ? `No competitive ${division} roster entries were found.` : "No competitive roster entries were found.",
-      `Data as of ${formatEasternTimestamp(sourceAsOf)}.`,
+      ...freshnessLines(sourceAsOf, refreshedAt),
     ].join("\n");
   }
 
@@ -115,7 +123,7 @@ function teamContent(
       ? `Usage is S${CURRENT_MLE_SEASON} slot usage shown as 2s/3s/total.`
       : `Usage: awaiting S${CURRENT_MLE_SEASON} data.`,
   );
-  lines.push(`Data as of ${formatEasternTimestamp(sourceAsOf)}.`);
+  lines.push(...freshnessLines(sourceAsOf, refreshedAt));
   return lines.join("\n");
 }
 
@@ -150,7 +158,8 @@ async function fetchAndRespond(
       usages,
       division,
       state?.usage_count ?? 0,
-      state?.source_as_of ?? state?.refreshed_at ?? null,
+      state?.source_as_of ?? null,
+      state?.refreshed_at ?? null,
     );
     await editOriginalInteraction(interaction, content.slice(0, 1950));
   } catch (error) {
