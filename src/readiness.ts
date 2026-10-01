@@ -7,6 +7,10 @@ const REQUIRED_TABLES = [
   "scouting_players_current",
   "prospect_pool_current",
   "scouting_refresh_state",
+  "league_snapshot_state",
+  "league_teams_current",
+  "league_players_current",
+  "league_scrim_stats_current",
 ] as const;
 
 interface TableRow {
