@@ -111,7 +111,7 @@ export function analyzeReplay(buffer: ArrayBuffer): ReplayAnalysis {
   }
 
   if (teamSize > 3) {
-    warnings.push("OPI/DPI/GPI are only calculated for 1s/2s/3s; MVPR is still available.");
+    warnings.push("SR/OPI/DPI are only calculated for 1s/2s/3s.");
   } else if (teamSize === 1) {
     warnings.push("Sprocket routes 1s through its 2s OPI/DPI constants; Hagrid mirrors that behavior.");
   }
