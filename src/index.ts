@@ -1,6 +1,6 @@
 import {handleActivityApi} from "./activity/http";
 import {handleFranchiseCommand} from "./commands/franchise";
-import {handlePoolCommand} from "./commands/pool";
+import {handleFaCommand, handleFaComponent} from "./commands/pool";
 import {handleReplayCommand} from "./commands/replay";
 import {handleStandingsCommand} from "./commands/standings";
 import {handleSyncCommand} from "./commands/sync";
@@ -36,16 +36,23 @@ async function handleInteraction(
     return discordPong();
   }
 
-  if (interaction.type !== 2) {
-    return discordMessage("That Discord interaction type is not supported yet.");
-  }
-
   try {
+    if (interaction.type === 3) {
+      if (interaction.data?.custom_id?.startsWith("fa:")) {
+        return await handleFaComponent(interaction, env);
+      }
+      return discordMessage("That Discord component is not supported yet.");
+    }
+
+    if (interaction.type !== 2) {
+      return discordMessage("That Discord interaction type is not supported yet.");
+    }
+
     switch (interaction.data?.name) {
       case "franchise":
         return await handleFranchiseCommand(interaction, env);
-      case "pool":
-        return await handlePoolCommand(interaction, env, ctx);
+      case "fa":
+        return await handleFaCommand(interaction, env, ctx);
       case "replay":
         return await handleReplayCommand(interaction, env, ctx);
       case "standings":
