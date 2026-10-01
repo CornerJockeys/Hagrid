@@ -159,5 +159,5 @@ export async function handleReplayCommand(
   }
 
   ctx.waitUntil(analyzeAndRespond(interaction, attachment));
-  return discordDeferred();
+  return discordDeferred(false);
 }
