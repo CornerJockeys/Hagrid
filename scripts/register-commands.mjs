@@ -36,8 +36,8 @@ const commands = [
     ],
   },
   {
-    name: "pool",
-    description: "Show the FA/PEND player pool for one division.",
+    name: "fa",
+    description: "Show free-agent and pending players for one division.",
     type: 1,
     options: [
       {
@@ -56,12 +56,21 @@ const commands = [
       {
         type: 3,
         name: "status",
-        description: "Optionally show only free agents or pending players.",
+        description: "Show free agents, pending players, or both.",
         required: false,
         choices: [
+          {name: "Both (FA + PEND)", value: "BOTH"},
           {name: "Free Agents (FA)", value: "FA"},
           {name: "Pending (PEND)", value: "PEND"},
         ],
+      },
+      {
+        type: 10,
+        name: "salary",
+        description: "Optionally show only players with this exact salary.",
+        required: false,
+        min_value: 0,
+        max_value: 100,
       },
     ],
   },
@@ -157,3 +166,31 @@ if (!response.ok) {
 console.log(
   `Registered ${commands.length} command(s) ${guildId ? `for guild ${guildId}` : "globally"}.`,
 );
+
+// PRIMARY_ENTRY_POINT commands cannot be guild-scoped. Register one globally so the
+// App Launcher has a real Launch action for Hagrid's Discord Activity.
+const launchResponse = await fetch(
+  `https://discord.com/api/v10/applications/${applicationId}/commands`,
+  {
+    method: "POST",
+    headers: {
+      Authorization: `Bot ${botToken}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      name: "launch",
+      description: "Launch the Hagrid Activity.",
+      type: 4,
+      handler: 2,
+    }),
+  },
+);
+
+const launchBody = await launchResponse.text();
+if (!launchResponse.ok) {
+  console.error(`Discord Activity launch registration failed (${launchResponse.status}):`);
+  console.error(launchBody);
+  process.exit(1);
+}
+
+console.log("Registered Hagrid's global Activity launch entry point.");

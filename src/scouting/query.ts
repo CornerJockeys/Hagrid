@@ -290,20 +290,27 @@ export async function getPoolPlayers(
   env: Env,
   league: LeagueCode,
   status: ProspectStatus | null,
+  salary: number | null = null,
 ): Promise<PoolPlayer[]> {
-  const query = status
-    ? `SELECT sprocket_player_id, name, salary, league, status
-       FROM prospect_pool_current
-       WHERE league = ? AND status = ?
-       ORDER BY status ASC, salary DESC, name COLLATE NOCASE ASC`
-    : `SELECT sprocket_player_id, name, salary, league, status
-       FROM prospect_pool_current
-       WHERE league = ?
-       ORDER BY status ASC, salary DESC, name COLLATE NOCASE ASC`;
-  const statement = status
-    ? env.DB.prepare(query).bind(league, status)
-    : env.DB.prepare(query).bind(league);
-  const result = await statement.all<StoredPoolRow>();
+  const clauses = ["league = ?"];
+  const values: unknown[] = [league];
+
+  if (status) {
+    clauses.push("status = ?");
+    values.push(status);
+  }
+  if (salary !== null) {
+    clauses.push("salary IS NOT NULL AND ABS(salary - ?) < 0.001");
+    values.push(salary);
+  }
+
+  const result = await env.DB.prepare(
+    `SELECT sprocket_player_id, name, salary, league, status
+     FROM prospect_pool_current
+     WHERE ${clauses.join(" AND ")}
+     ORDER BY status ASC, salary DESC, name COLLATE NOCASE ASC`,
+  ).bind(...values).all<StoredPoolRow>();
+
   return result.results.map(row => ({
     sprocketPlayerId: row.sprocket_player_id,
     name: row.name,
