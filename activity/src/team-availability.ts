@@ -6,6 +6,7 @@ export type TeamAvailabilityStatus = (
 
 type Resolution = 30 | 60;
 type SlotState = 1 | 2;
+type TeamDivisionFilter = "all" | "FL" | "AL" | "CL" | "ML";
 
 interface AvailabilitySlot {
   day: number;
@@ -41,6 +42,7 @@ interface TeamAvailabilityResponse {
 }
 
 const dayNames = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+const teamDivisions: Exclude<TeamDivisionFilter, "all">[] = ["FL", "AL", "CL", "ML"];
 
 function escapeHtml(value: string): string {
   return value.replace(/[&<>'"]/g, char => ({
@@ -155,7 +157,7 @@ export function mountTeamAvailabilityPanel(
 ): void {
   let weekStart = initialWeek;
   let resolution: Resolution = 60;
-  let selectedDivision = "all";
+  let selectedDivision: TeamDivisionFilter = "all";
   let data: TeamAvailabilityResponse | null = null;
 
   panel.innerHTML = `
@@ -168,8 +170,14 @@ export function mountTeamAvailabilityPanel(
         <button id="team-next-week" class="icon-button" aria-label="Next week">→</button>
       </div>
     </div>
-    <div class="toolbar">
-      <label>Division<select id="team-division"><option value="all">All divisions</option></select></label>
+    <div class="toolbar team-toolbar">
+      <div class="team-division-control">
+        <span>Division</span>
+        <div class="team-division-filter" role="group" aria-label="Filter team availability by division">
+          <button type="button" class="team-division-button active" data-team-division="all" aria-pressed="true">All</button>
+          ${teamDivisions.map(division => `<button type="button" class="team-division-button" data-team-division="${division}" aria-pressed="false">${division}</button>`).join("")}
+        </div>
+      </div>
       <label>Time blocks<select id="team-resolution"><option value="60">1 hour</option><option value="30">30 minutes</option></select></label>
       <button id="team-refresh" class="secondary-button">Refresh</button>
     </div>
@@ -179,7 +187,7 @@ export function mountTeamAvailabilityPanel(
     <div class="table-card team-roster-card" id="team-roster"></div>
     <div id="team-detail-root"></div>`;
 
-  const divisionSelect = panel.querySelector<HTMLSelectElement>("#team-division");
+  const divisionButtons = [...panel.querySelectorAll<HTMLButtonElement>("[data-team-division]")];
   const resolutionSelect = panel.querySelector<HTMLSelectElement>("#team-resolution");
   const label = panel.querySelector<HTMLElement>("#team-week-label");
   const summary = panel.querySelector<HTMLElement>("#team-summary");
@@ -187,7 +195,15 @@ export function mountTeamAvailabilityPanel(
   const grid = panel.querySelector<HTMLElement>("#team-availability-grid");
   const roster = panel.querySelector<HTMLElement>("#team-roster");
   const detailRoot = panel.querySelector<HTMLElement>("#team-detail-root");
-  if (!divisionSelect || !resolutionSelect || !label || !summary || !missing || !grid || !roster || !detailRoot) return;
+  if (!resolutionSelect || !label || !summary || !missing || !grid || !roster || !detailRoot) return;
+
+  const syncDivisionButtons = (): void => {
+    for (const button of divisionButtons) {
+      const active = button.dataset.teamDivision === selectedDivision;
+      button.classList.toggle("active", active);
+      button.setAttribute("aria-pressed", active ? "true" : "false");
+    }
+  };
 
   const closeDetail = (): void => {
     detailRoot.innerHTML = "";
@@ -245,11 +261,13 @@ export function mountTeamAvailabilityPanel(
   const render = (): void => {
     if (!data) return;
     label.textContent = formatWeek(data.week_start);
+    syncDivisionButtons();
 
     const submitted = data.players.filter(player => player.submitted).length;
     const linked = data.players.filter(player => player.linked).length;
+    const rosterLabel = selectedDivision === "all" ? "Roster" : `${selectedDivision} Roster`;
     summary.innerHTML = `
-      <div><span>Roster</span><strong>${data.players.length}</strong></div>
+      <div><span>${rosterLabel}</span><strong>${data.players.length}</strong></div>
       <div><span>Submitted</span><strong>${submitted}</strong></div>
       <div><span>Missing</span><strong>${data.missing.length}</strong></div>
       <div><span>Discord Linked</span><strong>${linked}/${data.players.length}</strong></div>`;
@@ -321,10 +339,6 @@ export function mountTeamAvailabilityPanel(
         `/api/activity/availability/team?week=${encodeURIComponent(weekStart)}&division=${encodeURIComponent(selectedDivision)}`,
       );
       weekStart = data.week_start;
-      const prior = selectedDivision;
-      divisionSelect.innerHTML = `<option value="all">All divisions</option>${data.divisions.map(value => `<option value="${escapeHtml(value)}">${escapeHtml(value)}</option>`).join("")}`;
-      divisionSelect.value = data.divisions.includes(prior) ? prior : "all";
-      selectedDivision = divisionSelect.value;
       render();
       setStatus(`Loaded ${data.players.length} rostered player${data.players.length === 1 ? "" : "s"}.`, "success");
     } catch (error) {
@@ -341,10 +355,16 @@ export function mountTeamAvailabilityPanel(
     void load();
   });
   panel.querySelector("#team-refresh")?.addEventListener("click", () => void load());
-  divisionSelect.addEventListener("change", () => {
-    selectedDivision = divisionSelect.value;
-    void load();
-  });
+  for (const button of divisionButtons) {
+    button.addEventListener("click", () => {
+      const value = button.dataset.teamDivision;
+      if (value !== "all" && value !== "FL" && value !== "AL" && value !== "CL" && value !== "ML") return;
+      if (value === selectedDivision) return;
+      selectedDivision = value;
+      syncDivisionButtons();
+      void load();
+    });
+  }
   resolutionSelect.addEventListener("change", () => {
     resolution = Number(resolutionSelect.value) as Resolution;
     render();
@@ -353,5 +373,6 @@ export function mountTeamAvailabilityPanel(
     if (event.key === "Escape" && detailRoot.childElementCount > 0) closeDetail();
   });
 
+  syncDivisionButtons();
   void load();
 }
