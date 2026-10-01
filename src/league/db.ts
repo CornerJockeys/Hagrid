@@ -68,6 +68,23 @@ export interface LeagueSnapshotInfo {
   usage_count: number;
 }
 
+const CURRENT_PLAYER_UNION = `
+  SELECT sprocket_player_id, member_id, discord_id, name, salary, skill_group, game_id,
+         game_title, franchise_name, staff_position, slot, current_scrim_points,
+         eligible_through, source_as_of, refreshed_at
+  FROM league_players_current
+  UNION ALL
+  SELECT p.sprocket_player_id, NULL AS member_id, NULL AS discord_id, p.name, p.salary,
+         p.league AS skill_group, NULL AS game_id, 'Rocket League' AS game_title,
+         p.status AS franchise_name, NULL AS staff_position, NULL AS slot,
+         0 AS current_scrim_points, NULL AS eligible_through, NULL AS source_as_of,
+         p.refreshed_at
+  FROM prospect_pool_current p
+  WHERE NOT EXISTS (
+    SELECT 1 FROM league_players_current r
+    WHERE r.sprocket_player_id = p.sprocket_player_id
+  )`;
+
 function normalize(value: string): string {
   return value.trim().replace(/\s+/g, " ").toLocaleLowerCase("en-US");
 }
@@ -137,10 +154,11 @@ export async function searchLeaguePlayers(
 ): Promise<LeaguePlayerRow[]> {
   const needle = `%${query.trim().toLocaleLowerCase("en-US")}%`;
   const result = await db.prepare(
-    `SELECT sprocket_player_id, member_id, discord_id, name, salary, skill_group, game_id,
+    `WITH current_players AS (${CURRENT_PLAYER_UNION})
+     SELECT sprocket_player_id, member_id, discord_id, name, salary, skill_group, game_id,
             game_title, franchise_name, staff_position, slot, current_scrim_points,
             eligible_through, source_as_of, refreshed_at
-     FROM league_players_current
+     FROM current_players
      WHERE LOWER(name) LIKE ? OR LOWER(sprocket_player_id) LIKE ?
      ORDER BY name COLLATE NOCASE, franchise_name COLLATE NOCASE
      LIMIT ?`,
@@ -153,20 +171,22 @@ export async function resolveLeaguePlayer(
   requested: string,
 ): Promise<LeaguePlayerRow | null> {
   const exactId = await db.prepare(
-    `SELECT sprocket_player_id, member_id, discord_id, name, salary, skill_group, game_id,
+    `WITH current_players AS (${CURRENT_PLAYER_UNION})
+     SELECT sprocket_player_id, member_id, discord_id, name, salary, skill_group, game_id,
             game_title, franchise_name, staff_position, slot, current_scrim_points,
             eligible_through, source_as_of, refreshed_at
-     FROM league_players_current
+     FROM current_players
      WHERE sprocket_player_id = ?
      LIMIT 1`,
   ).bind(requested.trim()).first<LeaguePlayerRow>();
   if (exactId) return exactId;
 
   const exactName = await db.prepare(
-    `SELECT sprocket_player_id, member_id, discord_id, name, salary, skill_group, game_id,
+    `WITH current_players AS (${CURRENT_PLAYER_UNION})
+     SELECT sprocket_player_id, member_id, discord_id, name, salary, skill_group, game_id,
             game_title, franchise_name, staff_position, slot, current_scrim_points,
             eligible_through, source_as_of, refreshed_at
-     FROM league_players_current
+     FROM current_players
      WHERE LOWER(name) = ?
      ORDER BY franchise_name COLLATE NOCASE
      LIMIT 2`,
@@ -201,7 +221,17 @@ export async function getPlayerScrimStats(
             goals, assists, saves, shots, demos, refreshed_at
      FROM league_scrim_stats_current
      WHERE sprocket_player_id = ?
+     UNION ALL
+     SELECT s.sprocket_player_id, s.mode, s.league, s.games, s.win_pct, s.score,
+            s.sprocket, s.dpi, s.opi, s.goals, s.assists, s.saves, s.shots, s.demos,
+            s.refreshed_at
+     FROM scouting_players_current s
+     WHERE s.sprocket_player_id = ?
+       AND NOT EXISTS (
+         SELECT 1 FROM league_scrim_stats_current l
+         WHERE l.sprocket_player_id = s.sprocket_player_id AND l.mode = s.mode
+       )
      ORDER BY mode`,
-  ).bind(sprocketPlayerId).all<LeagueScrimStatRow>();
+  ).bind(sprocketPlayerId, sprocketPlayerId).all<LeagueScrimStatRow>();
   return result.results;
 }

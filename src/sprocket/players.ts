@@ -1,5 +1,6 @@
 import {fetchCsvDataset} from "./client";
 import {field, integerField, numberField, sameText} from "./fields";
+import {getFranchises} from "./franchises";
 import type {CsvRecord} from "./csv";
 import type {Env} from "../types";
 
@@ -64,12 +65,26 @@ function dedupePlayers(players: FranchisePlayer[]): FranchisePlayer[] {
   return [...byId.values()];
 }
 
+/**
+ * Current Rocket League players assigned to one of the franchises published by
+ * teams.csv. The upstream players dataset also contains thousands of historical
+ * and non-rostered RL identities; those must not become current roster rows.
+ */
 export async function getRocketLeaguePlayers(env: Env): Promise<FranchisePlayer[]> {
-  const rows = await fetchCsvDataset(env, "players");
+  const [rows, franchises] = await Promise.all([
+    fetchCsvDataset(env, "players"),
+    getFranchises(env),
+  ]);
+  const franchiseNames = franchises.map(franchise => franchise.name);
+
   return dedupePlayers(
     rows
       .map(fromRow)
-      .filter((player): player is FranchisePlayer => player !== null && isRocketLeague(player)),
+      .filter((player): player is FranchisePlayer =>
+        player !== null &&
+        isRocketLeague(player) &&
+        franchiseNames.some(franchiseName => sameText(player.franchise, franchiseName)),
+      ),
   );
 }
 
