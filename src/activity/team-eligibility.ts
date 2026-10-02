@@ -37,7 +37,7 @@ function normalizeDivision(value: string | null): DivisionFilter | null {
 }
 
 export async function getTeamEligibility(request: Request, env: Env): Promise<Response> {
-  const auth = await authenticateActivityRequest(request);
+  const auth = await authenticateActivityRequest(request, env);
   if (isAuthResponse(auth)) return auth;
 
   const access = await requireCaptainPlusAccess(env, auth);
