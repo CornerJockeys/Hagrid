@@ -438,29 +438,41 @@ export async function handleRemindComponent(
 
   if (parts[1] === "scope") {
     const scope = selectedValue(interaction) as ReminderScope | null;
-    if (scope === "player" || scope === "division") {
+    if (scope === "player" || scope === "division" || scope === "usage-division") {
       return discordUpdateMessage(
         scope === "player"
           ? "**Create player reminder**\nChoose the player's division."
-          : "**Create division eligibility reminder**\nChoose the division.",
+          : scope === "division"
+            ? "**Create division eligibility reminder**\nChoose the division."
+            : "**Create division usage reminder**\nChoose the division.",
         divisionComponents(creatorId, scope),
       );
     }
     if (scope === "team") {
       return dateModal(creatorId, "team", "ALL");
     }
-    return discordUpdateMessage("Choose Player, Division, or Team.", scopeComponents(creatorId));
+    if (scope === "usage-team") {
+      return postUsageReminder(interaction, env, "team", null);
+    }
+    return discordUpdateMessage("Choose Player, Division, Team, Usage Division, or Usage Team.", scopeComponents(creatorId));
   }
 
   if (parts[1] === "division") {
-    const scope = parts[3] as "player" | "division";
+    const scope = parts[3] as "player" | "division" | "usage-division";
     const division = selectedValue(interaction)?.toLocaleUpperCase("en-US") as TeamDivision | undefined;
-    if (!division || !DIVISIONS.includes(division) || (scope !== "player" && scope !== "division")) {
+    if (
+      !division ||
+      !DIVISIONS.includes(division) ||
+      (scope !== "player" && scope !== "division" && scope !== "usage-division")
+    ) {
       return discordMessage("That division selection is no longer valid.");
     }
 
     if (scope === "division") {
       return dateModal(creatorId, "division", division);
+    }
+    if (scope === "usage-division") {
+      return postUsageReminder(interaction, env, "division", division);
     }
 
     const {config, players} = await getConfiguredRoster(env, interaction.guild_id);
