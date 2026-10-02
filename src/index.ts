@@ -3,7 +3,7 @@ import {handleFranchiseCommand} from "./commands/franchise";
 import {handleFaCommand, handleFaComponent} from "./commands/pool";
 import {handlePlayerAutocomplete, handlePlayerCommand} from "./commands/player";
 import {handleReplayCommand} from "./commands/replay";
-import {handleRemindAutocomplete, handleRemindCommand} from "./commands/remind";
+import {handleRemindCommand, handleRemindComponent, handleRemindModal} from "./commands/remind";
 import {handleRemindersCommand} from "./commands/reminders";
 import {handleStandingsCommand} from "./commands/standings";
 import {handleSyncCommand} from "./commands/sync";
@@ -47,7 +47,17 @@ async function handleInteraction(
       if (interaction.data?.custom_id?.startsWith("fa:")) {
         return await handleFaComponent(interaction, env);
       }
+      if (interaction.data?.custom_id?.startsWith("remind:")) {
+        return await handleRemindComponent(interaction, env);
+      }
       return discordMessage("That Discord component is not supported yet.");
+    }
+
+    if (interaction.type === 5) {
+      if (interaction.data?.custom_id?.startsWith("remind:date:")) {
+        return await handleRemindModal(interaction, env);
+      }
+      return discordMessage("That Discord form is not supported yet.");
     }
 
     if (interaction.type === 4) {
@@ -56,8 +66,6 @@ async function handleInteraction(
           return await handleTeamAutocomplete(interaction, env);
         case "player":
           return await handlePlayerAutocomplete(interaction, env);
-        case "remind":
-          return await handleRemindAutocomplete(interaction, env);
         default:
           return Response.json({type: 8, data: {choices: []}});
       }
@@ -77,7 +85,7 @@ async function handleInteraction(
       case "replay":
         return await handleReplayCommand(interaction, env, ctx);
       case "remind":
-        return await handleRemindCommand(interaction, env, ctx);
+        return await handleRemindCommand(interaction, env);
       case "reminders":
         return await handleRemindersCommand(interaction, env, ctx);
       case "standings":
