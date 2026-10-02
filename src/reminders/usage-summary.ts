@@ -1,6 +1,29 @@
-import {remainingUsage, slotLabel, teamDivision, type TeamDivision} from "../league/view.ts";
+import type {TeamDivision} from "../league/view";
 import type {FranchisePlayer} from "../sprocket/players";
 import type {RoleUsage} from "../sprocket/role-usages";
+
+function normalizeDivision(value: string | null): TeamDivision | null {
+  if (!value) return null;
+  const normalized = value.trim().toLocaleLowerCase("en-US");
+  if (normalized === "fl" || normalized.includes("foundation")) return "FL";
+  if (normalized === "al" || normalized.includes("academy")) return "AL";
+  if (normalized === "cl" || normalized.includes("champion")) return "CL";
+  if (normalized === "ml" || normalized.includes("master")) return "ML";
+  return null;
+}
+
+function slotSortLabel(value: string): string {
+  return value.trim().replace(/^PLAYER/i, "") || value.trim();
+}
+
+function effectiveRemaining(usage: RoleUsage): {doubles: number; standard: number; combined: number} {
+  const combined = Math.max(0, 12 - usage.totalUses);
+  return {
+    doubles: Math.max(0, Math.min(6 - usage.doublesUses, combined)),
+    standard: Math.max(0, Math.min(8 - usage.standardUses, combined)),
+    combined,
+  };
+}
 
 export interface UsageAlert {
   slot: string;
@@ -68,26 +91,16 @@ export function buildUsageAlerts(
   const roster = players.filter(player =>
     player.slot &&
     /^PLAYER[A-Z0-9]+$/i.test(player.slot.trim()) &&
-    teamDivision(player.skillGroup) === division,
+    normalizeDivision(player.skillGroup) === division,
   );
 
   const bySlot = new Map(roster.map(player => [roleKey(player.slot), player]));
 
   return usages
-    .filter(usage => teamDivision(usage.league) === division)
+    .filter(usage => normalizeDivision(usage.league) === division)
     .map(usage => {
       const slot = roleKey(usage.role);
-      const remaining = remainingUsage({
-        team_name: usage.teamName,
-        season_number: usage.seasonNumber,
-        league: usage.league,
-        role: usage.role,
-        doubles_uses: usage.doublesUses,
-        standard_uses: usage.standardUses,
-        total_uses: usage.totalUses,
-        source_as_of: usage.sourceAsOf,
-        refreshed_at: "",
-      }, division);
+      const remaining = effectiveRemaining(usage);
       const text = sentenceForRemaining(remaining.doubles, remaining.standard, remaining.combined);
       return {
         slot,
@@ -99,5 +112,5 @@ export function buildUsageAlerts(
       };
     })
     .filter((value): value is UsageAlert => Boolean(value.text))
-    .sort((a, b) => slotLabel(a.slot).localeCompare(slotLabel(b.slot), "en-US", {numeric: true}));
+    .sort((a, b) => slotSortLabel(a.slot).localeCompare(slotSortLabel(b.slot), "en-US", {numeric: true}));
 }
