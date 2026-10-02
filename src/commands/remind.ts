@@ -55,24 +55,37 @@ async function isAuthorizedReminderStaff(env: Env, guildId: string, discordId: s
   });
 }
 
-function divisionComponents(creatorId: string): unknown[] {
+function scopeComponents(creatorId: string): unknown[] {
   return [{
     type: 1,
     components: [{
       type: 3,
-      custom_id: `remind:division:${creatorId}`,
+      custom_id: `remind:scope:${creatorId}`,
+      placeholder: "Who should this reminder cover?",
+      min_values: 1,
+      max_values: 1,
+      options: [
+        {label: "Player", value: "player", description: "Choose one player, a date, and reminder frequency"},
+        {label: "Division", value: "division", description: "Post an eligibility reminder for one division"},
+        {label: "Team", value: "team", description: "Post an eligibility reminder for all divisions"},
+      ],
+    }],
+  }];
+}
+
+function divisionComponents(creatorId: string, scope: "player" | "division"): unknown[] {
+  return [{
+    type: 1,
+    components: [{
+      type: 3,
+      custom_id: `remind:division:${creatorId}:${scope}`,
       placeholder: "Choose a division",
       min_values: 1,
       max_values: 1,
       options: DIVISIONS.map(value => ({
         label: value,
         value,
-        description: ({
-          FL: "Foundation League",
-          AL: "Academy League",
-          CL: "Champion League",
-          ML: "Master League",
-        } as Record<TeamDivision, string>)[value],
+        description: DIVISION_NAMES[value],
       })),
     }],
   }];
