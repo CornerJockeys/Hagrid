@@ -44,6 +44,17 @@ Features that depend on Season 20-specific datasets or schemas are deferred to V
 
 The franchise sync imports the configured franchise's Rocket League roster, slots, salaries, current scrim-point/eligibility fields, and current 2v2/3v3/total role usage. Roster movement is treated as normal effective-dated data rather than an integrity error.
 
+### Scrim reminders
+
+```text
+/remind player:<franchise player> scrims:3 before:10/24/2026
+/remind player:<franchise player> scrims:3 before:10/24/2026 division:CL
+/reminders list
+/reminders cancel id:12
+```
+
+Scrim reminders are limited to current competitive players on the configured franchise, with an optional division filter. Current franchise staff/captains can create them. Normal cadence sends at **1:00 PM Eastern** every two days when counted backward from the deadline, including the deadline day. Completion is checked hourly from the Sprocket eligibility event ledger; once the requested number of new scrims is detected, Hagrid closes the reminder and notifies the creator. Players can use `/reminders list` to see reminders assigned to them, while creators can also cancel their own active reminders.
+
 ### Standings
 
 ```text
