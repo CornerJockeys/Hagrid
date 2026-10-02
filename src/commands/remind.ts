@@ -8,7 +8,6 @@ import {getEligibilityEvents, getLeagueEligibilityRules} from "../sprocket/eligi
 import {getFranchisePlayers} from "../sprocket/players";
 import {getFranchiseRoleUsagesForSeason} from "../sprocket/role-usages";
 import {CURRENT_MLE_SEASON} from "../season-policy";
-import {recordSimulatedWrite} from "../testing/simulated-write";
 import type {DiscordInteraction, Env} from "../types";
 
 const DIVISIONS: TeamDivision[] = ["FL", "AL", "CL", "ML"];
@@ -102,45 +101,93 @@ function dummyComponents(creatorId: string): unknown[] {
 function dummyReminderText(kind: string): string {
   if (kind === "player") {
     return [
-      "**[DUMMY] Player Reminder Preview**",
+      "**[DUMMY] Player Reminder**",
       "",
-      "Division: **CL**",
-      "Player: **@ExamplePlayer**",
-      "Target date: **10/24/26**",
+      "@ExamplePlayer",
+      "",
+      "Reminder: You have an eligibility deadline coming up on **10/24/26**.",
       "Cadence: **Normal — every 2 days at 1:30 PM ET, plus the target date**",
       "",
-      "_No reminder is saved and nobody is pinged._",
+      "_Example only — nobody is pinged and no reminder is saved._",
     ].join("\n");
   }
 
-  if (kind === "usage-division" || kind === "usage-team") {
+  if (kind === "division") {
+    return [
+      "**[DUMMY] Wizards Champion League Eligibility Reminder**",
+      "",
+      "Target date: **10/24/26**",
+      "",
+      "@SlotAPlayer needs 2 scrims by **10/19/26** to be eligible by 10/24/26. 3 scrims if not done by **10/21/26**.*",
+      "@SlotCPlayer needs 1 scrim by **10/19/26**.",
+      "@SlotFPlayer needs 5 scrims by **10/19/26**.",
+      "",
+      "*The difference is due to scrim point decay and being eligible on Monday of match week vs match time.",
+      "",
+      "_Example only — nobody is pinged._",
+    ].join("\n");
+  }
+
+  if (kind === "team") {
+    return [
+      "**[DUMMY] Wizards Team Eligibility Reminder**",
+      "",
+      "**Foundation League — Target date: 10/24/26**",
+      "@FLSlotB needs 1 scrim by **10/19/26**.",
+      "",
+      "**Academy League — Target date: 10/24/26**",
+      "@ALSlotD needs 2 scrims by **10/19/26**. 3 scrims if not done by **10/22/26**.*",
+      "",
+      "**Champion League — Target date: 10/24/26**",
+      "@CLSlotA needs 2 scrims by **10/19/26**.",
+      "@CLSlotF needs 5 scrims by **10/19/26**.",
+      "",
+      "**Master League — Target date: 10/24/26**",
+      "✅ No current roster player is projected to need additional scrims.",
+      "",
+      "*The difference is due to scrim point decay and being eligible on Monday of match week vs match time.",
+      "",
+      "_Example only — nobody is pinged._",
+    ].join("\n");
+  }
+
+  if (kind === "usage-division") {
     return [
       "**[DUMMY] Wizards Master League Usage Reminder**",
       "",
-      "**@ExampleCaptain**",
+      "@ExampleMLCaptain",
       "",
-      "**Example Player B** has 1 remaining use in 2s. 3 uses overall.",
-      "**Example Player C** needs 1 full match (5 games) to become playoff eligible. *(deferred until match/NCP tracking is wired)*",
-      "**Example Player D** has 2 uses left in 3s.",
-      "**Example Player E** has no remaining uses in 2s. 2 uses left in 3s.",
-      "**Example Player H** has no remaining uses.",
+      "@SlotBPlayer has 1 remaining use in 2s. 3 uses overall.",
+      "@SlotCPlayer needs 1 full match (5 games) to become playoff eligible. *(deferred until match/NCP tracking is wired)*",
+      "@SlotDPlayer has 2 uses left in 3s.",
+      "@SlotEPlayer has no remaining uses in 2s. 2 uses left in 3s.",
+      "@SlotHPlayer has no remaining uses.",
       "",
-      "_Dummy only — no captain/player ping is sent._",
+      "_Example only — nobody is pinged._",
     ].join("\n");
   }
 
   return [
-    "**[DUMMY] Wizards Champion League Eligibility Reminder**",
+    "**[DUMMY] Wizards Team Usage Reminder**",
     "",
-    "Target date: **10/24/26**",
+    "**Foundation League**",
+    "@ExampleFLCaptain",
+    "@FLSlotC has 2 uses left in 3s.",
     "",
-    "**Example Player A** needs 2 scrims by 10/19/26 to be eligible by 10/24/26. 3 scrims if not done by 10/21/26.*",
-    "**Example Player C** needs 1 scrim by 10/19/26.",
-    "**Example Player F** needs 5 scrims by 10/19/26.",
+    "**Academy League**",
+    "@ExampleALCaptain",
+    "@ALSlotB has 1 remaining use in 2s. 3 uses overall.",
     "",
-    "*The difference is due to scrim point decay and being eligible on Monday of match week vs match time.",
+    "**Champion League**",
+    "@ExampleCLCaptain",
+    "✅ No roster slot is currently below the usage-warning thresholds.",
     "",
-    "_Dummy only — nobody is pinged._",
+    "**Master League**",
+    "@ExampleMLCaptain",
+    "@MLSlotE has no remaining uses in 2s. 2 uses left in 3s.",
+    "@MLSlotH has no remaining uses.",
+    "",
+    "_Example only — nobody is pinged._",
   ].join("\n");
 }
 
@@ -547,56 +594,7 @@ export async function handleRemindComponent(
     if (!kind || !["player", "division", "team", "usage-division", "usage-team"].includes(kind)) {
       return discordUpdateMessage("Choose a valid reminder demo.", dummyComponents(creatorId));
     }
-    const simulated = kind === "player"
-      ? {
-          operationName: "create_player_reminder",
-          targetName: "scrim_reminders",
-          payload: {
-            division: "CL",
-            player_name: "ExamplePlayer",
-            player_discord_id: "DUMMY_PLAYER",
-            due_date: "2026-10-24",
-            cadence: "normal",
-            status: "active",
-          },
-        }
-      : kind === "division"
-        ? {
-            operationName: "post_division_eligibility_reminder",
-            targetName: "discord_channel_message",
-            payload: {scope: "CL", target_date: "2026-10-24", preview: dummyReminderText(kind)},
-          }
-        : kind === "team"
-          ? {
-              operationName: "post_team_eligibility_reminder",
-              targetName: "discord_channel_message",
-              payload: {scope: "all_divisions", target_date: "2026-10-24", preview: dummyReminderText(kind)},
-            }
-          : kind === "usage-division"
-            ? {
-                operationName: "post_division_usage_reminder",
-                targetName: "discord_channel_message",
-                payload: {scope: "ML", preview: dummyReminderText(kind)},
-              }
-            : {
-                operationName: "post_team_usage_reminder",
-                targetName: "discord_channel_message",
-                payload: {scope: "all_divisions", preview: dummyReminderText(kind)},
-              };
-
-    await recordSimulatedWrite(env, {
-      guildId: interaction.guild_id,
-      commandName: "reminddummy",
-      operationName: simulated.operationName,
-      targetName: simulated.targetName,
-      payload: simulated.payload,
-      createdByDiscordId: creatorId,
-    });
-
-    return discordUpdateMessage(
-      dummyReminderText(kind) + "\n\n✅ **Simulated write recorded.** No production reminder/message state was changed.",
-      [],
-    );
+    return discordUpdateMessage(dummyReminderText(kind), []);
   }
 
   if (parts[1] === "division") {
