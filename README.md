@@ -61,11 +61,11 @@ The franchise sync imports the configured franchise's Rocket League roster, slot
 /test dump
 ```
 
-`/ncp` is restricted to AGM/GM/FM staff. The guided flow includes a **Dummy / Demo** path that previews division → mode → match/slot effects without saving anything. Live NCP submission remains deferred until the Season 20 matches/fixtures adapter is wired, because NCPs must preserve slot usage while excluding those games from playoff eligibility.
+`/ncp` is restricted to AGM/GM/FM staff and now goes directly into the live submission flow. `/ncpdummy` is the separate AGM+ demo command; it previews division → mode → match/slot effects without saving anything. Live NCP submission remains deferred until the Season 20 matches/fixtures adapter is wired, because NCPs must preserve slot usage while excluding those games from playoff eligibility.
 
-`/test dump` safely simulates the weekly **Eligibility**, **Salary**, or **Usage** channel output (or all three) in the current channel. The tester chooses a Match Week label from 1–10; every dump title includes that Match Week number. Test dumps do not change scheduled dump state.
+`/test dump` safely simulates the weekly **Eligibility**, **Salary**, or **Usage** output (or all three) in the configured Season 20 threads. The tester chooses a Match Week label from 1–10; every dump title includes that Match Week number. Usage posts to thread `1555478962187018271`, Salary to `1555478919811964928`, and Eligibility to `1555478866716262420`. Test dumps do not change scheduled dump state.
 
-The regular `/remind` command keeps its zero-option guided entry point. Because Discord does not allow a slash-command root action and subcommands under that same command at the same time, reminder demos are exposed as **Dummy / Demo** in the first `/remind` picker rather than as a literal `/remind dummy` subcommand.
+The regular `/remind` command keeps its zero-option guided entry point. Reminder demos now use the separate `/reminddummy` command, which opens the list of Player, Division, Team, Usage Division, and Usage Team previews without saving or pinging anyone.
 
 ### Standings
 
