@@ -2,9 +2,9 @@ import {handleActivityApi} from "./activity/http";
 import {handleFranchiseCommand} from "./commands/franchise";
 import {handleFaCommand, handleFaComponent} from "./commands/pool";
 import {handlePlayerAutocomplete, handlePlayerCommand} from "./commands/player";
-import {handleNcpCommand, handleNcpComponent} from "./commands/ncp";
+import {handleNcpCommand, handleNcpComponent, handleNcpDummyCommand} from "./commands/ncp";
 import {handleReplayCommand} from "./commands/replay";
-import {handleRemindCommand, handleRemindComponent, handleRemindModal} from "./commands/remind";
+import {handleRemindCommand, handleRemindComponent, handleRemindDummyCommand, handleRemindModal} from "./commands/remind";
 import {handleRemindersCommand} from "./commands/reminders";
 import {handleStandingsCommand} from "./commands/standings";
 import {handleSyncCommand} from "./commands/sync";
@@ -88,6 +88,8 @@ async function handleInteraction(
         return await handleFranchiseCommand(interaction, env);
       case "ncp":
         return await handleNcpCommand(interaction, env);
+      case "ncpdummy":
+        return await handleNcpDummyCommand(interaction, env);
       case "fa":
         return await handleFaCommand(interaction, env, ctx);
       case "player":
@@ -96,6 +98,8 @@ async function handleInteraction(
         return await handleReplayCommand(interaction, env, ctx);
       case "remind":
         return await handleRemindCommand(interaction, env);
+      case "reminddummy":
+        return await handleRemindDummyCommand(interaction, env);
       case "reminders":
         return await handleRemindersCommand(interaction, env, ctx);
       case "standings":
