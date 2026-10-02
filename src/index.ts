@@ -4,6 +4,7 @@ import {handleFaCommand, handleFaComponent} from "./commands/pool";
 import {handlePlayerAutocomplete, handlePlayerCommand} from "./commands/player";
 import {handleReplayCommand} from "./commands/replay";
 import {handleRemindAutocomplete, handleRemindCommand} from "./commands/remind";
+import {handleRemindersCommand} from "./commands/reminders";
 import {handleStandingsCommand} from "./commands/standings";
 import {handleSyncCommand} from "./commands/sync";
 import {handleTeamAutocomplete, handleTeamCommand} from "./commands/team";
@@ -77,6 +78,8 @@ async function handleInteraction(
         return await handleReplayCommand(interaction, env, ctx);
       case "remind":
         return await handleRemindCommand(interaction, env, ctx);
+      case "reminders":
+        return await handleRemindersCommand(interaction, env, ctx);
       case "standings":
         return await handleStandingsCommand(interaction, env, ctx);
       case "sync":
