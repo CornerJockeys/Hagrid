@@ -1,5 +1,5 @@
 import {getGuildConfig} from "../db";
-import {discordMessage, discordUpdateMessage, sendDiscordChannelMessage} from "../discord";
+import {discordMessage, discordUpdateMessage, sendDiscordThreadMessage} from "../discord";
 import {dumpThreadId} from "../dumps/config";
 import {buildDumpMessages, type DumpKind} from "../dumps/format";
 import type {DiscordCommandOption, DiscordInteraction, Env} from "../types";
@@ -72,12 +72,29 @@ async function runDump(
     ? ["eligibility", "salary", "usage"]
     : [kind];
 
+  const completed: DumpKind[] = [];
   for (const dumpKind of kinds) {
-    const messages = await buildDumpMessages(env, config.franchise_name, dumpKind, matchWeek);
-    const threadId = dumpThreadId(dumpKind);
-    for (let index = 0; index < messages.length; index += 1) {
-      const prefix = index === 0 ? "**[TEST DUMP]**\n" : "**[TEST DUMP — continued]**\n";
-      await sendDiscordChannelMessage(env, threadId, prefix + messages[index]);
+    try {
+      const messages = await buildDumpMessages(env, config.franchise_name, dumpKind, matchWeek);
+      const threadId = dumpThreadId(dumpKind);
+      for (let index = 0; index < messages.length; index += 1) {
+        const prefix = index === 0 ? "**[TEST DUMP]**\n" : "**[TEST DUMP — continued]**\n";
+        await sendDiscordThreadMessage(env, threadId, prefix + messages[index]);
+      }
+      completed.push(dumpKind);
+    } catch (error) {
+      const detail = error instanceof Error ? error.message : String(error);
+      console.error("Test dump failed", {dumpKind, matchWeek, detail});
+      return discordUpdateMessage(
+        [
+          `❌ The **${dumpKind}** test dump failed for Match Week ${matchWeek}.`,
+          completed.length > 0 ? `Already posted successfully: **${completed.join(", ")}**.` : "",
+          `Error: \`${detail.slice(0, 1200)}\``,
+          "",
+          "If this is a Discord thread permission/access issue, make sure Hagrid can **View Channel**, **Send Messages in Threads**, and access that thread.",
+        ].filter(Boolean).join("\n"),
+        [],
+      );
     }
   }
 
