@@ -28,6 +28,14 @@ export function easternHour(now = new Date()): number {
   return Number(value);
 }
 
+export function easternMinute(now = new Date()): number {
+  const value = new Intl.DateTimeFormat("en-US", {
+    timeZone: EASTERN_TIME_ZONE,
+    minute: "2-digit",
+  }).format(now);
+  return Number(value);
+}
+
 export function parseReminderDate(value: string): string | null {
   const trimmed = value.trim();
   let year: number;
