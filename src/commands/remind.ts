@@ -13,7 +13,7 @@ import type {DiscordInteraction, Env} from "../types";
 const DIVISIONS: TeamDivision[] = ["FL", "AL", "CL", "ML"];
 const CADENCES = new Set(["normal", "daily", "once"]);
 const DIVISION_NAMES: Record<TeamDivision, string> = {FL: "Foundation League", AL: "Academy League", CL: "Champion League", ML: "Master League"};
-type ReminderScope = "player" | "division" | "team" | "usage-division" | "usage-team";
+type ReminderScope = "player" | "division" | "team" | "usage-division" | "usage-team" | "dummy";
 
 function invokerId(interaction: DiscordInteraction): string | null {
   return interaction.member?.user?.id ?? interaction.user?.id ?? null;
@@ -73,9 +73,75 @@ function scopeComponents(creatorId: string): unknown[] {
         {label: "Team", value: "team", description: "Post an eligibility reminder for all divisions"},
         {label: "Usage Division", value: "usage-division", description: "Post low-usage alerts for one division"},
         {label: "Usage Team", value: "usage-team", description: "Post low-usage alerts for all divisions"},
+        {label: "Dummy / Demo", value: "dummy", description: "Preview any reminder flow without pinging or saving"},
       ],
     }],
   }];
+}
+
+function dummyComponents(creatorId: string): unknown[] {
+  return [{
+    type: 1,
+    components: [{
+      type: 3,
+      custom_id: `remind:dummy:${creatorId}`,
+      placeholder: "Choose a reminder demo",
+      min_values: 1,
+      max_values: 1,
+      options: [
+        {label: "Player", value: "player", description: "Preview a single-player reminder"},
+        {label: "Division Eligibility", value: "division", description: "Preview a division eligibility dump"},
+        {label: "Team Eligibility", value: "team", description: "Preview all-division eligibility dumps"},
+        {label: "Usage Division", value: "usage-division", description: "Preview a division usage reminder"},
+        {label: "Usage Team", value: "usage-team", description: "Preview all-division usage reminders"},
+      ],
+    }],
+  }];
+}
+
+function dummyReminderText(kind: string): string {
+  if (kind === "player") {
+    return [
+      "**[DUMMY] Player Reminder Preview**",
+      "",
+      "Division: **CL**",
+      "Player: **@ExamplePlayer**",
+      "Target date: **10/24/26**",
+      "Cadence: **Normal — every 2 days at 1:30 PM ET, plus the target date**",
+      "",
+      "_No reminder is saved and nobody is pinged._",
+    ].join("\n");
+  }
+
+  if (kind === "usage-division" || kind === "usage-team") {
+    return [
+      "**[DUMMY] Wizards Master League Usage Reminder**",
+      "",
+      "**@ExampleCaptain**",
+      "",
+      "**Example Player B** has 1 remaining use in 2s. 3 uses overall.",
+      "**Example Player C** needs 1 full match (5 games) to become playoff eligible. *(deferred until match/NCP tracking is wired)*",
+      "**Example Player D** has 2 uses left in 3s.",
+      "**Example Player E** has no remaining uses in 2s. 2 uses left in 3s.",
+      "**Example Player H** has no remaining uses.",
+      "",
+      "_Dummy only — no captain/player ping is sent._",
+    ].join("\n");
+  }
+
+  return [
+    "**[DUMMY] Wizards Champion League Eligibility Reminder**",
+    "",
+    "Target date: **10/24/26**",
+    "",
+    "**Example Player A** needs 2 scrims by 10/19/26 to be eligible by 10/24/26. 3 scrims if not done by 10/21/26.*",
+    "**Example Player C** needs 1 scrim by 10/19/26.",
+    "**Example Player F** needs 5 scrims by 10/19/26.",
+    "",
+    "*The difference is due to scrim point decay and being eligible on Monday of match week vs match time.",
+    "",
+    "_Dummy only — nobody is pinged._",
+  ].join("\n");
 }
 
 function divisionComponents(creatorId: string, scope: "player" | "division" | "usage-division"): unknown[] {
@@ -454,7 +520,21 @@ export async function handleRemindComponent(
     if (scope === "usage-team") {
       return postUsageReminder(interaction, env, "team", null);
     }
-    return discordUpdateMessage("Choose Player, Division, Team, Usage Division, or Usage Team.", scopeComponents(creatorId));
+    if (scope === "dummy") {
+      return discordUpdateMessage(
+        "**Reminder dummy / demo**\nChoose the flow you want to preview. Nothing will be saved or pinged.",
+        dummyComponents(creatorId),
+      );
+    }
+    return discordUpdateMessage("Choose a reminder type.", scopeComponents(creatorId));
+  }
+
+  if (parts[1] === "dummy") {
+    const kind = selectedValue(interaction);
+    if (!kind || !["player", "division", "team", "usage-division", "usage-team"].includes(kind)) {
+      return discordUpdateMessage("Choose a valid reminder demo.", dummyComponents(creatorId));
+    }
+    return discordUpdateMessage(dummyReminderText(kind), []);
   }
 
   if (parts[1] === "division") {
