@@ -1,4 +1,5 @@
 import {getGuildConfig} from "../db";
+import {captainDivisions, hasAgmPlusRole, hasAnyStaffRole, hasCaptainRole} from "../discord-roles";
 import {discordMessage, discordUpdateMessage, sendDiscordChannelMessage} from "../discord";
 import {isCompetitiveSlot, slotLabel, teamDivision, type TeamDivision} from "../league/view";
 import {buildUsageAlerts} from "../reminders/usage-summary";
@@ -36,26 +37,17 @@ function parseCustomId(customId: string): string[] {
   return customId.split(":");
 }
 
-function staffLabel(row: {staff_position: string | null; slot: string | null}): string {
-  return `${row.staff_position ?? ""} ${row.slot ?? ""}`.trim().toLocaleUpperCase("en-US");
+function isAuthorizedReminderStaff(interaction: DiscordInteraction): boolean {
+  return hasAnyStaffRole(interaction);
 }
 
-async function isAuthorizedReminderStaff(env: Env, guildId: string, discordId: string): Promise<boolean> {
-  const config = await getGuildConfig(env.DB, guildId);
-  if (!config) return false;
-  const result = await env.DB.prepare(
-    `SELECT staff_position, slot
-     FROM league_players_current
-     WHERE LOWER(franchise_name) = LOWER(?) AND discord_id = ?`,
-  ).bind(config.franchise_name, discordId).all<{staff_position: string | null; slot: string | null}>();
-
-  return result.results.some(row => {
-    const value = staffLabel(row);
-    return /(^|\b)(FM|AGM|GM|CAPT|CAPTAIN)(\b|$)/.test(value) ||
-      value.includes("FRANCHISE MANAGER") ||
-      value.includes("ASSISTANT GENERAL MANAGER") ||
-      value.includes("GENERAL MANAGER");
-  });
+function availableDivisionsForReminder(interaction: DiscordInteraction): TeamDivision[] {
+  if (hasAgmPlusRole(interaction)) return DIVISIONS;
+  if (hasCaptainRole(interaction)) {
+    const divisions = captainDivisions(interaction);
+    return divisions.length > 0 ? divisions : [];
+  }
+  return [];
 }
 
 function scopeComponents(creatorId: string): unknown[] {
@@ -191,7 +183,11 @@ function dummyReminderText(kind: string): string {
   ].join("\n");
 }
 
-function divisionComponents(creatorId: string, scope: "player" | "division" | "usage-division"): unknown[] {
+function divisionComponents(
+  creatorId: string,
+  scope: "player" | "division" | "usage-division",
+  divisions: TeamDivision[] = DIVISIONS,
+): unknown[] {
   return [{
     type: 1,
     components: [{
@@ -200,7 +196,7 @@ function divisionComponents(creatorId: string, scope: "player" | "division" | "u
       placeholder: "Choose a division",
       min_values: 1,
       max_values: 1,
-      options: DIVISIONS.map(value => ({
+      options: divisions.map(value => ({
         label: value,
         value,
         description: DIVISION_NAMES[value],
@@ -516,7 +512,7 @@ export async function handleRemindDummyCommand(
   }
   const creatorId = invokerId(interaction);
   if (!creatorId) return discordMessage("Hagrid could not identify your Discord account.");
-  if (!(await isAuthorizedReminderStaff(env, interaction.guild_id, creatorId))) {
+  if (!isAuthorizedReminderStaff(interaction)) {
     return discordMessage("Only the franchise Captain, AGM, GM, or FM can preview reminder flows.");
   }
   return discordMessage(
@@ -536,7 +532,7 @@ export async function handleRemindCommand(
 
   const creatorId = invokerId(interaction);
   if (!creatorId) return discordMessage("Hagrid could not identify who created this reminder.");
-  if (!(await isAuthorizedReminderStaff(env, interaction.guild_id, creatorId))) {
+  if (!isAuthorizedReminderStaff(interaction)) {
     return discordMessage("Only the franchise Captain, AGM, GM, or FM can create reminders.");
   }
 
@@ -562,7 +558,7 @@ export async function handleRemindComponent(
   if (!actorId || actorId !== creatorId) {
     return discordMessage("Only the staff member who started this reminder can continue it.");
   }
-  if (!(await isAuthorizedReminderStaff(env, interaction.guild_id, actorId))) {
+  if (!isAuthorizedReminderStaff(interaction)) {
     return discordMessage("You no longer have permission to create reminders.");
   }
 
@@ -575,7 +571,7 @@ export async function handleRemindComponent(
           : scope === "division"
             ? "**Create division eligibility reminder**\nChoose the division."
             : "**Create division usage reminder**\nChoose the division.",
-        divisionComponents(creatorId, scope),
+        divisionComponents(creatorId, scope, availableDivisionsForReminder(interaction)),
       );
     }
     if (scope === "team") {
@@ -598,9 +594,11 @@ export async function handleRemindComponent(
   if (parts[1] === "division") {
     const scope = parts[3] as "player" | "division" | "usage-division";
     const division = selectedValue(interaction)?.toLocaleUpperCase("en-US") as TeamDivision | undefined;
+    const allowedDivisions = availableDivisionsForReminder(interaction);
     if (
       !division ||
       !DIVISIONS.includes(division) ||
+      !allowedDivisions.includes(division) ||
       (scope !== "player" && scope !== "division" && scope !== "usage-division")
     ) {
       return discordMessage("That division selection is no longer valid.");
@@ -715,7 +713,7 @@ export async function handleRemindModal(
   if (!actorId || actorId !== creatorId) {
     return discordMessage("Only the staff member who started this reminder can continue it.");
   }
-  if (!(await isAuthorizedReminderStaff(env, interaction.guild_id, actorId))) {
+  if (!isAuthorizedReminderStaff(interaction)) {
     return discordMessage("You no longer have permission to create reminders.");
   }
 
@@ -730,7 +728,9 @@ export async function handleRemindModal(
 
   if (scope === "division") {
     const division = context as TeamDivision;
-    if (!DIVISIONS.includes(division)) return discordMessage("That division reminder is no longer valid.");
+    if (!DIVISIONS.includes(division) || !availableDivisionsForReminder(interaction).includes(division)) {
+      return discordMessage("That division reminder is no longer valid for your role.");
+    }
     return postEligibilityReminder(interaction, env, "division", division, dueDate);
   }
 

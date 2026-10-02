@@ -1,5 +1,5 @@
-import {getGuildConfig} from "../db";
 import {discordMessage, discordUpdateMessage} from "../discord";
+import {hasAgmPlusRole} from "../discord-roles";
 import type {DiscordInteraction, Env} from "../types";
 import type {TeamDivision} from "../league/view";
 
@@ -14,22 +14,8 @@ function selectedValue(interaction: DiscordInteraction): string | null {
   return typeof value === "string" && value ? value : null;
 }
 
-async function isAgmPlus(env: Env, guildId: string, discordId: string): Promise<boolean> {
-  const config = await getGuildConfig(env.DB, guildId);
-  if (!config) return false;
-  const result = await env.DB.prepare(
-    `SELECT staff_position, slot
-     FROM league_players_current
-     WHERE LOWER(franchise_name) = LOWER(?) AND discord_id = ?`,
-  ).bind(config.franchise_name, discordId).all<{staff_position: string | null; slot: string | null}>();
-
-  return result.results.some(row => {
-    const value = `${row.staff_position ?? ""} ${row.slot ?? ""}`.trim().toLocaleUpperCase("en-US");
-    return /(^|\b)(AGM|GM|FM)(\b|$)/.test(value) ||
-      value.includes("ASSISTANT GENERAL MANAGER") ||
-      value.includes("GENERAL MANAGER") ||
-      value.includes("FRANCHISE MANAGER");
-  });
+function isAgmPlus(interaction: DiscordInteraction): boolean {
+  return hasAgmPlusRole(interaction);
 }
 
 function divisionComponents(userId: string, dummy: boolean): unknown[] {
@@ -95,7 +81,7 @@ export async function handleNcpDummyCommand(
   }
   const userId = invokerId(interaction);
   if (!userId) return discordMessage("Hagrid could not identify your Discord account.");
-  if (!(await isAgmPlus(env, interaction.guild_id, userId))) {
+  if (!isAgmPlus(interaction)) {
     return discordMessage("Only AGM, GM, or FM staff can preview NCP workflows.");
   }
 
@@ -115,7 +101,7 @@ export async function handleNcpCommand(
   }
   const userId = invokerId(interaction);
   if (!userId) return discordMessage("Hagrid could not identify your Discord account.");
-  if (!(await isAgmPlus(env, interaction.guild_id, userId))) {
+  if (!isAgmPlus(interaction)) {
     return discordMessage("Only AGM, GM, or FM staff can submit or preview NCPs.");
   }
 
@@ -139,7 +125,7 @@ export async function handleNcpComponent(
   if (!actorId || actorId !== userId) {
     return discordMessage("Only the AGM+ staff member who started this flow can continue it.");
   }
-  if (!(await isAgmPlus(env, interaction.guild_id, actorId))) {
+  if (!isAgmPlus(interaction)) {
     return discordMessage("You no longer have AGM+ permission for NCP management.");
   }
 

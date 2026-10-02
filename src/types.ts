@@ -44,6 +44,7 @@ export interface DiscordUser {
 
 export interface DiscordMember {
   permissions?: string;
+  roles?: string[];
   user?: DiscordUser;
 }
 

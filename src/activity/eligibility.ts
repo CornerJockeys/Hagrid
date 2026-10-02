@@ -15,7 +15,7 @@ import {
 } from "../sprocket/eligibility-data";
 import {getFranchisePlayers, type FranchisePlayer} from "../sprocket/players";
 import type {Env} from "../types";
-import {isAccessResponse, requireRosterAccess} from "./access";
+import {getActivityAccess} from "./access";
 import {authenticateActivityRequest, isAuthResponse} from "./auth";
 
 function rosterShape(player: FranchisePlayer): AvailabilityRosterPlayer {
@@ -47,8 +47,13 @@ function playerSummary(player: FranchisePlayer): Record<string, unknown> {
 export async function getActivityEligibility(request: Request, env: Env): Promise<Response> {
   const auth = await authenticateActivityRequest(request, env);
   if (isAuthResponse(auth)) return auth;
-  const access = await requireRosterAccess(env, auth);
-  if (isAccessResponse(access)) return access;
+  const access = await getActivityAccess(env, auth);
+  if (!access.rosterMember && !access.staff) {
+    return Response.json(
+      {error: "Your Discord account is not linked to the current franchise roster in Hagrid."},
+      {status: 403},
+    );
+  }
 
   const config = await getGuildConfig(env.DB, auth.guildId);
   if (!config) {

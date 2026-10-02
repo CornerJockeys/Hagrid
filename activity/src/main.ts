@@ -120,7 +120,7 @@ function shell(): {loadPersonal: (() => Promise<void>) | null} {
     ? context.access.staff_position ?? context.access.slot ?? "Staff"
     : context.access.division ?? "Roster";
 
-  if (!context.access.roster_member) {
+  if (!context.access.roster_member && !context.access.staff) {
     app.innerHTML = `
       <div class="app-shell">
         <header class="topbar"><div><div class="eyebrow">${escapeHtml(franchise)}</div><h1>Hagrid</h1></div><div class="user-chip">${escapeHtml(context.display_name)}</div></header>
