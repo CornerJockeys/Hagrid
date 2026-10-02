@@ -2,12 +2,14 @@ import {handleActivityApi} from "./activity/http";
 import {handleFranchiseCommand} from "./commands/franchise";
 import {handleFaCommand, handleFaComponent} from "./commands/pool";
 import {handlePlayerAutocomplete, handlePlayerCommand} from "./commands/player";
+import {handleNcpCommand, handleNcpComponent} from "./commands/ncp";
 import {handleReplayCommand} from "./commands/replay";
 import {handleRemindCommand, handleRemindComponent, handleRemindModal} from "./commands/remind";
 import {handleRemindersCommand} from "./commands/reminders";
 import {handleStandingsCommand} from "./commands/standings";
 import {handleSyncCommand} from "./commands/sync";
 import {handleTeamAutocomplete, handleTeamCommand} from "./commands/team";
+import {handleTestCommand, handleTestComponent} from "./commands/test";
 import {discordMessage, discordPong, verifyDiscordRequest} from "./discord";
 import {runScheduledLeagueRefresh} from "./league/refresh";
 import {readinessResponse} from "./readiness";
@@ -50,6 +52,12 @@ async function handleInteraction(
       if (interaction.data?.custom_id?.startsWith("remind:")) {
         return await handleRemindComponent(interaction, env);
       }
+      if (interaction.data?.custom_id?.startsWith("ncp:")) {
+        return await handleNcpComponent(interaction, env);
+      }
+      if (interaction.data?.custom_id?.startsWith("test:")) {
+        return await handleTestComponent(interaction, env);
+      }
       return discordMessage("That Discord component is not supported yet.");
     }
 
@@ -78,6 +86,8 @@ async function handleInteraction(
     switch (interaction.data?.name) {
       case "franchise":
         return await handleFranchiseCommand(interaction, env);
+      case "ncp":
+        return await handleNcpCommand(interaction, env);
       case "fa":
         return await handleFaCommand(interaction, env, ctx);
       case "player":
@@ -94,6 +104,8 @@ async function handleInteraction(
         return await handleSyncCommand(interaction, env, ctx);
       case "team":
         return await handleTeamCommand(interaction, env, ctx);
+      case "test":
+        return await handleTestCommand(interaction);
       default:
         return discordMessage("Unknown command.");
     }
