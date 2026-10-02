@@ -321,13 +321,13 @@ export async function handleRemindCommand(
   const creatorId = invokerId(interaction);
   if (!creatorId) return discordMessage("Hagrid could not identify who created this reminder.");
   if (!(await isAuthorizedReminderStaff(env, interaction.guild_id, creatorId))) {
-    return discordMessage("Only the franchise Captain, AGM, GM, or FM can create player reminders.");
+    return discordMessage("Only the franchise Captain, AGM, GM, or FM can create reminders.");
   }
 
   return discordMessage(
-    "**Create reminder**\nChoose the player's division.",
+    "**Create reminder**\nChoose whether this is for one player, one division, or the full team.",
     true,
-    divisionComponents(creatorId),
+    scopeComponents(creatorId),
   );
 }
 
