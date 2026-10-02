@@ -347,32 +347,53 @@ export async function handleRemindComponent(
     return discordMessage("Only the staff member who started this reminder can continue it.");
   }
   if (!(await isAuthorizedReminderStaff(env, interaction.guild_id, actorId))) {
-    return discordMessage("You no longer have permission to create player reminders.");
+    return discordMessage("You no longer have permission to create reminders.");
+  }
+
+  if (parts[1] === "scope") {
+    const scope = selectedValue(interaction) as ReminderScope | null;
+    if (scope === "player" || scope === "division") {
+      return discordUpdateMessage(
+        scope === "player"
+          ? "**Create player reminder**\nChoose the player's division."
+          : "**Create division eligibility reminder**\nChoose the division.",
+        divisionComponents(creatorId, scope),
+      );
+    }
+    if (scope === "team") {
+      return dateModal(creatorId, "team", "ALL");
+    }
+    return discordUpdateMessage("Choose Player, Division, or Team.", scopeComponents(creatorId));
   }
 
   if (parts[1] === "division") {
+    const scope = parts[3] as "player" | "division";
     const division = selectedValue(interaction)?.toLocaleUpperCase("en-US") as TeamDivision | undefined;
-    if (!division || !DIVISIONS.includes(division)) {
-      return discordUpdateMessage("Choose a valid division.", divisionComponents(creatorId));
+    if (!division || !DIVISIONS.includes(division) || (scope !== "player" && scope !== "division")) {
+      return discordMessage("That division selection is no longer valid.");
     }
 
-    const config = await getGuildConfig(env.DB, interaction.guild_id);
+    if (scope === "division") {
+      return dateModal(creatorId, "division", division);
+    }
+
+    const {config, players} = await getConfiguredRoster(env, interaction.guild_id);
     if (!config) return discordUpdateMessage("No franchise is configured for this Discord server.");
 
-    const players = (await getLeagueTeamPlayers(env.DB, config.franchise_name))
-      .filter(player => isCompetitiveSlot(player.slot) && teamDivision(player.skill_group) === division)
+    const roster = players
+      .filter(player => isCompetitiveSlot(player.slot) && teamDivision(player.skillGroup) === division)
       .sort((a, b) =>
         slotLabel(a.slot).localeCompare(slotLabel(b.slot), "en-US", {numeric: true}) ||
         a.name.localeCompare(b.name),
       );
 
-    if (players.length === 0) {
+    if (roster.length === 0) {
       return discordUpdateMessage(`No current competitive ${division} players were found for ${config.franchise_name}.`);
     }
 
     return discordUpdateMessage(
-      `**Create reminder — ${division}**\nChoose the player.`,
-      playerComponents(creatorId, division, players),
+      `**Create player reminder — ${division}**\nChoose the player.`,
+      playerComponents(creatorId, division, roster),
     );
   }
 
@@ -385,11 +406,11 @@ export async function handleRemindComponent(
 
     const resolved = await resolvePlayer(env, interaction.guild_id, division, playerId);
     if (!resolved.player) return discordMessage("That player is no longer on the selected divisional roster.");
-    if (!resolved.player.discord_id) {
+    if (!resolved.player.discordId) {
       return discordMessage(`${resolved.player.name} does not have a linked Discord ID, so Hagrid cannot ping them.`);
     }
 
-    return dateModal(creatorId, division, playerId);
+    return dateModal(creatorId, "player", `${division}|${playerId}`);
   }
 
   if (parts[1] === "cadence") {
@@ -402,7 +423,7 @@ export async function handleRemindComponent(
     }
 
     const resolved = await resolvePlayer(env, interaction.guild_id, division, playerId);
-    if (!resolved.config || !resolved.player?.discord_id) {
+    if (!resolved.config || !resolved.player?.discordId) {
       return discordMessage("That player is no longer available for this reminder.");
     }
 
@@ -415,8 +436,8 @@ export async function handleRemindComponent(
       interaction.guild_id,
       interaction.channel_id,
       resolved.config.franchise_name,
-      resolved.player.sprocket_player_id,
-      resolved.player.discord_id,
+      resolved.player.sprocketPlayerId,
+      resolved.player.discordId,
       resolved.player.name,
       division,
       dueDate,
@@ -427,13 +448,13 @@ export async function handleRemindComponent(
     if (!result.success) return discordMessage("Hagrid could not save that reminder.");
 
     const cadenceText = cadence === "normal"
-      ? "Normal — every 2 days, anchored to the deadline"
+      ? "Normal — every 2 days at 1:30 PM ET, anchored to the target date"
       : cadence === "daily"
-        ? "Daily"
-        : "Once — on the deadline";
+        ? "Daily — every day at 1:30 PM ET through the target date"
+        : "Once — 1:30 PM ET on the target date";
 
     return discordUpdateMessage(
-      `✅ Reminder created for <@${resolved.player.discord_id}>.\n**${division} · ${resolved.player.name}**\nBefore **${dueDate}** · **${cadenceText}**`,
+      `✅ Reminder created for <@${resolved.player.discordId}>.\n**${division} · ${resolved.player.name}**\nBefore **${formatShortDate(dueDate)}** · **${cadenceText}**`,
       [],
     );
   }
@@ -452,14 +473,14 @@ export async function handleRemindModal(
   }
 
   const creatorId = parts[2];
-  const division = parts[3] as TeamDivision;
-  const playerId = decode(parts[4] ?? "");
+  const scope = parts[3] as ReminderScope;
+  const context = decode(parts[4] ?? "");
   const actorId = invokerId(interaction);
   if (!actorId || actorId !== creatorId) {
     return discordMessage("Only the staff member who started this reminder can continue it.");
   }
   if (!(await isAuthorizedReminderStaff(env, interaction.guild_id, actorId))) {
-    return discordMessage("You no longer have permission to create player reminders.");
+    return discordMessage("You no longer have permission to create reminders.");
   }
 
   const rawDate = modalInput(interaction, "before");
@@ -471,11 +492,29 @@ export async function handleRemindModal(
     return discordMessage("The reminder date cannot be in the past. Run `/remind` again.");
   }
 
+  if (scope === "division") {
+    const division = context as TeamDivision;
+    if (!DIVISIONS.includes(division)) return discordMessage("That division reminder is no longer valid.");
+    return postEligibilityReminder(interaction, env, "division", division, dueDate);
+  }
+
+  if (scope === "team") {
+    return postEligibilityReminder(interaction, env, "team", null, dueDate);
+  }
+
+  if (scope !== "player") return discordMessage("That reminder form is no longer valid.");
+
+  const [divisionRaw, playerId] = context.split("|");
+  const division = divisionRaw as TeamDivision;
+  if (!DIVISIONS.includes(division) || !playerId) {
+    return discordMessage("That player reminder is no longer valid.");
+  }
+
   const resolved = await resolvePlayer(env, interaction.guild_id, division, playerId);
   if (!resolved.player) return discordMessage("That player is no longer on the selected divisional roster.");
 
   return discordMessage(
-    `**Create reminder — ${division} · ${resolved.player.name}**\nBefore **${dueDate}**. How often should Hagrid remind them?`,
+    `**Create player reminder — ${division} · ${resolved.player.name}**\nBefore **${formatShortDate(dueDate)}**. How often should Hagrid remind them?`,
     true,
     cadenceComponents(creatorId, division, playerId, dueDate),
   );
