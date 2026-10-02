@@ -52,7 +52,7 @@ The franchise sync imports the configured franchise's Rocket League roster, slot
 /reminders cancel id:12
 ```
 
-`/remind` is a guided Discord flow for the configured franchise. The Captain, AGM, GM, or FM selects a division, chooses a current competitive player, enters a deadline as `mm/dd/yy`, then chooses **Normal**, **Daily**, or **Once**. Normal sends at **1:00 PM Eastern** every two days when counted backward from the deadline, Daily sends each day through the deadline, and Once sends only on the deadline. Players can use `/reminders list` to see reminders assigned to them, while creators can also cancel their own active reminders.
+`/remind` is a guided Discord flow for the configured franchise. The Captain, AGM, GM, or FM first chooses **Player**, **Division**, or **Team**. Player reminders then select a division, player, target date, and cadence. Division reminders select a division and target date, then post the players who still need scrims for that date. Team reminders do the same eligibility calculation across all four divisions. Normal is described in the picker as **every 2 days at 1:30 PM Eastern, plus the target date**. Daily sends at **1:30 PM Eastern** each day through the target date, and Once sends at **1:30 PM Eastern** on the target date only. The 30-minute delay leaves room for the 1:00 PM eligibility/roster pull to finish before reminders are evaluated. Players can use `/reminders list` to see reminders assigned to them, while creators can also cancel their own active reminders.
 
 ### Standings
 
