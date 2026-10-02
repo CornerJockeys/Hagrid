@@ -1,8 +1,9 @@
 import assert from "node:assert/strict";
 
-import {fetchCsvDataset, fetchLegacyCsvDataset} from "../src/sprocket/client.ts";
+import {fetchLegacyCsvDataset} from "../src/sprocket/client.ts";
 import {CURRENT_MLE_SEASON} from "../src/season-policy.ts";
 import {getFranchises} from "../src/sprocket/franchises.ts";
+import {getEligibilityEvents, getLeagueEligibilityRules} from "../src/sprocket/eligibility-data.ts";
 import {getFranchisePlayers, getRocketLeaguePlayers} from "../src/sprocket/players.ts";
 import {
   getLatestFranchiseRoleUsages,
@@ -20,18 +21,6 @@ function log(label, value) {
   console.log(`${label}: ${value}`);
 }
 
-const [rawEligibility, rawLeagues] = await Promise.all([
-  fetchCsvDataset(env, "eligibility_data"),
-  fetchCsvDataset(env, "leagues"),
-]);
-assert.ok(rawEligibility.length > 0, "eligibility_data dataset produced zero rows");
-assert.ok(rawLeagues.length > 0, "leagues dataset produced zero rows");
-log("Eligibility rows", rawEligibility.length);
-log("Eligibility columns", Object.keys(rawEligibility[0]).join(" | "));
-log("Eligibility sample", JSON.stringify(rawEligibility[0]));
-log("League columns", Object.keys(rawLeagues[0]).join(" | "));
-log("League sample", JSON.stringify(rawLeagues[0]));
-
 const franchises = await getFranchises(env);
 assert.ok(franchises.length > 0, "teams dataset produced zero franchises");
 log("Franchises", franchises.length);
@@ -44,7 +33,7 @@ const franchise = franchises.find(value =>
 assert.ok(franchise, `Could not resolve smoke franchise ${requestedFranchise}`);
 log("Smoke franchise", `${franchise.name}${franchise.code ? ` (${franchise.code})` : ""}`);
 
-const [players, allPlayers, usages, seasonUsages, standings, prospects, scoutingLines] = await Promise.all([
+const [players, allPlayers, usages, seasonUsages, standings, prospects, scoutingLines, eligibilityEvents, eligibilityRules] = await Promise.all([
   getFranchisePlayers(env, franchise.name),
   getRocketLeaguePlayers(env),
   getLatestFranchiseRoleUsages(env, franchise.name),
@@ -52,6 +41,8 @@ const [players, allPlayers, usages, seasonUsages, standings, prospects, scouting
   getLatestStandings(env),
   getProspectIdentities(env),
   getScoutingStatLines(env),
+  getEligibilityEvents(env),
+  getLeagueEligibilityRules(env),
 ]);
 
 assert.ok(allPlayers.length > 0, "players dataset produced zero Rocket League players league-wide");
@@ -67,6 +58,12 @@ assert.ok(
 assert.ok(usages.length > 0, `${franchise.name} produced zero current role-usage rows`);
 assert.ok(standings.length > 0, "standings dataset produced zero current rows");
 assert.ok(prospects.length > 0, "legacy players dataset produced zero FA/PEND prospects");
+assert.ok(eligibilityEvents.length > 0, "eligibility_data produced zero usable events");
+assert.ok(eligibilityRules.length > 0, "leagues produced zero eligibility rules");
+assert.ok(
+  eligibilityRules.every(rule => rule.requirement >= 0),
+  "league eligibility requirements must be non-negative",
+);
 
 if (scoutingLines.length === 0) {
   const rawScouting = await fetchLegacyCsvDataset(env, "Avg_Scrim_Stats");
@@ -97,6 +94,11 @@ log("Current usage rows", usages.length);
 log("Current standing rows", standings.length);
 log("FA/PEND prospects", prospects.length);
 log("Usable scouting rows", scoutingLines.length);
+log("Eligibility events", eligibilityEvents.length);
+log(
+  "Eligibility requirements",
+  eligibilityRules.map(rule => `${rule.leagueCode}=${rule.requirement}`).join(" | "),
+);
 
 const rosterLeagues = [...new Set(players.map(player => player.skillGroup).filter(Boolean))];
 log("Roster skill groups", rosterLeagues.join(", ") || "none");
