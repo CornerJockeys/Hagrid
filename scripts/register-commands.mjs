@@ -143,54 +143,8 @@ const commands = [
   },
   {
     name: "remind",
-    description: "Remind a franchise player to complete scrims before a deadline.",
+    description: "Create a guided reminder for a franchise player.",
     type: 1,
-    options: [
-      {
-        type: 3,
-        name: "player",
-        description: "Current player on this franchise.",
-        required: true,
-        autocomplete: true,
-      },
-      {
-        type: 4,
-        name: "scrims",
-        description: "Number of scrims the player needs to complete.",
-        required: true,
-        min_value: 1,
-        max_value: 50,
-      },
-      {
-        type: 3,
-        name: "before",
-        description: "Deadline, for example 10/24/2026.",
-        required: true,
-        min_length: 6,
-        max_length: 10,
-      },
-      {
-        type: 3,
-        name: "division",
-        description: "Optionally restrict the player to one divisional team.",
-        required: false,
-        choices: [
-          {name: "Foundation League (FL)", value: "FL"},
-          {name: "Academy League (AL)", value: "AL"},
-          {name: "Champion League (CL)", value: "CL"},
-          {name: "Master League (ML)", value: "ML"},
-        ],
-      },
-      {
-        type: 3,
-        name: "cadence",
-        description: "Reminder cadence.",
-        required: false,
-        choices: [
-          {name: "Normal — every 2 days + deadline day", value: "normal"},
-        ],
-      },
-    ],
   },
   {
     name: "reminders",
