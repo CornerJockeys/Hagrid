@@ -85,7 +85,7 @@ The Activity is the richer UI layer for features that do not fit cleanly into Di
 
 The Activity verifies the Discord user and server, then links that Discord ID to the current franchise roster imported by Hagrid.
 
-- **Current roster members** can use `My Availability`.
+- **Current roster members** can use `My Availability` and their per-player `Eligibility` tracker.
 - **Current franchise staff and captains** can additionally use `Team Availability` and the `HC Prospect Board`.
 - Users who are in the Discord server but cannot be matched to the current franchise roster receive a clear roster-link error instead of being allowed to write availability under an untrusted identity.
 
@@ -108,6 +108,17 @@ The player workflow uses a When2Meet-style grid:
 - explicit **Save Availability** action
 
 Selections are stored internally at 30-minute resolution even when the player uses the hourly view. Availability is stored compactly as one D1 row per player/week. Saving an empty week is still a real submission and means the player is unavailable for the entire window.
+
+### Eligibility Tracker
+
+The Activity includes a player-specific scrim eligibility view based on Sprocket's published `eligibility_data` event ledger and league eligibility requirements.
+
+- shows active scrim-point decay from the Monday starting the current week through 30 days from today
+- applies the published division-specific eligibility requirement rather than hard-coding one threshold
+- treats scrim points as active through 30 days after the scrim, matching the MLE Evidence calculation
+- applies Hagrid's weekly rule: eligibility is evaluated on Monday and remains locked through Sunday
+- shows the current player feed's scrim points and `Eligible Through` value beside the independently calculated decay curve
+- current players can view their own tracker; staff/captains can select any competitive player on the configured franchise
 
 ### Team Availability
 
