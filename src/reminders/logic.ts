@@ -75,3 +75,11 @@ export function normalReminderDue(deadline: string, date: string): boolean {
   const remaining = daysUntil(deadline, date);
   return remaining >= 0 && remaining % 2 === 0;
 }
+
+
+export function reminderDue(cadence: string, deadline: string, date: string): boolean {
+  if (date > deadline) return false;
+  if (cadence === "daily") return true;
+  if (cadence === "once") return date === deadline;
+  return normalReminderDue(deadline, date);
+}
