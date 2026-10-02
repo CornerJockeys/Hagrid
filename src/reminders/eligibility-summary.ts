@@ -66,6 +66,20 @@ export function eligibilityNeedSteps(
 
   const targetWeekMonday = mondayOfDate(targetDate);
   const startDate = today > targetWeekMonday ? today : targetWeekMonday;
+
+  // If the target week has already started and the player reached the threshold
+  // at any point this week, eligibility is latched through the rest of the week.
+  if (targetWeekMonday <= today) {
+    let checkDate = targetWeekMonday;
+    const checkThrough = today < targetDate ? today : targetDate;
+    while (checkDate <= checkThrough) {
+      if (activePointsOnDate(events, checkDate) >= requirement) {
+        return [{date: startDate, scrims: 0}];
+      }
+      checkDate = addDays(checkDate, 1);
+    }
+  }
+
   const steps: EligibilityNeedStep[] = [];
   let cursor = startDate;
   let lastNeed: number | null = null;
