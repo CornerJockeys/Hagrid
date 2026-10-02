@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import {accessFromRosterRow} from "../src/activity/access.ts";
+import {accessFromRosterRow, accessFromRosterRows} from "../src/activity/access.ts";
 import {
   aggregateTeamAvailability,
   divisionCode,
@@ -28,6 +28,34 @@ test("Activity staff access recognizes franchise staff, AGMs, and captains", () 
   });
   assert.equal(agm.rosterMember, true);
   assert.equal(agm.staff, true);
+
+  const agmSlotFallback = accessFromRosterRow({
+    sprocket_player_id: "5",
+    name: "AGM slot",
+    skill_group: "Academy League",
+    staff_position: null,
+    slot: "AGM",
+  });
+  assert.equal(agmSlotFallback.staff, true);
+
+  const duplicateIdentity = accessFromRosterRows([
+    {
+      sprocket_player_id: "6",
+      name: "Dual-role",
+      skill_group: "Champion League",
+      staff_position: null,
+      slot: "PLAYERB",
+    },
+    {
+      sprocket_player_id: "7",
+      name: "Dual-role",
+      skill_group: "Champion League",
+      staff_position: "Assistant General Manager",
+      slot: "AGM",
+    },
+  ]);
+  assert.equal(duplicateIdentity.staff, true);
+  assert.equal(duplicateIdentity.staffPosition, "Assistant General Manager");
 
   const captain = accessFromRosterRow({
     sprocket_player_id: "2",
