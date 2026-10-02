@@ -80,8 +80,8 @@ export function requestedAvailabilityWeek(request: Request): string | Response {
     : errorResponse("week must be a Monday in YYYY-MM-DD format.");
 }
 
-async function principal(request: Request): Promise<ActivityPrincipal | Response> {
-  return authenticateActivityRequest(request);
+async function principal(request: Request, env: Env): Promise<ActivityPrincipal | Response> {
+  return authenticateActivityRequest(request, env);
 }
 
 export function parseAvailabilitySlots(value: unknown): AvailabilitySlot[] | null {
@@ -139,7 +139,7 @@ async function readAvailability(
 }
 
 export async function getActivityContext(request: Request, env: Env): Promise<Response> {
-  const auth = await principal(request);
+  const auth = await principal(request, env);
   if (isAuthResponse(auth)) return auth;
 
   const [config, access] = await Promise.all([
@@ -175,7 +175,7 @@ export async function getActivityContext(request: Request, env: Env): Promise<Re
 }
 
 export async function getMyAvailability(request: Request, env: Env): Promise<Response> {
-  const auth = await principal(request);
+  const auth = await principal(request, env);
   if (isAuthResponse(auth)) return auth;
   const access = await requireRosterAccess(env, auth);
   if (isAccessResponse(access)) return access;
@@ -192,7 +192,7 @@ export async function getMyAvailability(request: Request, env: Env): Promise<Res
 }
 
 export async function saveMyAvailability(request: Request, env: Env): Promise<Response> {
-  const auth = await principal(request);
+  const auth = await principal(request, env);
   if (isAuthResponse(auth)) return auth;
   const access = await requireRosterAccess(env, auth);
   if (isAccessResponse(access)) return access;
