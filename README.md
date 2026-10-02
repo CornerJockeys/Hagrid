@@ -16,8 +16,8 @@ Hagrid V1 is intentionally limited to the data and workflows that can be built a
 - Rocket League replay analysis with MVPR / OPI / DPI / GPI
 - player availability entry through the Hagrid Activity
 - staff/team availability overview
-- HC Prospect Board calculations and filtered Activity UI
-- hourly HC Prospect Board refresh with source-change detection
+- Scouting calculations and filtered Activity UI
+- hourly Scouting refresh with source-change detection
 - division-scoped FA/PEND pool lookup
 
 Features that depend on Season 20-specific datasets or schemas are deferred to V1+ until those sources are published and can be validated rather than guessed.
@@ -109,7 +109,7 @@ The Activity is the richer UI layer for features that do not fit cleanly into Di
 The Activity verifies the Discord user and server, then links that Discord ID to the current franchise roster imported by Hagrid.
 
 - **Current roster members** can use `My Availability` and their per-player `Eligibility` tracker.
-- **Current franchise staff and captains** can additionally use `Team Availability` and the `HC Prospect Board`.
+- **Current franchise staff and captains** can additionally use `Team Availability` and the `Scouting`.
 - Users who are in the Discord server but cannot be matched to the current franchise roster receive a clear roster-link error instead of being allowed to write availability under an untrusted identity.
 
 Staff status is derived from the current franchise data (`Franchise Staff Position`), with a captain-slot fallback for compatibility. Staff-only panels are lazy-loaded so opening Hagrid solely to submit availability does not trigger unnecessary team/HCPB requests.
@@ -143,6 +143,10 @@ The Activity includes a player-specific scrim eligibility view based on Sprocket
 - shows the current player feed's scrim points and `Eligible Through` value beside the independently calculated decay curve
 - current players can view their own tracker; staff/captains can select any competitive player on the configured franchise
 
+### Team Eligibility
+
+Captain/AGM/GM/FM users have a **Team Eligibility** Activity view between the personal Eligibility and Availability tabs. It provides an all-roster or FL/AL/CL/ML overview with current-week eligibility, scrim points, requirement, Eligible Through, salary, and source-mismatch counts.
+
 ### Team Availability
 
 The staff view uses the same underlying 30-minute data and presents it as a scheduling heatmap.
@@ -158,9 +162,9 @@ The staff view uses the same underlying 30-minute data and presents it as a sche
 
 Only competitive MLE roster spots (`PLAYERA`, `PLAYERB`, etc.) participate in team overlap counts. Franchise-only staff records are excluded so they cannot inflate the denominator or make a time window look worse than it actually is.
 
-### HC Prospect Board
+### Scouting
 
-Hagrid ports the useful HC Prospect Board behavior into the backend and uses the Activity as the presentation layer. The HCPB Activity is staff/captain-only.
+Hagrid ports the useful Scouting behavior into the backend and uses the Activity as the presentation layer. The HCPB Activity is staff/captain-only.
 
 The main board is intentionally a first-glance performance/value table with exactly these columns:
 
