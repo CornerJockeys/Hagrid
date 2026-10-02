@@ -9,7 +9,6 @@ import {
   type LeaguePlayerRow,
   type LeagueUsageRow,
 } from "../league/db";
-import {ensureLeagueSnapshot} from "../league/refresh";
 import {
   formatEasternTimestamp,
   formatSalary,
@@ -21,7 +20,10 @@ import {
   type TeamDivision,
 } from "../league/view";
 import {CURRENT_MLE_SEASON} from "../season-policy";
-import {getFranchises} from "../sprocket/franchises";
+import {getFranchises, resolveFranchise} from "../sprocket/franchises";
+import {getFranchisePlayers} from "../sprocket/players";
+import {getFranchiseRoleUsagesForSeason} from "../sprocket/role-usages";
+import {leaguePlayerFromFranchise, leagueUsageFromSource, latestSourceTimestamp, safeCommandError} from "./live-data";
 import type {DiscordInteraction, Env, ExecutionContextLike} from "../types";
 
 const DIVISIONS = new Set<TeamDivision>(["FL", "AL", "CL", "ML"]);
@@ -134,38 +136,47 @@ async function fetchAndRespond(
   division: TeamDivision | null,
 ): Promise<void> {
   try {
-    await ensureLeagueSnapshot(env);
-    const team = await resolveLeagueTeam(env.DB, requestedTeam);
+    const resolution = await resolveFranchise(env, requestedTeam);
+    const team = resolution.match;
     if (!team) {
-      const suggestions = await searchLeagueTeams(env.DB, requestedTeam, 5);
-      const hint = suggestions.length > 0
-        ? ` Try: ${suggestions.map(value => value.franchise_name).join(", ")}.`
+      const hint = resolution.suggestions.length > 0
+        ? ` Try: ${resolution.suggestions.map(value => value.name).join(", ")}.`
         : "";
       await editOriginalInteraction(interaction, `I couldn't resolve that team.${hint}`);
       return;
     }
 
-    const [players, usages, state] = await Promise.all([
-      getLeagueTeamPlayers(env.DB, team.franchise_name),
-      getTeamRoleUsage(env.DB, team.franchise_name, CURRENT_MLE_SEASON),
-      getLeagueSnapshotInfo(env.DB),
+    const [sourcePlayers, sourceUsages] = await Promise.all([
+      getFranchisePlayers(env, team.name),
+      getFranchiseRoleUsagesForSeason(env, team.name, CURRENT_MLE_SEASON),
+    ]);
+    const players = sourcePlayers.map(leaguePlayerFromFranchise);
+    const usages = sourceUsages.map(leagueUsageFromSource);
+    const sourceAsOf = latestSourceTimestamp([
+      ...sourcePlayers.map(player => player.sourceAsOf),
+      ...sourceUsages.map(usage => usage.sourceAsOf),
     ]);
 
     const content = teamContent(
-      team.franchise_name,
-      team.franchise_code,
+      team.name,
+      team.code,
       players,
       usages,
       division,
-      state?.usage_count ?? 0,
-      state?.source_as_of ?? null,
-      state?.refreshed_at ?? null,
+      usages.length,
+      sourceAsOf,
+      null,
     );
     await editOriginalInteraction(interaction, content.slice(0, 1950));
   } catch (error) {
     console.error("Team lookup failed", error);
+    const detail = safeCommandError(error);
     try {
-      await editOriginalInteraction(interaction, "Hagrid hit an error while building that team roster.");
+      await editOriginalInteraction(
+        interaction,
+        `Hagrid hit an error while building that team roster.\n\n` +
+          `Diagnostic: \`${detail || "unknown error"}\``,
+      );
     } catch (responseError) {
       console.error("Failed to report team lookup error", responseError);
     }
