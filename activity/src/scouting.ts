@@ -101,7 +101,7 @@ function queryFromForm(form: HTMLFormElement): URLSearchParams {
 
 function resultTable(result: ScoutingListResponse): string {
   if (result.rows.length === 0) {
-    return `<div class="table-empty"><strong>No matching prospects.</strong><span>Adjust the filters and try again.</span></div>`;
+    return `<div class="table-empty"><strong>No matching players.</strong><span>Adjust the filters and try again.</span></div>`;
   }
 
   const rows = result.rows.map(row => `
@@ -184,7 +184,7 @@ export function mountScoutingPanel(
   setStatus: ActivityStatus,
 ): void {
   panel.innerHTML = `
-    <div class="panel-heading"><div><div class="eyebrow">Scouting</div><h2>HC Prospect Board</h2>
+    <div class="panel-heading"><div><div class="eyebrow">Scouting</div><h2>Scouting</h2>
       <p>Filter the board before comparing prospects. Select any player row for the deeper scouting profile.</p></div></div>
     <form id="prospect-filters" class="filter-grid">
       <label>Search<input name="search" type="search" placeholder="Player name" /></label>
@@ -200,7 +200,7 @@ export function mountScoutingPanel(
       <label class="check-option"><input name="hide_low_sample" type="checkbox" /> Hide low-sample players</label>
       <button class="primary-button" type="submit">Apply Filters</button>
     </form>
-    <div class="table-card" id="prospect-results"><div class="table-empty"><strong>Loading prospect board…</strong></div></div>
+    <div class="table-card" id="prospect-results"><div class="table-empty"><strong>Loading scouting…</strong></div></div>
     <div id="prospect-detail-root"></div>`;
 
   const form = panel.querySelector<HTMLFormElement>("#prospect-filters");
@@ -256,16 +256,16 @@ export function mountScoutingPanel(
   const load = async (): Promise<void> => {
     const serial = ++requestSerial;
     const params = queryFromForm(form);
-    output.innerHTML = `<div class="table-empty"><strong>Loading prospect board…</strong></div>`;
+    output.innerHTML = `<div class="table-empty"><strong>Loading scouting…</strong></div>`;
     try {
       const result = await api<ScoutingListResponse>(`/api/activity/scouting?${params.toString()}`);
       if (serial !== requestSerial) return;
       output.innerHTML = resultTable(result);
       bindRows();
-      setStatus(`Loaded ${result.rows.length} of ${result.total} matching prospect rows.`, "success");
+      setStatus(`Loaded ${result.rows.length} of ${result.total} matching scouting rows.`, "success");
     } catch (error) {
       if (serial !== requestSerial) return;
-      output.innerHTML = `<div class="table-empty"><strong>Could not load the prospect board.</strong><span>${escapeHtml(error instanceof Error ? error.message : String(error))}</span></div>`;
+      output.innerHTML = `<div class="table-empty"><strong>Could not load the scouting.</strong><span>${escapeHtml(error instanceof Error ? error.message : String(error))}</span></div>`;
       setStatus(error instanceof Error ? error.message : String(error), "error");
     }
   };
