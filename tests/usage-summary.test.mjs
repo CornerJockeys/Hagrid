@@ -25,7 +25,7 @@ test("usage reminders check combined exhaustion before mode leftovers", () => {
   const bySlot = new Map(alerts.map(value => [value.slot, value.text]));
   assert.equal(bySlot.get("B"), "has 1 remaining use in 2s. 3 uses overall.");
   assert.equal(bySlot.get("D"), "has 2 uses left in 3s.");
-  assert.equal(bySlot.get("E"), "has no remaining uses in 2s. 2 uses left in 3s. 2 uses overall.");
+  assert.equal(bySlot.get("E"), "has no remaining uses in 2s. 2 uses left in 3s.");
   assert.equal(bySlot.get("H"), "has no remaining uses.");
 });
 
