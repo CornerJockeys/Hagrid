@@ -57,7 +57,16 @@ function escapeHtml(value: string): string {
 
 function formatDate(value: string | null): string {
   if (!value) return "—";
-  const date = new Date(`${value.slice(0, 10)}T00:00:00Z`);
+  const trimmed = value.trim();
+  const iso = trimmed.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  const us = trimmed.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+  const normalized = iso
+    ? `${iso[1]}-${iso[2]}-${iso[3]}`
+    : us
+      ? `${us[3]}-${String(Number(us[1])).padStart(2, "0")}-${String(Number(us[2])).padStart(2, "0")}`
+      : "";
+  if (!normalized) return value;
+  const date = new Date(`${normalized}T00:00:00Z`);
   if (Number.isNaN(date.getTime())) return value;
   return new Intl.DateTimeFormat("en-US", {
     month: "short",
