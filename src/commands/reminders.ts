@@ -1,15 +1,11 @@
 import {discordDeferred, discordMessage, editOriginalInteraction} from "../discord";
-import {getEligibilityEvents} from "../sprocket/eligibility-data";
 import type {DiscordCommandOption, DiscordInteraction, Env, ExecutionContextLike} from "../types";
 
 interface ReminderRow {
   id: number;
-  sprocket_player_id: string;
   player_discord_id: string;
   player_name: string;
   division: string | null;
-  target_scrims: number;
-  baseline_scrim_events: number;
   due_date: string;
   cadence: string;
   created_by_discord_id: string;
@@ -42,16 +38,18 @@ function hasManageGuild(interaction: DiscordInteraction): boolean {
   }
 }
 
-function reminderLine(
-  reminder: ReminderRow,
-  perspective: "created" | "assigned",
-  completedScrims: number,
-): string {
+function cadenceLabel(cadence: string): string {
+  if (cadence === "daily") return "Daily";
+  if (cadence === "once") return "Once";
+  return "Normal";
+}
+
+function reminderLine(reminder: ReminderRow, perspective: "created" | "assigned"): string {
   const subject = perspective === "created"
     ? `<@${reminder.player_discord_id}>`
     : `set by <@${reminder.created_by_discord_id}>`;
   const division = reminder.division ? ` · ${reminder.division}` : "";
-  return `#${reminder.id} · **${completedScrims}/${reminder.target_scrims} scrims** · due **${reminder.due_date}**${division} · ${subject}`;
+  return `#${reminder.id} · due **${reminder.due_date}** · ${cadenceLabel(reminder.cadence)}${division} · ${subject}`;
 }
 
 async function listReminders(interaction: DiscordInteraction, env: Env): Promise<void> {
@@ -60,9 +58,8 @@ async function listReminders(interaction: DiscordInteraction, env: Env): Promise
     const guildId = interaction.guild_id!;
 
     const result = await env.DB.prepare(
-      `SELECT id, sprocket_player_id, player_discord_id, player_name, division, target_scrims,
-              baseline_scrim_events, due_date, cadence, created_by_discord_id,
-              created_at, status
+      `SELECT id, player_discord_id, player_name, division, due_date, cadence,
+              created_by_discord_id, created_at, status
        FROM scrim_reminders
        WHERE guild_id = ? AND status = 'active'
          AND (created_by_discord_id = ? OR player_discord_id = ?)
@@ -75,26 +72,17 @@ async function listReminders(interaction: DiscordInteraction, env: Env): Promise
       row.player_discord_id === userId && row.created_by_discord_id !== userId,
     );
 
-    const events = result.results.length > 0 ? await getEligibilityEvents(env) : [];
-    const eventCounts = new Map<string, number>();
-    for (const event of events) {
-      if (event.points <= 0) continue;
-      eventCounts.set(event.playerId, (eventCounts.get(event.playerId) ?? 0) + 1);
-    }
-    const completedFor = (row: ReminderRow): number =>
-      Math.max(0, (eventCounts.get(row.sprocket_player_id) ?? 0) - row.baseline_scrim_events);
-
-    const lines = ["**Active Scrim Reminders**"];
+    const lines = ["**Active Reminders**"];
     if (created.length === 0 && assigned.length === 0) {
-      lines.push("You do not have any active scrim reminders.");
+      lines.push("You do not have any active reminders.");
     }
     if (assigned.length > 0) {
       lines.push("", "**For you**");
-      for (const row of assigned) lines.push(reminderLine(row, "assigned", completedFor(row)));
+      for (const row of assigned) lines.push(reminderLine(row, "assigned"));
     }
     if (created.length > 0) {
       lines.push("", "**Created by you**");
-      for (const row of created) lines.push(reminderLine(row, "created", completedFor(row)));
+      for (const row of created) lines.push(reminderLine(row, "created"));
       lines.push("", "Use `/reminders cancel id:<number>` to cancel one you created.");
     }
 
@@ -115,9 +103,8 @@ async function cancelReminder(
     const guildId = interaction.guild_id!;
 
     const reminder = await env.DB.prepare(
-      `SELECT id, sprocket_player_id, player_discord_id, player_name, division, target_scrims,
-              baseline_scrim_events, due_date, cadence, created_by_discord_id,
-              created_at, status
+      `SELECT id, player_discord_id, player_name, division, due_date, cadence,
+              created_by_discord_id, created_at, status
        FROM scrim_reminders
        WHERE guild_id = ? AND id = ?
        LIMIT 1`,
@@ -142,7 +129,7 @@ async function cancelReminder(
 
     await editOriginalInteraction(
       interaction,
-      `🛑 Reminder #${reminderId} for <@${reminder.player_discord_id}> (**${reminder.target_scrims} scrim${reminder.target_scrims === 1 ? "" : "s"}** by **${reminder.due_date}**) has been cancelled.`,
+      `🛑 Reminder #${reminderId} for <@${reminder.player_discord_id}> due **${reminder.due_date}** has been cancelled.`,
     );
   } catch (error) {
     console.error("Cancel reminder failed", error);
