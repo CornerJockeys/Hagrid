@@ -53,11 +53,16 @@ export async function verifyDiscordRequest(
   }
 }
 
-export function discordMessage(content: string, ephemeral = true): Response {
+export function discordMessage(
+  content: string,
+  ephemeral = true,
+  components: unknown[] = [],
+): Response {
   return Response.json({
     type: 4,
     data: {
       content,
+      components,
       ...(ephemeral ? {flags: 64} : {}),
     },
   });
