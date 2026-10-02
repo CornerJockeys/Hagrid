@@ -8,12 +8,17 @@ interface DiscordOAuthUser {
   global_name?: string | null;
 }
 
+interface DiscordGuildMember {
+  roles?: string[];
+}
+
 export interface ActivityPrincipal {
   guildId: string;
   userId: string;
   username: string;
   displayName: string;
   accessToken: string;
+  roleIds: string[];
 }
 
 function jsonError(message: string, status: number): Response {
@@ -88,11 +93,15 @@ export async function authenticateActivityRequest(request: Request, env: Env): P
     return jsonError("Discord returned an invalid user record.", 401);
   }
 
-  // Discord's user-scoped guild-member endpoint can intermittently reject a
-  // still-valid Activity token after the initial Activity bootstrap. When that
-  // happens, verify membership with Hagrid's bot credential instead of forcing
-  // the user to re-open the Activity.
-  if (!memberResponse.ok) {
+  let member: DiscordGuildMember | null = null;
+
+  if (memberResponse.ok) {
+    member = await memberResponse.json() as DiscordGuildMember;
+  } else {
+    // Discord's user-scoped guild-member endpoint can intermittently reject a
+    // still-valid Activity token after the initial Activity bootstrap. When that
+    // happens, verify membership and roles with Hagrid's bot credential instead
+    // of forcing the user to re-open the Activity.
     if (!env.DISCORD_BOT_TOKEN) {
       console.error("Discord Activity member verification failed", memberResponse.status);
       return jsonError("Discord could not verify this Activity session for the selected server.", 401);
@@ -110,13 +119,18 @@ export async function authenticateActivityRequest(request: Request, env: Env): P
       );
       return jsonError("Discord could not verify this Activity session for the selected server.", 401);
     }
+    member = await botMemberResponse.json() as DiscordGuildMember;
   }
+
   return {
     guildId,
     userId: user.id,
     username: user.username,
     displayName: user.global_name?.trim() || user.username,
     accessToken,
+    roleIds: Array.isArray(member?.roles)
+      ? member.roles.filter((roleId): roleId is string => typeof roleId === "string")
+      : [],
   };
 }
 
