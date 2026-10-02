@@ -8,6 +8,7 @@ import {getEligibilityEvents, getLeagueEligibilityRules} from "../sprocket/eligi
 import {getFranchisePlayers} from "../sprocket/players";
 import {getFranchiseRoleUsagesForSeason} from "../sprocket/role-usages";
 import {CURRENT_MLE_SEASON} from "../season-policy";
+import {recordSimulatedWrite} from "../testing/simulated-write";
 import type {DiscordInteraction, Env} from "../types";
 
 const DIVISIONS: TeamDivision[] = ["FL", "AL", "CL", "ML"];
@@ -546,7 +547,56 @@ export async function handleRemindComponent(
     if (!kind || !["player", "division", "team", "usage-division", "usage-team"].includes(kind)) {
       return discordUpdateMessage("Choose a valid reminder demo.", dummyComponents(creatorId));
     }
-    return discordUpdateMessage(dummyReminderText(kind), []);
+    const simulated = kind === "player"
+      ? {
+          operationName: "create_player_reminder",
+          targetName: "scrim_reminders",
+          payload: {
+            division: "CL",
+            player_name: "ExamplePlayer",
+            player_discord_id: "DUMMY_PLAYER",
+            due_date: "2026-10-24",
+            cadence: "normal",
+            status: "active",
+          },
+        }
+      : kind === "division"
+        ? {
+            operationName: "post_division_eligibility_reminder",
+            targetName: "discord_channel_message",
+            payload: {scope: "CL", target_date: "2026-10-24", preview: dummyReminderText(kind)},
+          }
+        : kind === "team"
+          ? {
+              operationName: "post_team_eligibility_reminder",
+              targetName: "discord_channel_message",
+              payload: {scope: "all_divisions", target_date: "2026-10-24", preview: dummyReminderText(kind)},
+            }
+          : kind === "usage-division"
+            ? {
+                operationName: "post_division_usage_reminder",
+                targetName: "discord_channel_message",
+                payload: {scope: "ML", preview: dummyReminderText(kind)},
+              }
+            : {
+                operationName: "post_team_usage_reminder",
+                targetName: "discord_channel_message",
+                payload: {scope: "all_divisions", preview: dummyReminderText(kind)},
+              };
+
+    await recordSimulatedWrite(env, {
+      guildId: interaction.guild_id,
+      commandName: "reminddummy",
+      operationName: simulated.operationName,
+      targetName: simulated.targetName,
+      payload: simulated.payload,
+      createdByDiscordId: creatorId,
+    });
+
+    return discordUpdateMessage(
+      dummyReminderText(kind) + "\n\n✅ **Simulated write recorded.** No production reminder/message state was changed.",
+      [],
+    );
   }
 
   if (parts[1] === "division") {
