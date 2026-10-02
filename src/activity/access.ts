@@ -1,5 +1,3 @@
-import {getGuildConfig} from "../db";
-import {getFranchisePlayers} from "../sprocket/players";
 import type {Env} from "../types";
 import type {ActivityPrincipal} from "./auth";
 
@@ -92,6 +90,10 @@ export async function getActivityAccess(
   // Staff metadata can change between franchise syncs. Fall back to the current
   // Sprocket franchise publication before denying Captain/AGM/GM views.
   try {
+    const [{getGuildConfig}, {getFranchisePlayers}] = await Promise.all([
+      import("../db"),
+      import("../sprocket/players"),
+    ]);
     const config = await getGuildConfig(env.DB, auth.guildId);
     if (!config) return cached;
     const livePlayers = await getFranchisePlayers(env, config.franchise_name);
