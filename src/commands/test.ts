@@ -1,5 +1,6 @@
 import {getGuildConfig} from "../db";
 import {discordMessage, discordUpdateMessage, sendDiscordChannelMessage} from "../discord";
+import {dumpThreadId} from "../dumps/config";
 import {buildDumpMessages, type DumpKind} from "../dumps/format";
 import type {DiscordCommandOption, DiscordInteraction, Env} from "../types";
 
@@ -75,12 +76,12 @@ async function runDump(
     const messages = await buildDumpMessages(env, config.franchise_name, dumpKind, matchWeek);
     for (let index = 0; index < messages.length; index += 1) {
       const prefix = index === 0 ? "**[TEST DUMP]**\n" : "**[TEST DUMP — continued]**\n";
-      await sendDiscordChannelMessage(env, interaction.channel_id, prefix + messages[index]);
+      await sendDiscordChannelMessage(env, dumpThreadId(dumpKind), prefix + messages[index]);
     }
   }
 
   return discordUpdateMessage(
-    `✅ Test ${kind === "all" ? "eligibility, salary, and usage dumps" : kind + " dump"} posted for Match Week ${matchWeek}. No scheduled dump state was changed.`,
+    `✅ Test ${kind === "all" ? "eligibility, salary, and usage dumps" : kind + " dump"} posted to the configured S20 dump thread${kind === "all" ? "s" : ""} for Match Week ${matchWeek}. No scheduled dump state was changed.`,
     [],
   );
 }
@@ -99,7 +100,7 @@ export async function handleTestCommand(
   }
 
   return discordMessage(
-    "**Test weekly dump**\nChoose which dump to simulate. It will post in this channel and will not alter scheduled dump state.",
+    "**Test weekly dump**\nChoose which dump to simulate. It will post to the configured S20 dump thread and will not alter scheduled dump state.",
     true,
     dumpKindComponents(userId),
   );
