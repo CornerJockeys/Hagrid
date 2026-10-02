@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 
-import {fetchLegacyCsvDataset} from "../src/sprocket/client.ts";
+import {fetchCsvDataset, fetchLegacyCsvDataset} from "../src/sprocket/client.ts";
 import {CURRENT_MLE_SEASON} from "../src/season-policy.ts";
 import {getFranchises} from "../src/sprocket/franchises.ts";
 import {getFranchisePlayers, getRocketLeaguePlayers} from "../src/sprocket/players.ts";
@@ -19,6 +19,18 @@ const env = {
 function log(label, value) {
   console.log(`${label}: ${value}`);
 }
+
+const [rawEligibility, rawLeagues] = await Promise.all([
+  fetchCsvDataset(env, "eligibility_data"),
+  fetchCsvDataset(env, "leagues"),
+]);
+assert.ok(rawEligibility.length > 0, "eligibility_data dataset produced zero rows");
+assert.ok(rawLeagues.length > 0, "leagues dataset produced zero rows");
+log("Eligibility rows", rawEligibility.length);
+log("Eligibility columns", Object.keys(rawEligibility[0]).join(" | "));
+log("Eligibility sample", JSON.stringify(rawEligibility[0]));
+log("League columns", Object.keys(rawLeagues[0]).join(" | "));
+log("League sample", JSON.stringify(rawLeagues[0]));
 
 const franchises = await getFranchises(env);
 assert.ok(franchises.length > 0, "teams dataset produced zero franchises");
