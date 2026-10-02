@@ -1,7 +1,7 @@
 import {sendDiscordChannelMessage} from "../discord";
 import {getEligibilityEvents} from "../sprocket/eligibility-data";
 import type {Env} from "../types";
-import {easternDate, normalReminderDue} from "./logic";
+import {easternDate, easternHour, normalReminderDue} from "./logic";
 
 interface ReminderRow {
   id: number;
@@ -38,7 +38,9 @@ export async function runScheduledReminders(env: Env): Promise<void> {
     return;
   }
 
-  const today = easternDate();
+  const now = new Date();
+  const today = easternDate(now);
+  const hour = easternHour(now);
   const rows = await env.DB.prepare(
     `SELECT id, guild_id, channel_id, sprocket_player_id, player_discord_id, player_name,
             target_scrims, baseline_scrim_events, due_date, cadence,
@@ -83,6 +85,7 @@ export async function runScheduledReminders(env: Env): Promise<void> {
 
     if (
       reminder.cadence === "normal" &&
+      hour === 13 &&
       reminder.last_ping_date !== today &&
       normalReminderDue(reminder.due_date, today)
     ) {
