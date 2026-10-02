@@ -74,7 +74,14 @@ export async function getActivityAccess(
   const result = await env.DB.prepare(
     `SELECT sprocket_player_id, name, skill_group, staff_position, slot
      FROM franchise_players_current
-     WHERE guild_id = ? AND discord_id = ?`,
+     WHERE guild_id = ?1 AND discord_id = ?2
+     UNION ALL
+     SELECT player.sprocket_player_id, player.name, player.skill_group,
+            player.staff_position, player.slot
+     FROM league_players_current player
+     INNER JOIN guild_config config
+       ON LOWER(config.franchise_name) = LOWER(player.franchise_name)
+     WHERE config.guild_id = ?1 AND player.discord_id = ?2`,
   ).bind(auth.guildId, auth.userId).all<AccessRow>();
 
   return accessFromRosterRows(result.results);
