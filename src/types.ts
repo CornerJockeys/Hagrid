@@ -32,6 +32,7 @@ export interface Env {
   DISCORD_PUBLIC_KEY: string;
   DISCORD_APPLICATION_ID?: string;
   DISCORD_CLIENT_SECRET?: string;
+  DISCORD_BOT_TOKEN?: string;
   SPROCKET_DATASET_BASE_URL?: string;
   SPROCKET_LEGACY_DATASET_BASE_URL?: string;
 }
@@ -67,12 +68,23 @@ export interface DiscordResolvedData {
   attachments?: Record<string, DiscordAttachment>;
 }
 
+export interface DiscordModalField {
+  custom_id?: string;
+  value?: string;
+}
+
+export interface DiscordModalRow {
+  components?: DiscordModalField[];
+}
+
 export interface DiscordInteractionData {
   name?: string;
   options?: DiscordCommandOption[];
   resolved?: DiscordResolvedData;
   custom_id?: string;
   component_type?: number;
+  values?: string[];
+  components?: DiscordModalRow[];
 }
 
 export interface DiscordInteraction {
@@ -81,6 +93,7 @@ export interface DiscordInteraction {
   token?: string;
   type: number;
   guild_id?: string;
+  channel_id?: string;
   member?: DiscordMember;
   user?: DiscordUser;
   data?: DiscordInteractionData;

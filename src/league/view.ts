@@ -4,6 +4,41 @@ export type TeamDivision = "FL" | "AL" | "CL" | "ML";
 
 const DIVISION_ORDER: TeamDivision[] = ["ML", "CL", "AL", "FL"];
 
+export interface UsagePolicy {
+  rosterSlots: number;
+  doublesLimit: number;
+  standardLimit: number;
+  combinedLimit: number;
+}
+
+export interface UsageRemaining {
+  doubles: number;
+  standard: number;
+  combined: number;
+}
+
+export function usagePolicyForDivision(division: TeamDivision): UsagePolicy {
+  return {
+    rosterSlots: division === "FL" ? 7 : 8,
+    doublesLimit: 6,
+    standardLimit: 8,
+    combinedLimit: 12,
+  };
+}
+
+export function remainingUsage(
+  usage: LeagueUsageRow,
+  division: TeamDivision,
+): UsageRemaining {
+  const policy = usagePolicyForDivision(division);
+  const combined = Math.max(0, policy.combinedLimit - usage.total_uses);
+  return {
+    doubles: Math.max(0, Math.min(policy.doublesLimit - usage.doubles_uses, combined)),
+    standard: Math.max(0, Math.min(policy.standardLimit - usage.standard_uses, combined)),
+    combined,
+  };
+}
+
 export function teamDivision(value: string | null): TeamDivision | null {
   if (!value) return null;
   const normalized = value.trim().toLocaleLowerCase("en-US");

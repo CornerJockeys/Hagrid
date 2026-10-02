@@ -98,7 +98,23 @@ const commands = [
           {name: "Master League (ML)", value: "ML"},
         ],
       },
+      {
+        type: 5,
+        name: "scrims",
+        description: "Include compact 2s/3s scrim performance stats (use with division).",
+        required: false,
+      },
     ],
+  },
+  {
+    name: "ncp",
+    description: "Submit a franchise NCP (AGM+ only).",
+    type: 1,
+  },
+  {
+    name: "ncpdummy",
+    description: "Preview the NCP workflow without saving anything (AGM+ only).",
+    type: 1,
   },
   {
     name: "player",
@@ -131,6 +147,42 @@ const commands = [
           {name: "Both", value: "Both"},
           {name: "2s", value: "2s"},
           {name: "3s", value: "3s"},
+        ],
+      },
+    ],
+  },
+  {
+    name: "remind",
+    description: "Create a guided franchise reminder.",
+    type: 1,
+  },
+  {
+    name: "reminddummy",
+    description: "Preview reminder flows without saving or pinging anyone.",
+    type: 1,
+  },
+  {
+    name: "reminders",
+    description: "View or cancel active scrim reminders.",
+    type: 1,
+    options: [
+      {
+        type: 1,
+        name: "list",
+        description: "Show active reminders assigned to you or created by you.",
+      },
+      {
+        type: 1,
+        name: "cancel",
+        description: "Cancel an active reminder you created.",
+        options: [
+          {
+            type: 4,
+            name: "id",
+            description: "Reminder ID shown by /reminders list.",
+            required: true,
+            min_value: 1,
+          },
         ],
       },
     ],
@@ -182,6 +234,18 @@ const commands = [
           {name: "Doubles", value: "Doubles"},
           {name: "Standard", value: "Standard"},
         ],
+      },
+    ],
+  },
+  {
+    name: "test",
+    description: "Run safe Hagrid feature simulations.",
+    type: 1,
+    options: [
+      {
+        type: 1,
+        name: "dump",
+        description: "Simulate a weekly eligibility, salary, or usage dump in this channel.",
       },
     ],
   },

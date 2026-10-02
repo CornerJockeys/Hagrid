@@ -6,7 +6,7 @@ import {
   type DivisionCode,
 } from "../availability/team";
 import type {Env} from "../types";
-import {isAccessResponse, requireStaffAccess} from "./access";
+import {isAccessResponse, requireCaptainPlusAccess} from "./access";
 import {
   AVAILABILITY_END_MINUTE,
   AVAILABILITY_RESOLUTION_MINUTES,
@@ -71,9 +71,9 @@ function submission(row: SubmissionRow): AvailabilitySubmission | null {
 }
 
 export async function getTeamAvailability(request: Request, env: Env): Promise<Response> {
-  const auth = await authenticateActivityRequest(request);
+  const auth = await authenticateActivityRequest(request, env);
   if (isAuthResponse(auth)) return auth;
-  const access = await requireStaffAccess(env, auth);
+  const access = await requireCaptainPlusAccess(env, auth);
   if (isAccessResponse(access)) return access;
 
   const weekStart = requestedAvailabilityWeek(request);

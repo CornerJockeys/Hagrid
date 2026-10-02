@@ -1,5 +1,6 @@
 import {discordAutocomplete, discordDeferred, discordMessage, editOriginalInteraction} from "../discord";
 import {currentLeagueWeekStart, isEligibleForWeek} from "../eligibility";
+import {buildEligibilityDecay, easternCalendarDate} from "../eligibility-decay";
 import {
   getLeagueSnapshotInfo,
   getLeagueTeamPlayers,
@@ -7,12 +8,14 @@ import {
   resolveLeagueTeam,
   searchLeagueTeams,
   type LeaguePlayerRow,
+  type LeagueScrimStatRow,
   type LeagueUsageRow,
 } from "../league/db";
 import {
   formatEasternTimestamp,
   formatSalary,
   isCompetitiveSlot,
+  remainingUsage,
   slotLabel,
   teamDivision,
   teamDivisionOrder,
@@ -23,7 +26,9 @@ import {CURRENT_MLE_SEASON} from "../season-policy";
 import {getFranchises, resolveFranchise} from "../sprocket/franchises";
 import {getFranchisePlayers} from "../sprocket/players";
 import {getFranchiseRoleUsagesForSeason} from "../sprocket/role-usages";
-import {leaguePlayerFromFranchise, leagueUsageFromSource, latestSourceTimestamp, safeCommandError} from "./live-data";
+import {getScoutingStatLines} from "../sprocket/scouting";
+import {getEligibilityEvents, getLeagueEligibilityRules} from "../sprocket/eligibility-data";
+import {leaguePlayerFromFranchise, leagueScrimFromSource, leagueUsageFromSource, latestSourceTimestamp, safeCommandError} from "./live-data";
 import type {DiscordInteraction, Env, ExecutionContextLike} from "../types";
 
 const DIVISIONS = new Set<TeamDivision>(["FL", "AL", "CL", "ML"]);
@@ -42,7 +47,29 @@ function selectedDivision(interaction: DiscordInteraction): TeamDivision | null 
 
 function usageText(usage: LeagueUsageRow | null): string {
   if (!usage) return "U —";
-  return `U ${usage.doubles_uses}/${usage.standard_uses}/${usage.total_uses}`;
+  const division = teamDivision(usage.league);
+  if (!division) return `U 2s ${usage.doubles_uses}/6 · 3s ${usage.standard_uses}/8 · T ${usage.total_uses}/12`;
+  const remaining = remainingUsage(usage, division);
+  const exhausted = remaining.combined === 0 ? " · ⛔ exhausted" : "";
+  return `U 2s ${usage.doubles_uses}/6 (${remaining.doubles} left) · 3s ${usage.standard_uses}/8 (${remaining.standard} left) · T ${usage.total_uses}/12${exhausted}`;
+}
+
+function metric(value: number | null): string {
+  return value === null || !Number.isFinite(value) ? "—" : value.toFixed(2);
+}
+
+function scrimText(stats: LeagueScrimStatRow[]): string {
+  if (stats.length === 0) return "Scrim stats —";
+  return stats
+    .sort((a, b) => a.mode.localeCompare(b.mode))
+    .map(stat => `${stat.mode} ${stat.games}g SR ${metric(stat.sprocket)} OPI ${metric(stat.opi)} DPI ${metric(stat.dpi)}`)
+    .join(" | ");
+}
+
+interface NextWeekProjection {
+  points: number;
+  requirement: number;
+  eligible: boolean;
 }
 
 function playerLine(
@@ -50,6 +77,9 @@ function playerLine(
   usages: LeagueUsageRow[],
   weekStart: string,
   usageAvailable: boolean,
+  scrimStats: LeagueScrimStatRow[] = [],
+  includeScrims = false,
+  nextWeek: NextWeekProjection | null = null,
 ): string {
   const eligible = isEligibleForWeek(player.eligible_through, weekStart);
   const usage = usageAvailable ? usageForPlayer(player, usages) : null;
@@ -58,8 +88,15 @@ function playerLine(
     `Salary ${formatSalary(player.salary)}`,
     `**${player.name}**`,
     eligible ? "✅ Eligible" : "❌ Not eligible",
+    `SP ${player.current_scrim_points}`,
+    ...(nextWeek
+      ? [nextWeek.eligible
+          ? `Next wk ✅ ${nextWeek.points}/${nextWeek.requirement}`
+          : `Next wk ⚠️ ${nextWeek.points}/${nextWeek.requirement}`]
+      : []),
   ];
   if (usageAvailable) parts.push(usageText(usage));
+  if (includeScrims) parts.push(scrimText(scrimStats));
   return parts.join(" · ");
 }
 
@@ -79,6 +116,9 @@ function teamContent(
   usageCount: number,
   sourceAsOf: string | null,
   refreshedAt: string | null,
+  scrimStats: Map<string, LeagueScrimStatRow[]> = new Map(),
+  includeScrims = false,
+  nextWeek: Map<string, NextWeekProjection> = new Map(),
 ): string {
   const weekStart = currentLeagueWeekStart();
   const competitive = players
@@ -115,11 +155,19 @@ function teamContent(
     if (!values?.length) continue;
     lines.push("", `**${key}**`);
     for (const player of values) {
-      lines.push(playerLine(player, usages, weekStart, usageAvailable));
+      lines.push(playerLine(
+        player,
+        usages,
+        weekStart,
+        usageAvailable,
+        scrimStats.get(player.sprocket_player_id) ?? [],
+        includeScrims,
+        nextWeek.get(player.sprocket_player_id) ?? null,
+      ));
     }
   }
 
-  lines.push("", `Eligibility is evaluated for the week beginning ${weekStart}.`);
+  lines.push("", `Eligibility is evaluated for the week beginning ${weekStart}; Next wk is the current point-decay projection for the following Monday.`);
   lines.push(
     usageAvailable
       ? `Usage is S${CURRENT_MLE_SEASON} slot usage shown as 2s/3s/total.`
@@ -134,6 +182,7 @@ async function fetchAndRespond(
   env: Env,
   requestedTeam: string,
   division: TeamDivision | null,
+  includeScrims: boolean,
 ): Promise<void> {
   try {
     const resolution = await resolveFranchise(env, requestedTeam);
@@ -146,12 +195,48 @@ async function fetchAndRespond(
       return;
     }
 
-    const [sourcePlayers, sourceUsages] = await Promise.all([
+    const [sourcePlayers, sourceUsages, sourceScrims, eligibilityEvents, eligibilityRules] = await Promise.all([
       getFranchisePlayers(env, team.name),
       getFranchiseRoleUsagesForSeason(env, team.name, CURRENT_MLE_SEASON),
+      includeScrims ? getScoutingStatLines(env) : Promise.resolve([]),
+      getEligibilityEvents(env),
+      getLeagueEligibilityRules(env),
     ]);
     const players = sourcePlayers.map(leaguePlayerFromFranchise);
     const usages = sourceUsages.map(leagueUsageFromSource);
+    const playerIds = new Set(players.map(player => player.sprocket_player_id));
+    const scrimStats = new Map<string, LeagueScrimStatRow[]>();
+    if (includeScrims) {
+      for (const stat of sourceScrims.filter(value => playerIds.has(value.sprocketPlayerId)).map(leagueScrimFromSource)) {
+        const rows = scrimStats.get(stat.sprocket_player_id) ?? [];
+        rows.push(stat);
+        scrimStats.set(stat.sprocket_player_id, rows);
+      }
+    }
+    const nextWeek = new Map<string, NextWeekProjection>();
+    const today = easternCalendarDate();
+    for (const player of sourcePlayers) {
+      const playerDivision = teamDivision(player.skillGroup);
+      if (!playerDivision) continue;
+      const rule = eligibilityRules.find(value =>
+        value.leagueCode.toLocaleUpperCase("en-US") === playerDivision,
+      );
+      if (!rule) continue;
+      const decay = buildEligibilityDecay(
+        eligibilityEvents.filter(event => event.playerId === player.sprocketPlayerId),
+        rule.requirement,
+        today,
+      );
+      const nextMonday = decay.find(point => point.isMonday && point.date > currentLeagueWeekStart());
+      if (nextMonday) {
+        nextWeek.set(player.sprocketPlayerId, {
+          points: nextMonday.points,
+          requirement: rule.requirement,
+          eligible: nextMonday.eligible,
+        });
+      }
+    }
+
     const sourceAsOf = latestSourceTimestamp([
       ...sourcePlayers.map(player => player.sourceAsOf),
       ...sourceUsages.map(usage => usage.sourceAsOf),
@@ -166,6 +251,9 @@ async function fetchAndRespond(
       usages.length,
       sourceAsOf,
       null,
+      scrimStats,
+      includeScrims,
+      nextWeek,
     );
     await editOriginalInteraction(interaction, content.slice(0, 1950));
   } catch (error) {
@@ -232,10 +320,14 @@ export async function handleTeamCommand(
 
   const division = selectedDivision(interaction);
   if (division === "invalid") return discordMessage("Unknown division selection.");
+  const includeScrims = interaction.data?.options?.find(option => option.name === "scrims")?.value === true;
+  if (includeScrims && !division) {
+    return discordMessage("Choose a division when including scrim performance stats so the team response stays readable.");
+  }
   if (!interaction.application_id || !interaction.token) {
     return discordMessage("This Discord interaction cannot be deferred safely. Please try again.");
   }
 
-  ctx.waitUntil(fetchAndRespond(interaction, env, requestedTeam, division));
+  ctx.waitUntil(fetchAndRespond(interaction, env, requestedTeam, division, includeScrims));
   return discordDeferred(false);
 }

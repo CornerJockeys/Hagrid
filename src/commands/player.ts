@@ -4,6 +4,7 @@ import {searchLeaguePlayers, type LeaguePlayerRow, type LeagueScrimStatRow} from
 import {
   formatEasternTimestamp,
   formatSalary,
+  remainingUsage,
   slotLabel,
   teamDivision,
   usageForPlayer,
@@ -170,11 +171,15 @@ async function fetchAndRespond(
       } else {
         const usages = sourceUsages.map(leagueUsageFromSource);
         const usage = usageForPlayer(player, usages);
-        lines.push(
-          usage
-            ? `Current slot usage (2s/3s/total): ${usage.doubles_uses}/${usage.standard_uses}/${usage.total_uses}`
-            : `Current slot usage: no S${CURRENT_MLE_SEASON} usage recorded for this slot.`,
-        );
+        if (usage) {
+          const division = teamDivision(player.skill_group)!;
+          const remaining = remainingUsage(usage, division);
+          lines.push(
+            `Current slot usage: 2s ${usage.doubles_uses}/6 (${remaining.doubles} left) · 3s ${usage.standard_uses}/8 (${remaining.standard} left) · total ${usage.total_uses}/12${remaining.combined === 0 ? " · ⛔ exhausted" : ""}`,
+          );
+        } else {
+          lines.push(`Current slot usage: no S${CURRENT_MLE_SEASON} usage recorded for this slot.`);
+        }
       }
     }
 

@@ -12,6 +12,7 @@ interface AccessRow {
 export interface ActivityAccess {
   rosterMember: boolean;
   staff: boolean;
+  captainPlus: boolean;
   playerId: string | null;
   playerName: string | null;
   division: string | null;
@@ -31,11 +32,26 @@ function textSuggestsStaffRole(value: string | null): boolean {
   );
 }
 
+function textSuggestsCaptainPlus(value: string | null): boolean {
+  if (!value) return false;
+  const normalized = value.trim().toLocaleLowerCase("en-US");
+  return (
+    /(^|\b)(captain|capt)(\b|$)/.test(normalized) ||
+    normalized === "agm" ||
+    normalized === "gm" ||
+    normalized === "fm" ||
+    normalized.includes("assistant general manager") ||
+    normalized.includes("general manager") ||
+    normalized.includes("franchise manager")
+  );
+}
+
 export function accessFromRosterRows(rows: AccessRow[]): ActivityAccess {
   if (rows.length === 0) {
     return {
       rosterMember: false,
       staff: false,
+      captainPlus: false,
       playerId: null,
       playerName: null,
       division: null,
@@ -54,6 +70,9 @@ export function accessFromRosterRows(rows: AccessRow[]): ActivityAccess {
     rosterMember: true,
     staff: rows.some(row =>
       Boolean(row.staff_position?.trim()) || textSuggestsStaffRole(row.slot),
+    ),
+    captainPlus: rows.some(row =>
+      textSuggestsCaptainPlus(row.staff_position) || textSuggestsCaptainPlus(row.slot),
     ),
     playerId: preferred.sprocket_player_id,
     playerName: preferred.name,
@@ -85,7 +104,7 @@ export async function getActivityAccess(
   ).bind(auth.guildId, auth.userId).all<AccessRow>();
 
   const cached = accessFromRosterRows(result.results);
-  if (cached.staff) return cached;
+  if (cached.captainPlus) return cached;
 
   // Staff metadata can change between franchise syncs. Fall back to the current
   // Sprocket franchise publication before denying Captain/AGM/GM views.
@@ -121,6 +140,20 @@ export async function requireRosterAccess(
   if (!access.rosterMember) {
     return Response.json(
       {error: "Your Discord account is not linked to the current franchise roster in Hagrid."},
+      {status: 403},
+    );
+  }
+  return access;
+}
+
+export async function requireCaptainPlusAccess(
+  env: Env,
+  auth: ActivityPrincipal,
+): Promise<ActivityAccess | Response> {
+  const access = await getActivityAccess(env, auth);
+  if (!access.captainPlus) {
+    return Response.json(
+      {error: "This Activity view is limited to current franchise Captain/AGM/GM/FM staff."},
       {status: 403},
     );
   }

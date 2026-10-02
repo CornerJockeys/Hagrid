@@ -16,8 +16,8 @@ Hagrid V1 is intentionally limited to the data and workflows that can be built a
 - Rocket League replay analysis with MVPR / OPI / DPI / GPI
 - player availability entry through the Hagrid Activity
 - staff/team availability overview
-- HC Prospect Board calculations and filtered Activity UI
-- hourly HC Prospect Board refresh with source-change detection
+- Scouting calculations and filtered Activity UI
+- hourly Scouting refresh with source-change detection
 - division-scoped FA/PEND pool lookup
 
 Features that depend on Season 20-specific datasets or schemas are deferred to V1+ until those sources are published and can be validated rather than guessed.
@@ -43,6 +43,29 @@ Features that depend on Season 20-specific datasets or schemas are deferred to V
 `/sync run` requires **Manage Server** and provides the manual rerun path for the same franchise pipeline used by the Monday scheduled refresh.
 
 The franchise sync imports the configured franchise's Rocket League roster, slots, salaries, current scrim-point/eligibility fields, and current 2v2/3v3/total role usage. Roster movement is treated as normal effective-dated data rather than an integrity error.
+
+### Player reminders
+
+```text
+/remind
+/reminders list
+/reminders cancel id:12
+```
+
+`/remind` is a guided Discord flow for the configured franchise. The Captain, AGM, GM, or FM first chooses **Player**, **Division**, **Team**, **Usage Division**, or **Usage Team**. Player reminders then select a division, player, target date, and cadence. Division reminders select a division and target date, then post the players who still need scrims for that date. Team reminders do the same eligibility calculation across all four divisions. Usage Division posts low-usage warnings for one division and pings that division's linked captain; Usage Team posts the same summary for every division. Usage warnings trigger below 3 remaining 2s uses, below 3 remaining 3s uses, or below 4 remaining uses overall, with combined exhaustion checked first so unusable mode leftovers are omitted. Normal is described in the picker as **every 2 days at 1:30 PM Eastern, plus the target date**. Daily sends at **1:30 PM Eastern** each day through the target date, and Once sends at **1:30 PM Eastern** on the target date only. The 30-minute delay leaves room for the 1:00 PM eligibility/roster pull to finish before reminders are evaluated. Players can use `/reminders list` to see reminders assigned to them, while creators can also cancel their own active reminders.
+
+### NCP preview and dump tests
+
+```text
+/ncp
+/test dump
+```
+
+`/ncp` is restricted to AGM/GM/FM staff and now goes directly into the live submission flow. `/ncpdummy` is the separate AGM+ demo command; it previews division → mode → match/slot effects without changing production NCP/usage state. Live NCP submission remains deferred until the Season 20 matches/fixtures adapter is wired, because NCPs must preserve slot usage while excluding those games from playoff eligibility.
+
+`/test dump` safely simulates the weekly **Eligibility**, **Salary**, or **Usage** output (or all three) in the configured Season 20 threads. The tester chooses a Match Week label from 1–10; every dump title includes that Match Week number. Usage posts to thread `1555478962187018271`, Salary to `1555478919811964928`, and Eligibility to `1555478866716262420`. This simulates the real weekly Discord output while leaving scheduled state unchanged.
+
+The regular `/remind` command keeps its zero-option guided entry point. Reminder demos use the separate `/reminddummy` command, which opens the list of Player, Division, Team, Usage Division, and Usage Team previews. Each demo shows the example Discord output we expect from that reminder type without saving or pinging anyone.
 
 ### Standings
 
@@ -86,7 +109,7 @@ The Activity is the richer UI layer for features that do not fit cleanly into Di
 The Activity verifies the Discord user and server, then links that Discord ID to the current franchise roster imported by Hagrid.
 
 - **Current roster members** can use `My Availability` and their per-player `Eligibility` tracker.
-- **Current franchise staff and captains** can additionally use `Team Availability` and the `HC Prospect Board`.
+- **Current franchise staff and captains** can additionally use `Team Availability` and the `Scouting`.
 - Users who are in the Discord server but cannot be matched to the current franchise roster receive a clear roster-link error instead of being allowed to write availability under an untrusted identity.
 
 Staff status is derived from the current franchise data (`Franchise Staff Position`), with a captain-slot fallback for compatibility. Staff-only panels are lazy-loaded so opening Hagrid solely to submit availability does not trigger unnecessary team/HCPB requests.
@@ -120,6 +143,10 @@ The Activity includes a player-specific scrim eligibility view based on Sprocket
 - shows the current player feed's scrim points and `Eligible Through` value beside the independently calculated decay curve
 - current players can view their own tracker; staff/captains can select any competitive player on the configured franchise
 
+### Team Eligibility
+
+Captain/AGM/GM/FM users have a **Team Eligibility** Activity view between the personal Eligibility and Availability tabs. It provides an all-roster or FL/AL/CL/ML overview with current-week eligibility, scrim points, requirement, Eligible Through, salary, and source-mismatch counts.
+
 ### Team Availability
 
 The staff view uses the same underlying 30-minute data and presents it as a scheduling heatmap.
@@ -135,9 +162,9 @@ The staff view uses the same underlying 30-minute data and presents it as a sche
 
 Only competitive MLE roster spots (`PLAYERA`, `PLAYERB`, etc.) participate in team overlap counts. Franchise-only staff records are excluded so they cannot inflate the denominator or make a time window look worse than it actually is.
 
-### HC Prospect Board
+### Scouting
 
-Hagrid ports the useful HC Prospect Board behavior into the backend and uses the Activity as the presentation layer. The HCPB Activity is staff/captain-only.
+Hagrid ports the useful Scouting behavior into the backend and uses the Activity as the presentation layer. The HCPB Activity is staff/captain-only.
 
 The main board is intentionally a first-glance performance/value table with exactly these columns:
 

@@ -2,13 +2,18 @@ import {handleActivityApi} from "./activity/http";
 import {handleFranchiseCommand} from "./commands/franchise";
 import {handleFaCommand, handleFaComponent} from "./commands/pool";
 import {handlePlayerAutocomplete, handlePlayerCommand} from "./commands/player";
+import {handleNcpCommand, handleNcpComponent, handleNcpDummyCommand} from "./commands/ncp";
 import {handleReplayCommand} from "./commands/replay";
+import {handleRemindCommand, handleRemindComponent, handleRemindDummyCommand, handleRemindModal} from "./commands/remind";
+import {handleRemindersCommand} from "./commands/reminders";
 import {handleStandingsCommand} from "./commands/standings";
 import {handleSyncCommand} from "./commands/sync";
 import {handleTeamAutocomplete, handleTeamCommand} from "./commands/team";
+import {handleTestCommand, handleTestComponent} from "./commands/test";
 import {discordMessage, discordPong, verifyDiscordRequest} from "./discord";
 import {runScheduledLeagueRefresh} from "./league/refresh";
 import {readinessResponse} from "./readiness";
+import {runScheduledReminders} from "./reminders/runner";
 import {runScheduledScoutingRefresh} from "./scouting/refresh";
 import {runScheduledSyncs} from "./sync/scheduled";
 import type {
@@ -44,7 +49,23 @@ async function handleInteraction(
       if (interaction.data?.custom_id?.startsWith("fa:")) {
         return await handleFaComponent(interaction, env);
       }
+      if (interaction.data?.custom_id?.startsWith("remind:")) {
+        return await handleRemindComponent(interaction, env);
+      }
+      if (interaction.data?.custom_id?.startsWith("ncp:")) {
+        return await handleNcpComponent(interaction, env);
+      }
+      if (interaction.data?.custom_id?.startsWith("test:")) {
+        return await handleTestComponent(interaction, env);
+      }
       return discordMessage("That Discord component is not supported yet.");
+    }
+
+    if (interaction.type === 5) {
+      if (interaction.data?.custom_id?.startsWith("remind:date:")) {
+        return await handleRemindModal(interaction, env);
+      }
+      return discordMessage("That Discord form is not supported yet.");
     }
 
     if (interaction.type === 4) {
@@ -65,18 +86,30 @@ async function handleInteraction(
     switch (interaction.data?.name) {
       case "franchise":
         return await handleFranchiseCommand(interaction, env);
+      case "ncp":
+        return await handleNcpCommand(interaction, env);
+      case "ncpdummy":
+        return await handleNcpDummyCommand(interaction, env);
       case "fa":
         return await handleFaCommand(interaction, env, ctx);
       case "player":
         return await handlePlayerCommand(interaction, env, ctx);
       case "replay":
         return await handleReplayCommand(interaction, env, ctx);
+      case "remind":
+        return await handleRemindCommand(interaction, env);
+      case "reminddummy":
+        return await handleRemindDummyCommand(interaction, env);
+      case "reminders":
+        return await handleRemindersCommand(interaction, env, ctx);
       case "standings":
         return await handleStandingsCommand(interaction, env, ctx);
       case "sync":
         return await handleSyncCommand(interaction, env, ctx);
       case "team":
         return await handleTeamCommand(interaction, env, ctx);
+      case "test":
+        return await handleTestCommand(interaction);
       default:
         return discordMessage("Unknown command.");
     }
@@ -122,6 +155,7 @@ export default {
       runScheduledSyncs(env, event),
       runScheduledScoutingRefresh(env, event),
       runScheduledLeagueRefresh(env, event),
+      runScheduledReminders(env),
     ]));
   },
 };

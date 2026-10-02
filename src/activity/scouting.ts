@@ -40,7 +40,7 @@ function cleanSearch(value: string | null): string | null {
 }
 
 export async function getActivityScouting(request: Request, env: Env): Promise<Response> {
-  const auth = await authenticateActivityRequest(request);
+  const auth = await authenticateActivityRequest(request, env);
   if (isAuthResponse(auth)) return auth;
   const access = await requireStaffAccess(env, auth);
   if (isAccessResponse(access)) return access;
@@ -76,7 +76,7 @@ export async function getActivityScouting(request: Request, env: Env): Promise<R
 }
 
 export async function getActivityScoutingPlayer(request: Request, env: Env): Promise<Response> {
-  const auth = await authenticateActivityRequest(request);
+  const auth = await authenticateActivityRequest(request, env);
   if (isAuthResponse(auth)) return auth;
   const access = await requireStaffAccess(env, auth);
   if (isAccessResponse(access)) return access;
