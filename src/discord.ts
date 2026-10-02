@@ -137,6 +137,68 @@ export async function sendDiscordChannelMessage(
   }
 }
 
+async function postDiscordMessage(
+  env: Env,
+  channelId: string,
+  content: string,
+): Promise<Response> {
+  if (!env.DISCORD_BOT_TOKEN) throw new Error("DISCORD_BOT_TOKEN is not configured.");
+  return fetch(`https://discord.com/api/v10/channels/${channelId}/messages`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bot ${env.DISCORD_BOT_TOKEN}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({content, allowed_mentions: {parse: ["users"]}}),
+  });
+}
+
+export async function sendDiscordThreadMessage(
+  env: Env,
+  threadId: string,
+  content: string,
+): Promise<void> {
+  let response = await postDiscordMessage(env, threadId, content);
+  if (response.ok) return;
+
+  const firstBody = await response.text();
+
+  // Bots sometimes need to explicitly join an existing thread before posting.
+  // Attempt that once for common access/permission failures, then retry.
+  if (
+    env.DISCORD_BOT_TOKEN &&
+    (response.status === 403 || response.status === 404)
+  ) {
+    const join = await fetch(
+      `https://discord.com/api/v10/channels/${threadId}/thread-members/@me`,
+      {
+        method: "PUT",
+        headers: {
+          Authorization: `Bot ${env.DISCORD_BOT_TOKEN}`,
+        },
+      },
+    );
+
+    if (join.ok || join.status === 204) {
+      response = await postDiscordMessage(env, threadId, content);
+      if (response.ok) return;
+      const retryBody = await response.text();
+      throw new Error(
+        `Discord thread message failed after join (${response.status}): ${retryBody.slice(0, 500)}`,
+      );
+    }
+
+    const joinBody = await join.text();
+    throw new Error(
+      `Discord thread access failed (post ${response.status}: ${firstBody.slice(0, 250)}; join ${join.status}: ${joinBody.slice(0, 250)})`,
+    );
+  }
+
+  throw new Error(
+    `Discord thread message failed (${response.status}): ${firstBody.slice(0, 500)}`,
+  );
+}
+
 export function discordPong(): Response {
   return Response.json({type: 1});
 }
