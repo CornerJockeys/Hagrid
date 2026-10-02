@@ -104,7 +104,7 @@ export async function getActivityAccess(
   ).bind(auth.guildId, auth.userId).all<AccessRow>();
 
   const cached = accessFromRosterRows(result.results);
-  if (cached.staff) return cached;
+  if (cached.captainPlus) return cached;
 
   // Staff metadata can change between franchise syncs. Fall back to the current
   // Sprocket franchise publication before denying Captain/AGM/GM views.
