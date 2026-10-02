@@ -3,6 +3,7 @@ import {mountPersonalAvailabilityPanel, type AvailabilityWindow} from "./persona
 import {mountEligibilityPanel} from "./eligibility";
 import {mountScoutingPanel} from "./scouting";
 import {mountTeamAvailabilityPanel} from "./team-availability";
+import {mountTeamEligibilityPanel} from "./team-eligibility";
 import "./style.css";
 import "./eligibility.css";
 import "./team-availability.css";
@@ -127,11 +128,8 @@ function shell(): {loadPersonal: (() => Promise<void>) | null} {
     return {loadPersonal: null};
   }
 
-  const staffTabs = context.access.staff
-    ? `<button class="tab" data-tab="team">Team Availability</button><button class="tab" data-tab="scouting">HC Prospect Board</button>`
-    : "";
   const staffPanels = context.access.staff
-    ? `<section id="team-panel" class="panel hidden" data-panel="team"></section><section id="scouting-panel" class="panel hidden" data-panel="scouting"></section>`
+    ? `<section id="team-eligibility-panel" class="panel hidden" data-panel="team-eligibility"></section><section id="team-availability-panel" class="panel hidden" data-panel="team-availability"></section><section id="scouting-panel" class="panel hidden" data-panel="scouting"></section>`
     : "";
 
   app.innerHTML = `
@@ -141,10 +139,10 @@ function shell(): {loadPersonal: (() => Promise<void>) | null} {
         <div class="user-chip"><span>${escapeHtml(context.display_name)}</span><small>${escapeHtml(accessLabel)}</small></div>
       </header>
       <nav class="tabs" aria-label="Hagrid tools">
-        <button class="tab active" data-tab="availability">My Availability</button><button class="tab" data-tab="eligibility">Eligibility</button>${staffTabs}
+        <button class="tab active" data-tab="eligibility">Eligibility</button>${context.access.staff ? `<button class="tab" data-tab="team-eligibility">Team Eligibility</button>` : ""}<button class="tab" data-tab="availability">Availability</button>${context.access.staff ? `<button class="tab" data-tab="team-availability">Team Availability</button><button class="tab" data-tab="scouting">Scouting</button>` : ""}
       </nav>
       <main>
-        <section id="availability-panel" class="panel" data-panel="availability"></section><section id="eligibility-panel" class="panel hidden" data-panel="eligibility"></section>${staffPanels}
+        <section id="eligibility-panel" class="panel" data-panel="eligibility"></section><section id="availability-panel" class="panel hidden" data-panel="availability"></section>${staffPanels}
       </main>
       <div id="activity-status" class="activity-status" aria-live="polite"></div>
     </div>`;
@@ -161,7 +159,8 @@ function shell(): {loadPersonal: (() => Promise<void>) | null} {
     : null;
 
   let eligibilityMounted = false;
-  let teamMounted = false;
+  let teamEligibilityMounted = false;
+  let teamAvailabilityMounted = false;
   let scoutingMounted = false;
   const mountLazyView = (tab: string): void => {
     if (tab === "eligibility" && !eligibilityMounted) {
@@ -179,11 +178,18 @@ function shell(): {loadPersonal: (() => Promise<void>) | null} {
     }
 
     if (!context?.access.staff) return;
-    if (tab === "team" && !teamMounted) {
-      const panel = document.querySelector<HTMLElement>("#team-panel");
+    if (tab === "team-eligibility" && !teamEligibilityMounted) {
+      const panel = document.querySelector<HTMLElement>("#team-eligibility-panel");
+      if (panel) {
+        mountTeamEligibilityPanel(panel, api, setStatus);
+        teamEligibilityMounted = true;
+      }
+    }
+    if (tab === "team-availability" && !teamAvailabilityMounted) {
+      const panel = document.querySelector<HTMLElement>("#team-availability-panel");
       if (panel) {
         mountTeamAvailabilityPanel(panel, api, setStatus, context.current_week_start);
-        teamMounted = true;
+        teamAvailabilityMounted = true;
       }
     }
     if (tab === "scouting" && !scoutingMounted) {
@@ -203,14 +209,14 @@ function shell(): {loadPersonal: (() => Promise<void>) | null} {
     });
   });
 
+  mountLazyView("eligibility");
   return {loadPersonal: personal?.load ?? null};
 }
 
 async function start(): Promise<void> {
   try {
     await setupDiscord();
-    const mounted = shell();
-    if (mounted.loadPersonal) await mounted.loadPersonal();
+    shell();
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     app.innerHTML = `<div class="startup-card error-card"><h1>Hagrid</h1><p>Could not start the Activity.</p><code>${escapeHtml(message)}</code></div>`;
