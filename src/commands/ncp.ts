@@ -2,6 +2,7 @@ import {getGuildConfig} from "../db";
 import {discordMessage, discordUpdateMessage} from "../discord";
 import type {DiscordInteraction, Env} from "../types";
 import type {TeamDivision} from "../league/view";
+import {recordSimulatedWrite} from "../testing/simulated-write";
 
 const DIVISIONS: TeamDivision[] = ["FL", "AL", "CL", "ML"];
 
@@ -164,7 +165,29 @@ export async function handleNcpComponent(
     }
 
     if (kind === "dummy") {
-      return discordUpdateMessage(dummyPreview(division, mode), []);
+      const slots = mode === "2s" ? ["B", "E"] : ["B", "E", "H"];
+      await recordSimulatedWrite(env, {
+        guildId: interaction.guild_id,
+        commandName: "ncpdummy",
+        operationName: "submit_ncp",
+        targetName: "ncp_records",
+        payload: {
+          season_number: 20,
+          division,
+          mode,
+          match_label: "Match Week 4 — Wizards vs Example Opponent",
+          slots,
+          usage_consumed: true,
+          playoff_eligibility_games_counted: false,
+          status: "simulated",
+        },
+        createdByDiscordId: actorId,
+      });
+
+      return discordUpdateMessage(
+        dummyPreview(division, mode) + "\n\n✅ **Simulated NCP write recorded.** No production NCP or usage state was changed.",
+        [],
+      );
     }
 
     return discordUpdateMessage(
