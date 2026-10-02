@@ -1,3 +1,8 @@
+import {
+  STAFF_ROLE_IDS,
+  captainDivisionsFromRoleIds,
+  hasAnyStaffRoleIds,
+} from "../discord-roles";
 import type {Env} from "../types";
 import type {ActivityPrincipal} from "./auth";
 
@@ -86,6 +91,15 @@ export function accessFromRosterRow(row: AccessRow | null): ActivityAccess {
   return accessFromRosterRows(row ? [row] : []);
 }
 
+function discordStaffLabel(roleIds: readonly string[]): string | null {
+  const roles = new Set(roleIds);
+  if (roles.has(STAFF_ROLE_IDS.FM)) return "FM";
+  if (roles.has(STAFF_ROLE_IDS.GM)) return "GM";
+  if (roles.has(STAFF_ROLE_IDS.AGM)) return "AGM";
+  if (roles.has(STAFF_ROLE_IDS.RL_CAPTAIN)) return "Captain";
+  return null;
+}
+
 export async function getActivityAccess(
   env: Env,
   auth: ActivityPrincipal,
@@ -104,32 +118,19 @@ export async function getActivityAccess(
   ).bind(auth.guildId, auth.userId).all<AccessRow>();
 
   const cached = accessFromRosterRows(result.results);
-  if (cached.captainPlus) return cached;
+  const discordStaff = hasAnyStaffRoleIds(auth.roleIds);
+  const captainDivisions = captainDivisionsFromRoleIds(auth.roleIds);
+  const discordDivision = captainDivisions.length === 1 ? captainDivisions[0] : null;
 
-  // Staff metadata can change between franchise syncs. Fall back to the current
-  // Sprocket franchise publication before denying Captain/AGM/GM views.
-  try {
-    const [{getGuildConfig}, {getFranchisePlayers}] = await Promise.all([
-      import("../db"),
-      import("../sprocket/players"),
-    ]);
-    const config = await getGuildConfig(env.DB, auth.guildId);
-    if (!config) return cached;
-    const livePlayers = await getFranchisePlayers(env, config.franchise_name);
-    const liveRows: AccessRow[] = livePlayers
-      .filter(player => player.discordId === auth.userId)
-      .map(player => ({
-        sprocket_player_id: player.sprocketPlayerId,
-        name: player.name,
-        skill_group: player.skillGroup,
-        staff_position: player.staffPosition,
-        slot: player.slot,
-      }));
-    return accessFromRosterRows([...result.results, ...liveRows]);
-  } catch (error) {
-    console.error("Live Activity staff fallback failed", error);
-    return cached;
-  }
+  // Discord roles are authoritative for staff/captain permissions. Roster data
+  // is still used to resolve the user's player identity, slot, and division.
+  return {
+    ...cached,
+    staff: discordStaff,
+    captainPlus: discordStaff,
+    division: cached.division ?? discordDivision,
+    staffPosition: discordStaffLabel(auth.roleIds),
+  };
 }
 
 export async function requireRosterAccess(
