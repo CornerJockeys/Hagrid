@@ -1,4 +1,5 @@
 import {discordDeferred, discordMessage, editOriginalInteraction} from "../discord";
+import {getEligibilityEvents} from "../sprocket/eligibility-data";
 import type {DiscordCommandOption, DiscordInteraction, Env, ExecutionContextLike} from "../types";
 
 interface ReminderRow {
@@ -40,12 +41,16 @@ function hasManageGuild(interaction: DiscordInteraction): boolean {
   }
 }
 
-function reminderLine(reminder: ReminderRow, perspective: "created" | "assigned"): string {
+function reminderLine(
+  reminder: ReminderRow,
+  perspective: "created" | "assigned",
+  completedScrims: number,
+): string {
   const subject = perspective === "created"
     ? `<@${reminder.player_discord_id}>`
     : `set by <@${reminder.created_by_discord_id}>`;
   const division = reminder.division ? ` · ${reminder.division}` : "";
-  return `#${reminder.id} · **${reminder.target_scrims} scrim${reminder.target_scrims === 1 ? "" : "s"}** by **${reminder.due_date}**${division} · ${subject}`;
+  return `#${reminder.id} · **${completedScrims}/${reminder.target_scrims} scrims** · due **${reminder.due_date}**${division} · ${subject}`;
 }
 
 async function listReminders(interaction: DiscordInteraction, env: Env): Promise<void> {
@@ -69,17 +74,37 @@ async function listReminders(interaction: DiscordInteraction, env: Env): Promise
       row.player_discord_id === userId && row.created_by_discord_id !== userId,
     );
 
+    const events = result.results.length > 0 ? await getEligibilityEvents(env) : [];
+    const eventCounts = new Map<string, number>();
+    for (const event of events) {
+      if (event.points <= 0) continue;
+      eventCounts.set(event.playerId, (eventCounts.get(event.playerId) ?? 0) + 1);
+    }
+    // Use the reminder's stored Sprocket ID rather than display names for progress.
+    const playerIds = new Map<number, string>();
+    const idRows = await env.DB.prepare(
+      `SELECT id, sprocket_player_id FROM scrim_reminders
+       WHERE guild_id = ? AND status = 'active'
+         AND (created_by_discord_id = ? OR player_discord_id = ?)`,
+    ).bind(guildId, userId, userId).all<{id: number; sprocket_player_id: string}>();
+    for (const row of idRows.results) playerIds.set(row.id, row.sprocket_player_id);
+    const completedFor = (row: ReminderRow): number => {
+      const playerId = playerIds.get(row.id);
+      if (!playerId) return 0;
+      return Math.max(0, (eventCounts.get(playerId) ?? 0) - row.baseline_scrim_events);
+    };
+
     const lines = ["**Active Scrim Reminders**"];
     if (created.length === 0 && assigned.length === 0) {
       lines.push("You do not have any active scrim reminders.");
     }
     if (assigned.length > 0) {
       lines.push("", "**For you**");
-      for (const row of assigned) lines.push(reminderLine(row, "assigned"));
+      for (const row of assigned) lines.push(reminderLine(row, "assigned", completedFor(row)));
     }
     if (created.length > 0) {
       lines.push("", "**Created by you**");
-      for (const row of created) lines.push(reminderLine(row, "created"));
+      for (const row of created) lines.push(reminderLine(row, "created", completedFor(row)));
       lines.push("", "Use `/reminders cancel id:<number>` to cancel one you created.");
     }
 
