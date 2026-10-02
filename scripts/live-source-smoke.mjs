@@ -89,4 +89,12 @@ log("Usable scouting rows", scoutingLines.length);
 const rosterLeagues = [...new Set(players.map(player => player.skillGroup).filter(Boolean))];
 log("Roster skill groups", rosterLeagues.join(", ") || "none");
 
+const staffRows = players.filter(player =>
+  Boolean(player.staffPosition) || /^(AGM|GM|CAPT|CAPTAIN)$/i.test(player.slot ?? ""),
+);
+log(
+  "Franchise staff rows",
+  staffRows.map(player => `${player.name}=${player.staffPosition ?? player.slot ?? "unknown"}`).join(" | ") || "none",
+);
+
 console.log("Live Sprocket source smoke test passed.");
