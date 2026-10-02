@@ -22,7 +22,7 @@ function hasActivityStaffRole(roleIds: readonly string[]): boolean {
 
 function activityCaptainDivisions(roleIds: readonly string[]): Array<"FL" | "AL" | "CL" | "ML"> {
   const roles = new Set(roleIds);
-  if (!roles.has(ACTIVITY_ACTIVITY_STAFF_ROLE_IDS.RL_CAPTAIN)) return [];
+  if (!roles.has(ACTIVITY_STAFF_ROLE_IDS.RL_CAPTAIN)) return [];
   return (Object.entries(ACTIVITY_DIVISION_ROLE_IDS) as Array<["FL" | "AL" | "CL" | "ML", string]>)
     .filter(([, roleId]) => roles.has(roleId))
     .map(([division]) => division);
