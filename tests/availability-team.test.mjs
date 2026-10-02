@@ -8,7 +8,7 @@ import {
   isCompetitiveAvailabilityPlayer,
 } from "../src/availability/team.ts";
 
-test("Activity staff access recognizes franchise staff and captains", () => {
+test("Activity staff access recognizes franchise staff, AGMs, and captains", () => {
   const gm = accessFromRosterRow({
     sprocket_player_id: "1",
     name: "GM",
@@ -18,6 +18,16 @@ test("Activity staff access recognizes franchise staff and captains", () => {
   });
   assert.equal(gm.rosterMember, true);
   assert.equal(gm.staff, true);
+
+  const agm = accessFromRosterRow({
+    sprocket_player_id: "4",
+    name: "AGM",
+    skill_group: "Academy League",
+    staff_position: "Assistant General Manager",
+    slot: null,
+  });
+  assert.equal(agm.rosterMember, true);
+  assert.equal(agm.staff, true);
 
   const captain = accessFromRosterRow({
     sprocket_player_id: "2",
@@ -85,4 +95,11 @@ test("team availability includes PLAYER roster slots and preserves missing/unlin
   assert.equal(twelveThirty.available, 1);
   assert.equal(twelveThirty.preferred, 1);
   assert.deepEqual(summary.divisions, ["AL", "CL"]);
+
+  const allTeams = aggregateTeamAvailability(roster, submissions, 720, 780, 30, null);
+  assert.equal(allTeams.players.length, 4);
+  assert.deepEqual(
+    allTeams.players.map(player => player.name).sort(),
+    ["Alpha", "Bravo", "Charlie", "Delta"],
+  );
 });
