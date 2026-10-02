@@ -205,7 +205,7 @@ export function mountEligibilityPanel(
       <div>
         <div class="eyebrow">Scrim Eligibility</div>
         <h2>Active Scrim Eligibility</h2>
-        <p>Track active scrim points from this week's Monday through 30 days from today. Scrim points expire 30 days after they are earned, and weekly eligibility is locked from Monday.</p>
+        <p>Track active scrim points from this week's Monday through 30 days from today. Scrim points expire 30 days after they are earned; once the requirement is reached in a league week, eligibility stays locked through Sunday.</p>
       </div>
     </div>
     <div id="eligibility-toolbar" class="toolbar eligibility-toolbar"></div>
@@ -241,7 +241,7 @@ export function mountEligibilityPanel(
     const statusClass = data.current_week_eligible ? "eligible" : "ineligible";
     const statusText = data.current_week_eligible ? "Eligible" : "Not eligible";
     const mismatch = data.current_week_eligible !== data.source_week_eligible
-      ? `<div class="eligibility-note warning">The raw point decay and Sprocket's current <strong>Eligible Through</strong> field do not agree for this week. Hagrid is showing the Monday-locked decay calculation in the chart.</div>`
+      ? `<div class="eligibility-note warning">The raw point decay and Sprocket's current <strong>Eligible Through</strong> field do not agree for this week. Hagrid is showing the weekly locked decay calculation in the chart.</div>`
       : "";
     const pointsMismatch = data.calculated_current_points !== data.player.current_scrim_points
       ? `<div class="eligibility-note warning">The event ledger currently totals ${data.calculated_current_points} points for today while the player feed reports ${data.player.current_scrim_points}. The two publications may be between refreshes.</div>`
@@ -268,7 +268,7 @@ export function mountEligibilityPanel(
         </div>
         ${chartSvg(data)}
       </div>
-      <div class="eligibility-note">A week is treated as eligible when the player meets the division requirement on Monday. If points decay below the line later in that week, eligibility remains locked through Sunday.</div>`;
+      <div class="eligibility-note">If the player is already at the requirement on Monday, the entire week is eligible. If they reach the requirement later in the week, eligibility begins that day and stays locked through Sunday even if points decay afterward.</div>`;
   };
 
   const load = async (): Promise<void> => {
