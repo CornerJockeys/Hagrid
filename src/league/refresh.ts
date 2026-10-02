@@ -222,7 +222,6 @@ export async function refreshLeagueSnapshot(env: Env, reason = "manual"): Promis
     sourceHash,
     sourceAsOf,
     now: checkedAt,
-    seasonNumber: CURRENT_MLE_SEASON,
   });
 
   console.log(
