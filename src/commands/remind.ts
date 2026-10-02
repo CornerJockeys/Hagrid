@@ -157,11 +157,11 @@ function dummyReminderText(kind: string): string {
       "",
       "@ExampleMLCaptain",
       "",
-      "@SlotBPlayer has 1 remaining use in 2s. 3 uses overall.",
-      "@SlotCPlayer needs 1 full match (5 games) to become playoff eligible. *(deferred until match/NCP tracking is wired)*",
-      "@SlotDPlayer has 2 uses left in 3s.",
-      "@SlotEPlayer has no remaining uses in 2s. 2 uses left in 3s.",
-      "@SlotHPlayer has no remaining uses.",
+      "**SlotBPlayer** has 1 remaining use in 2s. 3 uses overall.",
+      "**SlotCPlayer** needs 1 full match (5 games) to become playoff eligible. *(deferred until match/NCP tracking is wired)*",
+      "**SlotDPlayer** has 2 uses left in 3s.",
+      "**SlotEPlayer** has no remaining uses in 2s. 2 uses left in 3s.",
+      "**SlotHPlayer** has no remaining uses.",
       "",
       "_Example only — nobody is pinged._",
     ].join("\n");
@@ -172,11 +172,11 @@ function dummyReminderText(kind: string): string {
     "",
     "**Foundation League**",
     "@ExampleFLCaptain",
-    "@FLSlotC has 2 uses left in 3s.",
+    "**FLSlotC** has 2 uses left in 3s.",
     "",
     "**Academy League**",
     "@ExampleALCaptain",
-    "@ALSlotB has 1 remaining use in 2s. 3 uses overall.",
+    "**ALSlotB** has 1 remaining use in 2s. 3 uses overall.",
     "",
     "**Champion League**",
     "@ExampleCLCaptain",
@@ -184,8 +184,8 @@ function dummyReminderText(kind: string): string {
     "",
     "**Master League**",
     "@ExampleMLCaptain",
-    "@MLSlotE has no remaining uses in 2s. 2 uses left in 3s.",
-    "@MLSlotH has no remaining uses.",
+    "**MLSlotE** has no remaining uses in 2s. 2 uses left in 3s.",
+    "**MLSlotH** has no remaining uses.",
     "",
     "_Example only — nobody is pinged._",
   ].join("\n");
@@ -436,11 +436,9 @@ async function buildDivisionUsageReminder(
   ];
 
   for (const alert of alerts) {
-    const who = alert.player?.discordId
-      ? `<@${alert.player.discordId}>`
-      : alert.player
-        ? `**${alert.player.name}**`
-        : `**Slot ${alert.slot}**`;
+    const who = alert.player
+      ? `**${alert.player.name}**`
+      : `**Slot ${alert.slot}**`;
     lines.push(`${who} ${alert.text}`);
   }
 
