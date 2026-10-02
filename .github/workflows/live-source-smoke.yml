@@ -3,7 +3,7 @@ name: Live Source Smoke
 on:
   workflow_dispatch:
   push:
-    branches: [main, pass3-deployment, activity-eligibility-tracker]
+    branches: [main, pass3-deployment]
     paths:
       - "package.json"
       - "src/sprocket/**"
