@@ -13,7 +13,7 @@ import type {DiscordInteraction, Env} from "../types";
 const DIVISIONS: TeamDivision[] = ["FL", "AL", "CL", "ML"];
 const CADENCES = new Set(["normal", "daily", "once"]);
 const DIVISION_NAMES: Record<TeamDivision, string> = {FL: "Foundation League", AL: "Academy League", CL: "Champion League", ML: "Master League"};
-type ReminderScope = "player" | "division" | "team" | "usage-division" | "usage-team" | "dummy";
+type ReminderScope = "player" | "division" | "team" | "usage-division" | "usage-team";
 
 function invokerId(interaction: DiscordInteraction): string | null {
   return interaction.member?.user?.id ?? interaction.user?.id ?? null;
@@ -73,7 +73,6 @@ function scopeComponents(creatorId: string): unknown[] {
         {label: "Team", value: "team", description: "Post an eligibility reminder for all divisions"},
         {label: "Usage Division", value: "usage-division", description: "Post low-usage alerts for one division"},
         {label: "Usage Team", value: "usage-team", description: "Post low-usage alerts for all divisions"},
-        {label: "Dummy / Demo", value: "dummy", description: "Preview any reminder flow without pinging or saving"},
       ],
     }],
   }];
@@ -462,6 +461,25 @@ async function postEligibilityReminder(
   return discordMessage(`Posted the full-team eligibility reminder for ${formatShortDate(targetDate)}.`);
 }
 
+export async function handleRemindDummyCommand(
+  interaction: DiscordInteraction,
+  env: Env,
+): Promise<Response> {
+  if (!interaction.guild_id || !interaction.channel_id) {
+    return discordMessage("Reminder demos can only be used inside a Discord server channel.");
+  }
+  const creatorId = invokerId(interaction);
+  if (!creatorId) return discordMessage("Hagrid could not identify your Discord account.");
+  if (!(await isAuthorizedReminderStaff(env, interaction.guild_id, creatorId))) {
+    return discordMessage("Only the franchise Captain, AGM, GM, or FM can preview reminder flows.");
+  }
+  return discordMessage(
+    "**Reminder dummy / demo**\nChoose the reminder flow to simulate. Nothing will be saved or pinged.",
+    true,
+    dummyComponents(creatorId),
+  );
+}
+
 export async function handleRemindCommand(
   interaction: DiscordInteraction,
   env: Env,
@@ -519,12 +537,6 @@ export async function handleRemindComponent(
     }
     if (scope === "usage-team") {
       return postUsageReminder(interaction, env, "team", null);
-    }
-    if (scope === "dummy") {
-      return discordUpdateMessage(
-        "**Reminder dummy / demo**\nChoose the flow you want to preview. Nothing will be saved or pinged.",
-        dummyComponents(creatorId),
-      );
     }
     return discordUpdateMessage("Choose a reminder type.", scopeComponents(creatorId));
   }
