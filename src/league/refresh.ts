@@ -3,7 +3,8 @@ import {getRocketLeaguePlayers, type FranchisePlayer} from "../sprocket/players"
 import {getRoleUsagesForSeason, type RoleUsage} from "../sprocket/role-usages";
 import {getScoutingStatLines} from "../sprocket/scouting";
 import {CURRENT_MLE_SEASON} from "../season-policy";
-import type {D1PreparedStatement, Env, ScheduledEventLike} from "../types";
+import type {Env, ScheduledEventLike} from "../types";
+import {promoteLeagueSnapshotBulk} from "./bulk";
 import type {RawScoutingLine} from "../scouting/calculate";
 
 export const LEAGUE_REFRESH_CRON = "20 * * * *";
@@ -174,148 +175,6 @@ async function getCurrentPlayers(env: Env): Promise<CurrentLeaguePlayerRow[]> {
   return result.results;
 }
 
-function teamInsert(env: Env, team: SprocketFranchise, now: string): D1PreparedStatement {
-  return env.DB.prepare(
-    `INSERT INTO league_teams_current (
-       franchise_name, franchise_code, conference, super_division, division, refreshed_at
-     ) VALUES (?, ?, ?, ?, ?, ?)`,
-  ).bind(team.name, team.code, team.conference, team.superDivision, team.division, now);
-}
-
-function playerInsert(env: Env, player: FranchisePlayer, now: string): D1PreparedStatement {
-  return env.DB.prepare(
-    `INSERT INTO league_players_current (
-       sprocket_player_id, member_id, discord_id, name, salary, skill_group, game_id,
-       game_title, franchise_name, staff_position, slot, current_scrim_points,
-       eligible_through, source_as_of, refreshed_at
-     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-  ).bind(
-    player.sprocketPlayerId,
-    player.memberId,
-    player.discordId,
-    player.name,
-    player.salary,
-    player.skillGroup,
-    player.gameId,
-    player.gameTitle,
-    player.franchise,
-    player.staffPosition,
-    player.slot,
-    player.currentScrimPoints,
-    player.eligibleThrough,
-    player.sourceAsOf,
-    now,
-  );
-}
-
-function historyInsert(
-  env: Env,
-  player: FranchisePlayer,
-  sourceHash: string,
-  now: string,
-): D1PreparedStatement {
-  return env.DB.prepare(
-    `INSERT INTO league_player_history (
-       sprocket_player_id, member_id, discord_id, name, salary, skill_group, game_id,
-       game_title, franchise_name, staff_position, slot, current_scrim_points,
-       eligible_through, source_as_of, source_hash, valid_from
-     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-  ).bind(
-    player.sprocketPlayerId,
-    player.memberId,
-    player.discordId,
-    player.name,
-    player.salary,
-    player.skillGroup,
-    player.gameId,
-    player.gameTitle,
-    player.franchise,
-    player.staffPosition,
-    player.slot,
-    player.currentScrimPoints,
-    player.eligibleThrough,
-    player.sourceAsOf,
-    sourceHash,
-    now,
-  );
-}
-
-function usageInsert(env: Env, usage: RoleUsage, now: string): D1PreparedStatement {
-  return env.DB.prepare(
-    `INSERT INTO league_role_usage_current (
-       team_name, season_number, league, role, doubles_uses, standard_uses,
-       total_uses, source_as_of, refreshed_at
-     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-  ).bind(
-    usage.teamName,
-    usage.seasonNumber,
-    usage.league,
-    usage.role,
-    usage.doublesUses,
-    usage.standardUses,
-    usage.totalUses,
-    usage.sourceAsOf,
-    now,
-  );
-}
-
-function scrimInsert(env: Env, stat: RawScoutingLine, now: string): D1PreparedStatement {
-  return env.DB.prepare(
-    `INSERT INTO league_scrim_stats_current (
-       sprocket_player_id, mode, league, games, win_pct, score, sprocket, dpi, opi,
-       goals, assists, saves, shots, demos, refreshed_at
-     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-  ).bind(
-    stat.sprocketPlayerId,
-    stat.mode,
-    stat.league,
-    stat.games,
-    stat.winPct,
-    stat.score,
-    stat.sprocket,
-    stat.dpi,
-    stat.opi,
-    stat.goals,
-    stat.assists,
-    stat.saves,
-    stat.shots,
-    stat.demos,
-    now,
-  );
-}
-
-function historyStatements(
-  env: Env,
-  previousPlayers: CurrentLeaguePlayerRow[],
-  nextPlayers: FranchisePlayer[],
-  sourceHash: string,
-  now: string,
-): D1PreparedStatement[] {
-  const previous = new Map(previousPlayers.map(player => [player.sprocket_player_id, player]));
-  const next = new Map(nextPlayers.map(player => [player.sprocketPlayerId, player]));
-  const statements: D1PreparedStatement[] = [];
-
-  for (const old of previousPlayers) {
-    const current = next.get(old.sprocket_player_id);
-    if (current && playerKey(old) === playerKey(current)) continue;
-    statements.push(
-      env.DB.prepare(
-        `UPDATE league_player_history
-         SET valid_to = ?
-         WHERE sprocket_player_id = ? AND valid_to IS NULL`,
-      ).bind(now, old.sprocket_player_id),
-    );
-  }
-
-  for (const current of nextPlayers) {
-    const old = previous.get(current.sprocketPlayerId);
-    if (old && playerKey(old) === playerKey(current)) continue;
-    statements.push(historyInsert(env, current, sourceHash, now));
-  }
-
-  return statements;
-}
-
 export async function refreshLeagueSnapshot(env: Env, reason = "manual"): Promise<LeagueRefreshSummary> {
   const checkedAt = new Date().toISOString();
   const [teams, players, usages, rawScrimStats, previousPlayers] = await Promise.all([
@@ -354,46 +213,17 @@ export async function refreshLeagueSnapshot(env: Env, reason = "manual"): Promis
     };
   }
 
-  const statements: D1PreparedStatement[] = [
-    ...historyStatements(env, previousPlayers, players, sourceHash, checkedAt),
-    env.DB.prepare("DELETE FROM league_teams_current"),
-    ...teams.map(team => teamInsert(env, team, checkedAt)),
-    env.DB.prepare("DELETE FROM league_players_current"),
-    ...players.map(player => playerInsert(env, player, checkedAt)),
-    env.DB.prepare("DELETE FROM league_role_usage_current"),
-    ...usages.map(usage => usageInsert(env, usage, checkedAt)),
-    env.DB.prepare("DELETE FROM league_scrim_stats_current"),
-    ...scrimStats.map(stat => scrimInsert(env, stat, checkedAt)),
-    env.DB.prepare(
-      `INSERT INTO league_snapshot_state (
-         singleton, source_hash, refreshed_at, checked_at, source_as_of, team_count,
-         player_count, scrim_stat_count, usage_count
-       ) VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?)
-       ON CONFLICT(singleton) DO UPDATE SET
-         source_hash = excluded.source_hash,
-         refreshed_at = excluded.refreshed_at,
-         checked_at = excluded.checked_at,
-         source_as_of = excluded.source_as_of,
-         team_count = excluded.team_count,
-         player_count = excluded.player_count,
-         scrim_stat_count = excluded.scrim_stat_count,
-         usage_count = excluded.usage_count`,
-    ).bind(
-      sourceHash,
-      checkedAt,
-      checkedAt,
-      sourceAsOf,
-      teams.length,
-      players.length,
-      scrimStats.length,
-      usages.length,
-    ),
-  ];
-
-  const results = await env.DB.batch(statements);
-  if (results.some(result => !result.success)) {
-    throw new Error("D1 rejected one or more statements while promoting the league snapshot.");
-  }
+  await promoteLeagueSnapshotBulk(env, {
+    teams,
+    players,
+    usages,
+    scrimStats,
+    previousPlayers,
+    sourceHash,
+    sourceAsOf,
+    now: checkedAt,
+    seasonNumber: CURRENT_MLE_SEASON,
+  });
 
   console.log(
     `League snapshot refresh (${reason}) promoted ${teams.length} teams, ${players.length} players, ` +
