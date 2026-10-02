@@ -3,12 +3,14 @@ import {handleFranchiseCommand} from "./commands/franchise";
 import {handleFaCommand, handleFaComponent} from "./commands/pool";
 import {handlePlayerAutocomplete, handlePlayerCommand} from "./commands/player";
 import {handleReplayCommand} from "./commands/replay";
+import {handleRemindAutocomplete, handleRemindCommand} from "./commands/remind";
 import {handleStandingsCommand} from "./commands/standings";
 import {handleSyncCommand} from "./commands/sync";
 import {handleTeamAutocomplete, handleTeamCommand} from "./commands/team";
 import {discordMessage, discordPong, verifyDiscordRequest} from "./discord";
 import {runScheduledLeagueRefresh} from "./league/refresh";
 import {readinessResponse} from "./readiness";
+import {runScheduledReminders} from "./reminders/runner";
 import {runScheduledScoutingRefresh} from "./scouting/refresh";
 import {runScheduledSyncs} from "./sync/scheduled";
 import type {
@@ -53,6 +55,8 @@ async function handleInteraction(
           return await handleTeamAutocomplete(interaction, env);
         case "player":
           return await handlePlayerAutocomplete(interaction, env);
+        case "remind":
+          return await handleRemindAutocomplete(interaction, env);
         default:
           return Response.json({type: 8, data: {choices: []}});
       }
@@ -71,6 +75,8 @@ async function handleInteraction(
         return await handlePlayerCommand(interaction, env, ctx);
       case "replay":
         return await handleReplayCommand(interaction, env, ctx);
+      case "remind":
+        return await handleRemindCommand(interaction, env, ctx);
       case "standings":
         return await handleStandingsCommand(interaction, env, ctx);
       case "sync":
@@ -122,6 +128,7 @@ export default {
       runScheduledSyncs(env, event),
       runScheduledScoutingRefresh(env, event),
       runScheduledLeagueRefresh(env, event),
+      runScheduledReminders(env),
     ]));
   },
 };
