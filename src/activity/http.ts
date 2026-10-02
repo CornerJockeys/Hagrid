@@ -6,6 +6,7 @@ import {
   saveMyAvailability,
 } from "./availability";
 import {getActivityScouting, getActivityScoutingPlayer} from "./scouting";
+import {getActivityEligibility} from "./eligibility";
 import {getTeamAvailability} from "./team-availability";
 
 function methodNotAllowed(): Response {
@@ -36,6 +37,12 @@ export async function handleActivityApi(request: Request, env: Env): Promise<Res
   if (url.pathname === "/api/activity/availability/team") {
     return request.method === "GET"
       ? getTeamAvailability(request, env)
+      : methodNotAllowed();
+  }
+
+  if (url.pathname === "/api/activity/eligibility") {
+    return request.method === "GET"
+      ? getActivityEligibility(request, env)
       : methodNotAllowed();
   }
 
