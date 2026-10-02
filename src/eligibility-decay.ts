@@ -74,22 +74,22 @@ export function buildEligibilityDecay(
   const endDate = addDays(today, 30);
   if (!weekStart || !endDate) throw new Error("A valid YYYY-MM-DD date is required.");
 
-  const weekEligibility = new Map<string, boolean>();
+  const weekUnlocked = new Map<string, boolean>();
   const output: EligibilityDecayPoint[] = [];
   let cursor = weekStart;
 
   while (cursor <= endDate) {
     const currentWeek = mondayOf(cursor);
     if (!currentWeek) break;
-    if (!weekEligibility.has(currentWeek)) {
-      weekEligibility.set(currentWeek, pointsOnDate(events, currentWeek) >= requirement);
-    }
+    const points = pointsOnDate(events, cursor);
+    const unlocked = (weekUnlocked.get(currentWeek) ?? false) || points >= requirement;
+    weekUnlocked.set(currentWeek, unlocked);
 
     output.push({
       date: cursor,
-      points: pointsOnDate(events, cursor),
+      points,
       weekStart: currentWeek,
-      eligible: weekEligibility.get(currentWeek) ?? false,
+      eligible: unlocked,
       isMonday: cursor === currentWeek,
       isToday: cursor === today,
     });
