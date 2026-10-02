@@ -1,8 +1,10 @@
 import {DiscordSDK} from "@discord/embedded-app-sdk";
 import {mountPersonalAvailabilityPanel, type AvailabilityWindow} from "./personal-availability";
+import {mountEligibilityPanel} from "./eligibility";
 import {mountScoutingPanel} from "./scouting";
 import {mountTeamAvailabilityPanel} from "./team-availability";
 import "./style.css";
+import "./eligibility.css";
 import "./team-availability.css";
 
 interface ActivityContext {
@@ -139,10 +141,10 @@ function shell(): {loadPersonal: (() => Promise<void>) | null} {
         <div class="user-chip"><span>${escapeHtml(context.display_name)}</span><small>${escapeHtml(accessLabel)}</small></div>
       </header>
       <nav class="tabs" aria-label="Hagrid tools">
-        <button class="tab active" data-tab="availability">My Availability</button>${staffTabs}
+        <button class="tab active" data-tab="availability">My Availability</button><button class="tab" data-tab="eligibility">Eligibility</button>${staffTabs}
       </nav>
       <main>
-        <section id="availability-panel" class="panel" data-panel="availability"></section>${staffPanels}
+        <section id="availability-panel" class="panel" data-panel="availability"></section><section id="eligibility-panel" class="panel hidden" data-panel="eligibility"></section>${staffPanels}
       </main>
       <div id="activity-status" class="activity-status" aria-live="polite"></div>
     </div>`;
@@ -158,9 +160,24 @@ function shell(): {loadPersonal: (() => Promise<void>) | null} {
     )
     : null;
 
+  let eligibilityMounted = false;
   let teamMounted = false;
   let scoutingMounted = false;
-  const mountStaffView = (tab: string): void => {
+  const mountLazyView = (tab: string): void => {
+    if (tab === "eligibility" && !eligibilityMounted) {
+      const panel = document.querySelector<HTMLElement>("#eligibility-panel");
+      if (panel) {
+        mountEligibilityPanel(
+          panel,
+          api,
+          setStatus,
+          Boolean(context?.access.staff),
+          context?.access.player_id ?? null,
+        );
+        eligibilityMounted = true;
+      }
+    }
+
     if (!context?.access.staff) return;
     if (tab === "team" && !teamMounted) {
       const panel = document.querySelector<HTMLElement>("#team-panel");
@@ -182,7 +199,7 @@ function shell(): {loadPersonal: (() => Promise<void>) | null} {
     button.addEventListener("click", () => {
       const tab = button.dataset.tab ?? "availability";
       switchTab(tab);
-      mountStaffView(tab);
+      mountLazyView(tab);
     });
   });
 
