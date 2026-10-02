@@ -193,6 +193,32 @@ const commands = [
     ],
   },
   {
+    name: "reminders",
+    description: "View or cancel active scrim reminders.",
+    type: 1,
+    options: [
+      {
+        type: 1,
+        name: "list",
+        description: "Show active reminders assigned to you or created by you.",
+      },
+      {
+        type: 1,
+        name: "cancel",
+        description: "Cancel an active reminder you created.",
+        options: [
+          {
+            type: 4,
+            name: "id",
+            description: "Reminder ID shown by /reminders list.",
+            required: true,
+            min_value: 1,
+          },
+        ],
+      },
+    ],
+  },
+  {
     name: "replay",
     description: "Analyze a Rocket League replay.",
     type: 1,
