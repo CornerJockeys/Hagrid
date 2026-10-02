@@ -108,7 +108,12 @@ const commands = [
   },
   {
     name: "ncp",
-    description: "Submit or preview a franchise NCP workflow (AGM+ only).",
+    description: "Submit a franchise NCP (AGM+ only).",
+    type: 1,
+  },
+  {
+    name: "ncpdummy",
+    description: "Preview the NCP workflow without saving anything (AGM+ only).",
     type: 1,
   },
   {
@@ -148,7 +153,12 @@ const commands = [
   },
   {
     name: "remind",
-    description: "Create a guided reminder for a franchise player.",
+    description: "Create a guided franchise reminder.",
+    type: 1,
+  },
+  {
+    name: "reminddummy",
+    description: "Preview reminder flows without saving or pinging anyone.",
     type: 1,
   },
   {
