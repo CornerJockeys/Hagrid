@@ -16,6 +16,7 @@ interface ActivityContext {
   access: {
     roster_member: boolean;
     staff: boolean;
+    captain_plus: boolean;
     player_id: string | null;
     player_name: string | null;
     division: string | null;
@@ -128,9 +129,7 @@ function shell(): {loadPersonal: (() => Promise<void>) | null} {
     return {loadPersonal: null};
   }
 
-  const staffPanels = context.access.staff
-    ? `<section id="team-eligibility-panel" class="panel hidden" data-panel="team-eligibility"></section><section id="team-availability-panel" class="panel hidden" data-panel="team-availability"></section><section id="scouting-panel" class="panel hidden" data-panel="scouting"></section>`
-    : "";
+  const staffPanels = `${context.access.captain_plus ? '<section id="team-eligibility-panel" class="panel hidden" data-panel="team-eligibility"></section><section id="team-availability-panel" class="panel hidden" data-panel="team-availability"></section>' : ""}${context.access.staff ? '<section id="scouting-panel" class="panel hidden" data-panel="scouting"></section>' : ""}`;
 
   app.innerHTML = `
     <div class="app-shell">
@@ -139,7 +138,7 @@ function shell(): {loadPersonal: (() => Promise<void>) | null} {
         <div class="user-chip"><span>${escapeHtml(context.display_name)}</span><small>${escapeHtml(accessLabel)}</small></div>
       </header>
       <nav class="tabs" aria-label="Hagrid tools">
-        <button class="tab active" data-tab="eligibility">Eligibility</button>${context.access.staff ? `<button class="tab" data-tab="team-eligibility">Team Eligibility</button>` : ""}<button class="tab" data-tab="availability">Availability</button>${context.access.staff ? `<button class="tab" data-tab="team-availability">Team Availability</button><button class="tab" data-tab="scouting">Scouting</button>` : ""}
+        <button class="tab active" data-tab="eligibility">Eligibility</button>${context.access.captain_plus ? `<button class="tab" data-tab="team-eligibility">Team Eligibility</button>` : ""}<button class="tab" data-tab="availability">Availability</button>${context.access.captain_plus ? `<button class="tab" data-tab="team-availability">Team Availability</button>` : ""}${context.access.staff ? `<button class="tab" data-tab="scouting">Scouting</button>` : ""}
       </nav>
       <main>
         <section id="eligibility-panel" class="panel" data-panel="eligibility"></section><section id="availability-panel" class="panel hidden" data-panel="availability"></section>${staffPanels}
@@ -182,22 +181,21 @@ function shell(): {loadPersonal: (() => Promise<void>) | null} {
       }
     }
 
-    if (!context?.access.staff) return;
-    if (tab === "team-eligibility" && !teamEligibilityMounted) {
+    if (context?.access.captain_plus && tab === "team-eligibility" && !teamEligibilityMounted) {
       const panel = document.querySelector<HTMLElement>("#team-eligibility-panel");
       if (panel) {
         mountTeamEligibilityPanel(panel, api, setStatus);
         teamEligibilityMounted = true;
       }
     }
-    if (tab === "team-availability" && !teamAvailabilityMounted) {
+    if (context?.access.captain_plus && tab === "team-availability" && !teamAvailabilityMounted) {
       const panel = document.querySelector<HTMLElement>("#team-availability-panel");
       if (panel) {
         mountTeamAvailabilityPanel(panel, api, setStatus, context.current_week_start);
         teamAvailabilityMounted = true;
       }
     }
-    if (tab === "scouting" && !scoutingMounted) {
+    if (context?.access.staff && tab === "scouting" && !scoutingMounted) {
       const panel = document.querySelector<HTMLElement>("#scouting-panel");
       if (panel) {
         mountScoutingPanel(panel, api, setStatus);
