@@ -1,5 +1,6 @@
 import {discordAutocomplete, discordDeferred, discordMessage, editOriginalInteraction} from "../discord";
 import {currentLeagueWeekStart, isEligibleForWeek} from "../eligibility";
+import {buildEligibilityDecay, easternCalendarDate} from "../eligibility-decay";
 import {
   getLeagueSnapshotInfo,
   getLeagueTeamPlayers,
@@ -26,6 +27,7 @@ import {getFranchises, resolveFranchise} from "../sprocket/franchises";
 import {getFranchisePlayers} from "../sprocket/players";
 import {getFranchiseRoleUsagesForSeason} from "../sprocket/role-usages";
 import {getScoutingStatLines} from "../sprocket/scouting";
+import {getEligibilityEvents, getLeagueEligibilityRules} from "../sprocket/eligibility-data";
 import {leaguePlayerFromFranchise, leagueScrimFromSource, leagueUsageFromSource, latestSourceTimestamp, safeCommandError} from "./live-data";
 import type {DiscordInteraction, Env, ExecutionContextLike} from "../types";
 
@@ -64,6 +66,12 @@ function scrimText(stats: LeagueScrimStatRow[]): string {
     .join(" | ");
 }
 
+interface NextWeekProjection {
+  points: number;
+  requirement: number;
+  eligible: boolean;
+}
+
 function playerLine(
   player: LeaguePlayerRow,
   usages: LeagueUsageRow[],
@@ -71,6 +79,7 @@ function playerLine(
   usageAvailable: boolean,
   scrimStats: LeagueScrimStatRow[] = [],
   includeScrims = false,
+  nextWeek: NextWeekProjection | null = null,
 ): string {
   const eligible = isEligibleForWeek(player.eligible_through, weekStart);
   const usage = usageAvailable ? usageForPlayer(player, usages) : null;
@@ -80,6 +89,11 @@ function playerLine(
     `**${player.name}**`,
     eligible ? "✅ Eligible" : "❌ Not eligible",
     `SP ${player.current_scrim_points}`,
+    ...(nextWeek
+      ? [nextWeek.eligible
+          ? `Next wk ✅ ${nextWeek.points}/${nextWeek.requirement}`
+          : `Next wk ⚠️ ${nextWeek.points}/${nextWeek.requirement}`]
+      : []),
   ];
   if (usageAvailable) parts.push(usageText(usage));
   if (includeScrims) parts.push(scrimText(scrimStats));
@@ -104,6 +118,7 @@ function teamContent(
   refreshedAt: string | null,
   scrimStats: Map<string, LeagueScrimStatRow[]> = new Map(),
   includeScrims = false,
+  nextWeek: Map<string, NextWeekProjection> = new Map(),
 ): string {
   const weekStart = currentLeagueWeekStart();
   const competitive = players
@@ -147,11 +162,12 @@ function teamContent(
         usageAvailable,
         scrimStats.get(player.sprocket_player_id) ?? [],
         includeScrims,
+        nextWeek.get(player.sprocket_player_id) ?? null,
       ));
     }
   }
 
-  lines.push("", `Eligibility is evaluated for the week beginning ${weekStart}.`);
+  lines.push("", `Eligibility is evaluated for the week beginning ${weekStart}; Next wk is the current point-decay projection for the following Monday.`);
   lines.push(
     usageAvailable
       ? `Usage is S${CURRENT_MLE_SEASON} slot usage shown as 2s/3s/total.`
@@ -179,10 +195,12 @@ async function fetchAndRespond(
       return;
     }
 
-    const [sourcePlayers, sourceUsages, sourceScrims] = await Promise.all([
+    const [sourcePlayers, sourceUsages, sourceScrims, eligibilityEvents, eligibilityRules] = await Promise.all([
       getFranchisePlayers(env, team.name),
       getFranchiseRoleUsagesForSeason(env, team.name, CURRENT_MLE_SEASON),
       includeScrims ? getScoutingStatLines(env) : Promise.resolve([]),
+      getEligibilityEvents(env),
+      getLeagueEligibilityRules(env),
     ]);
     const players = sourcePlayers.map(leaguePlayerFromFranchise);
     const usages = sourceUsages.map(leagueUsageFromSource);
@@ -195,6 +213,30 @@ async function fetchAndRespond(
         scrimStats.set(stat.sprocket_player_id, rows);
       }
     }
+    const nextWeek = new Map<string, NextWeekProjection>();
+    const today = easternCalendarDate();
+    for (const player of sourcePlayers) {
+      const playerDivision = teamDivision(player.skillGroup);
+      if (!playerDivision) continue;
+      const rule = eligibilityRules.find(value =>
+        value.leagueCode.toLocaleUpperCase("en-US") === playerDivision,
+      );
+      if (!rule) continue;
+      const decay = buildEligibilityDecay(
+        eligibilityEvents.filter(event => event.playerId === player.sprocketPlayerId),
+        rule.requirement,
+        today,
+      );
+      const nextMonday = decay.find(point => point.isMonday && point.date > currentLeagueWeekStart());
+      if (nextMonday) {
+        nextWeek.set(player.sprocketPlayerId, {
+          points: nextMonday.points,
+          requirement: rule.requirement,
+          eligible: nextMonday.eligible,
+        });
+      }
+    }
+
     const sourceAsOf = latestSourceTimestamp([
       ...sourcePlayers.map(player => player.sourceAsOf),
       ...sourceUsages.map(usage => usage.sourceAsOf),
@@ -211,6 +253,7 @@ async function fetchAndRespond(
       null,
       scrimStats,
       includeScrims,
+      nextWeek,
     );
     await editOriginalInteraction(interaction, content.slice(0, 1950));
   } catch (error) {
