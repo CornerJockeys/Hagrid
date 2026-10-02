@@ -64,7 +64,7 @@ function bearerToken(request: Request): string | null {
   return token || null;
 }
 
-export async function authenticateActivityRequest(request: Request): Promise<ActivityPrincipal | Response> {
+export async function authenticateActivityRequest(request: Request, env: Env): Promise<ActivityPrincipal | Response> {
   const accessToken = bearerToken(request);
   const guildId = request.headers.get("x-hagrid-guild-id")?.trim() ?? "";
 
