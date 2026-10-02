@@ -9,6 +9,10 @@ import {
   hasAnyStaffRole,
   hasCaptainRole,
   isCaptainForDivision,
+  hasAnyStaffRoleIds,
+  hasAgmPlusRoleIds,
+  hasCaptainRoleIds,
+  captainDivisionsFromRoleIds,
 } from "../src/discord-roles.ts";
 
 function interaction(roles = []) {
@@ -51,4 +55,21 @@ test("division role without captain role does not grant captain access", () => {
   assert.equal(hasCaptainRole(value), false);
   assert.equal(hasAnyStaffRole(value), false);
   assert.deepEqual(captainDivisions(value), []);
+});
+
+
+test("Activity role-ID helpers match interaction authorization", () => {
+  const roles = [STAFF_ROLE_IDS.RL_CAPTAIN, DIVISION_ROLE_IDS.ML];
+  assert.equal(hasAnyStaffRoleIds(roles), true);
+  assert.equal(hasAgmPlusRoleIds(roles), false);
+  assert.equal(hasCaptainRoleIds(roles), true);
+  assert.deepEqual(captainDivisionsFromRoleIds(roles), ["ML"]);
+});
+
+test("Activity AGM+ role IDs grant staff without captain division", () => {
+  const roles = [STAFF_ROLE_IDS.GM];
+  assert.equal(hasAnyStaffRoleIds(roles), true);
+  assert.equal(hasAgmPlusRoleIds(roles), true);
+  assert.equal(hasCaptainRoleIds(roles), false);
+  assert.deepEqual(captainDivisionsFromRoleIds(roles), []);
 });
