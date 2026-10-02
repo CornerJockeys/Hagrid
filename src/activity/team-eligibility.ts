@@ -10,7 +10,7 @@ import {getEligibilityEvents, getLeagueEligibilityRules} from "../sprocket/eligi
 import {getFranchisePlayers, type FranchisePlayer} from "../sprocket/players";
 import type {Env} from "../types";
 import {authenticateActivityRequest, isAuthResponse} from "./auth";
-import {isAccessResponse, requireStaffAccess} from "./access";
+import {isAccessResponse, requireCaptainPlusAccess} from "./access";
 
 type DivisionFilter = "all" | "FL" | "AL" | "CL" | "ML";
 
@@ -40,7 +40,7 @@ export async function getTeamEligibility(request: Request, env: Env): Promise<Re
   const auth = await authenticateActivityRequest(request);
   if (isAuthResponse(auth)) return auth;
 
-  const access = await requireStaffAccess(env, auth);
+  const access = await requireCaptainPlusAccess(env, auth);
   if (isAccessResponse(access)) return access;
 
   const config = await getGuildConfig(env.DB, auth.guildId);
