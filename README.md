@@ -61,11 +61,11 @@ The franchise sync imports the configured franchise's Rocket League roster, slot
 /test dump
 ```
 
-`/ncp` is restricted to AGM/GM/FM staff and now goes directly into the live submission flow. `/ncpdummy` is the separate AGM+ demo command; it previews division → mode → match/slot effects and records a simulated `ncp_records` write in `simulated_writes` without changing production NCP/usage state. Live NCP submission remains deferred until the Season 20 matches/fixtures adapter is wired, because NCPs must preserve slot usage while excluding those games from playoff eligibility.
+`/ncp` is restricted to AGM/GM/FM staff and now goes directly into the live submission flow. `/ncpdummy` is the separate AGM+ demo command; it previews division → mode → match/slot effects without changing production NCP/usage state. Live NCP submission remains deferred until the Season 20 matches/fixtures adapter is wired, because NCPs must preserve slot usage while excluding those games from playoff eligibility.
 
-`/test dump` safely simulates the weekly **Eligibility**, **Salary**, or **Usage** output (or all three) in the configured Season 20 threads. The tester chooses a Match Week label from 1–10; every dump title includes that Match Week number. Usage posts to thread `1555478962187018271`, Salary to `1555478919811964928`, and Eligibility to `1555478866716262420`. Each test dump also records a row in `simulated_writes` describing the scheduler-style write that would have occurred, while leaving production scheduled state unchanged.
+`/test dump` safely simulates the weekly **Eligibility**, **Salary**, or **Usage** output (or all three) in the configured Season 20 threads. The tester chooses a Match Week label from 1–10; every dump title includes that Match Week number. Usage posts to thread `1555478962187018271`, Salary to `1555478919811964928`, and Eligibility to `1555478866716262420`. This simulates the real weekly Discord output while leaving scheduled state unchanged.
 
-The regular `/remind` command keeps its zero-option guided entry point. Reminder demos use the separate `/reminddummy` command, which opens the list of Player, Division, Team, Usage Division, and Usage Team previews. Every demo records the corresponding simulated write in `simulated_writes`, while avoiding production reminder/message state and pings.
+The regular `/remind` command keeps its zero-option guided entry point. Reminder demos use the separate `/reminddummy` command, which opens the list of Player, Division, Team, Usage Division, and Usage Team previews. Each demo shows the example Discord output we expect from that reminder type without saving or pinging anyone.
 
 ### Standings
 
