@@ -71,7 +71,7 @@ function submission(row: SubmissionRow): AvailabilitySubmission | null {
 }
 
 export async function getTeamAvailability(request: Request, env: Env): Promise<Response> {
-  const auth = await authenticateActivityRequest(request);
+  const auth = await authenticateActivityRequest(request, env);
   if (isAuthResponse(auth)) return auth;
   const access = await requireCaptainPlusAccess(env, auth);
   if (isAccessResponse(access)) return access;
