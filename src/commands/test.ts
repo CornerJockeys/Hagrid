@@ -122,7 +122,7 @@ export async function handleTestComponent(
 
   if (parts[1] === "dump-kind") {
     const kind = selectedValue(interaction);
-    if (kind !== "all" && !DUMP_KINDS.has(kind as DumpKind)) {
+    if (!kind || (kind !== "all" && !DUMP_KINDS.has(kind as DumpKind))) {
       return discordUpdateMessage("Choose a valid dump type.", dumpKindComponents(userId));
     }
     return discordUpdateMessage(
