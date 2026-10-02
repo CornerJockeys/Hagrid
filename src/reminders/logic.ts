@@ -19,6 +19,15 @@ export function easternDate(now = new Date()): string {
   return `${String(year).padStart(4, "0")}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
 }
 
+export function easternHour(now = new Date()): number {
+  const value = new Intl.DateTimeFormat("en-US", {
+    timeZone: EASTERN_TIME_ZONE,
+    hour: "2-digit",
+    hourCycle: "h23",
+  }).format(now);
+  return Number(value);
+}
+
 export function parseReminderDate(value: string): string | null {
   const trimmed = value.trim();
   let year: number;
