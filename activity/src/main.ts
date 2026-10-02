@@ -159,10 +159,15 @@ function shell(): {loadPersonal: (() => Promise<void>) | null} {
     : null;
 
   let eligibilityMounted = false;
+  let availabilityLoaded = false;
   let teamEligibilityMounted = false;
   let teamAvailabilityMounted = false;
   let scoutingMounted = false;
   const mountLazyView = (tab: string): void => {
+    if (tab === "availability" && !availabilityLoaded && personal?.load) {
+      availabilityLoaded = true;
+      void personal.load();
+    }
     if (tab === "eligibility" && !eligibilityMounted) {
       const panel = document.querySelector<HTMLElement>("#eligibility-panel");
       if (panel) {
