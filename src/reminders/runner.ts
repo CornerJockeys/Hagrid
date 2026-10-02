@@ -1,6 +1,6 @@
 import {sendDiscordChannelMessage} from "../discord";
 import type {Env} from "../types";
-import {easternDate, easternHour, reminderDue} from "./logic";
+import {easternDate, easternHour, easternMinute, reminderDue} from "./logic";
 
 interface ReminderRow {
   id: number;
@@ -31,6 +31,7 @@ export async function runScheduledReminders(env: Env): Promise<void> {
   const now = new Date();
   const today = easternDate(now);
   const hour = easternHour(now);
+  const minute = easternMinute(now);
   const rows = await env.DB.prepare(
     `SELECT id, channel_id, player_discord_id, player_name, division, due_date,
             cadence, created_by_discord_id, last_ping_date
@@ -47,6 +48,7 @@ export async function runScheduledReminders(env: Env): Promise<void> {
 
     if (
       hour === 13 &&
+      minute === 30 &&
       reminder.last_ping_date !== today &&
       reminderDue(reminder.cadence, reminder.due_date, today)
     ) {
