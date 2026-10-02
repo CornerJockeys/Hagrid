@@ -19,14 +19,20 @@ export interface ActivityAccess {
   slot: string | null;
 }
 
-function textSuggestsCaptain(value: string | null): boolean {
+function textSuggestsStaffRole(value: string | null): boolean {
   if (!value) return false;
   const normalized = value.trim().toLocaleLowerCase("en-US");
-  return /(^|\b)(captain|capt)(\b|$)/.test(normalized);
+  return (
+    /(^|\b)(captain|capt)(\b|$)/.test(normalized) ||
+    normalized === "agm" ||
+    normalized === "gm" ||
+    normalized.includes("assistant general manager") ||
+    normalized.includes("general manager")
+  );
 }
 
-export function accessFromRosterRow(row: AccessRow | null): ActivityAccess {
-  if (!row) {
+export function accessFromRosterRows(rows: AccessRow[]): ActivityAccess {
+  if (rows.length === 0) {
     return {
       rosterMember: false,
       staff: false,
@@ -38,30 +44,47 @@ export function accessFromRosterRow(row: AccessRow | null): ActivityAccess {
     };
   }
 
-  const staffPosition = row.staff_position?.trim() || null;
+  const preferred =
+    rows.find(row => Boolean(row.staff_position?.trim())) ??
+    rows.find(row => textSuggestsStaffRole(row.slot)) ??
+    rows[0];
+  const staffPosition = preferred.staff_position?.trim() || null;
+
   return {
     rosterMember: true,
-    staff: Boolean(staffPosition) || textSuggestsCaptain(row.slot),
-    playerId: row.sprocket_player_id,
-    playerName: row.name,
-    division: row.skill_group?.trim() || null,
+    staff: rows.some(row =>
+      Boolean(row.staff_position?.trim()) || textSuggestsStaffRole(row.slot),
+    ),
+    playerId: preferred.sprocket_player_id,
+    playerName: preferred.name,
+    division: preferred.skill_group?.trim() || null,
     staffPosition,
-    slot: row.slot?.trim() || null,
+    slot: preferred.slot?.trim() || null,
   };
+}
+
+export function accessFromRosterRow(row: AccessRow | null): ActivityAccess {
+  return accessFromRosterRows(row ? [row] : []);
 }
 
 export async function getActivityAccess(
   env: Env,
   auth: ActivityPrincipal,
 ): Promise<ActivityAccess> {
-  const row = await env.DB.prepare(
+  const result = await env.DB.prepare(
     `SELECT sprocket_player_id, name, skill_group, staff_position, slot
      FROM franchise_players_current
-     WHERE guild_id = ? AND discord_id = ?
-     LIMIT 1`,
-  ).bind(auth.guildId, auth.userId).first<AccessRow>();
+     WHERE guild_id = ?1 AND discord_id = ?2
+     UNION ALL
+     SELECT player.sprocket_player_id, player.name, player.skill_group,
+            player.staff_position, player.slot
+     FROM league_players_current player
+     INNER JOIN guild_config config
+       ON LOWER(config.franchise_name) = LOWER(player.franchise_name)
+     WHERE config.guild_id = ?1 AND player.discord_id = ?2`,
+  ).bind(auth.guildId, auth.userId).all<AccessRow>();
 
-  return accessFromRosterRow(row);
+  return accessFromRosterRows(result.results);
 }
 
 export async function requireRosterAccess(
