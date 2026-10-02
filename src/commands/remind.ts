@@ -207,6 +207,109 @@ function leagueRuleForDivision(
   ) ?? null;
 }
 
+async function buildDivisionEligibilityReminder(
+  env: Env,
+  franchiseName: string,
+  division: TeamDivision,
+  targetDate: string,
+): Promise<string> {
+  const [players, events, rules] = await Promise.all([
+    getFranchisePlayers(env, franchiseName),
+    getEligibilityEvents(env),
+    getLeagueEligibilityRules(env),
+  ]);
+
+  const rule = leagueRuleForDivision(rules, division);
+  if (!rule) {
+    return [
+      `**${franchiseName} ${DIVISION_NAMES[division]} Eligibility Reminder**`,
+      "",
+      `Target date: **${formatShortDate(targetDate)}**`,
+      "",
+      `Eligibility requirement data is unavailable for ${division}.`,
+    ].join("\n");
+  }
+
+  const award = inferScrimPointAward(events);
+  if (!award) {
+    return [
+      `**${franchiseName} ${DIVISION_NAMES[division]} Eligibility Reminder**`,
+      "",
+      `Target date: **${formatShortDate(targetDate)}**`,
+      "",
+      "Hagrid could not infer the current scrim-point award from the eligibility ledger.",
+    ].join("\n");
+  }
+
+  const roster = players
+    .filter(player => isCompetitiveSlot(player.slot) && teamDivision(player.skillGroup) === division)
+    .sort((a, b) =>
+      slotLabel(a.slot).localeCompare(slotLabel(b.slot), "en-US", {numeric: true}) ||
+      a.name.localeCompare(b.name),
+    );
+
+  const today = easternDate();
+  const lines = [
+    `**${franchiseName} ${DIVISION_NAMES[division]} Eligibility Reminder**`,
+    "",
+    `Target date: **${formatShortDate(targetDate)}**`,
+    "",
+  ];
+  let anyNeeds = false;
+  let anyDecayChange = false;
+
+  for (const player of roster) {
+    const playerEvents = events.filter(event => event.playerId === player.sprocketPlayerId);
+    const steps = eligibilityNeedSteps(playerEvents, rule.requirement, award, targetDate, today);
+    const need = formatEligibilityNeed(steps, targetDate);
+    if (!need) continue;
+
+    anyNeeds = true;
+    anyDecayChange ||= need.hasDecayChange;
+    const who = player.discordId ? `<@${player.discordId}>` : `**${player.name}**`;
+    lines.push(`${who} ${need.text}${need.hasDecayChange ? "*" : ""}`);
+  }
+
+  if (!anyNeeds) {
+    lines.push("✅ No current roster player is projected to need additional scrims for this target date.");
+  }
+  if (anyDecayChange) {
+    lines.push(
+      "",
+      "*The difference is due to scrim point decay and being eligible on Monday of match week vs match time.",
+    );
+  }
+
+  return lines.join("\n");
+}
+
+async function postEligibilityReminder(
+  interaction: DiscordInteraction,
+  env: Env,
+  scope: "division" | "team",
+  division: TeamDivision | null,
+  targetDate: string,
+): Promise<Response> {
+  if (!interaction.guild_id || !interaction.channel_id) {
+    return discordMessage("Eligibility reminders can only be posted inside a Discord server channel.");
+  }
+  const config = await getGuildConfig(env.DB, interaction.guild_id);
+  if (!config) return discordMessage("No franchise is configured for this Discord server.");
+
+  if (scope === "division") {
+    if (!division) return discordMessage("That division reminder is no longer valid.");
+    const content = await buildDivisionEligibilityReminder(env, config.franchise_name, division, targetDate);
+    await sendDiscordChannelMessage(env, interaction.channel_id, content.slice(0, 1950));
+    return discordMessage(`Posted the ${division} eligibility reminder for ${formatShortDate(targetDate)}.`);
+  }
+
+  for (const key of DIVISIONS) {
+    const content = await buildDivisionEligibilityReminder(env, config.franchise_name, key, targetDate);
+    await sendDiscordChannelMessage(env, interaction.channel_id, content.slice(0, 1950));
+  }
+  return discordMessage(`Posted the full-team eligibility reminder for ${formatShortDate(targetDate)}.`);
+}
+
 export async function handleRemindCommand(
   interaction: DiscordInteraction,
   env: Env,
