@@ -78,8 +78,9 @@ export async function authenticateActivityRequest(request: Request): Promise<Act
     fetch(`${DISCORD_API_BASE}/users/@me/guilds/${guildId}/member`, {headers}),
   ]);
 
-  if (!userResponse.ok || !memberResponse.ok) {
-    return jsonError("Discord could not verify this Activity session for the selected server.", 401);
+  if (!userResponse.ok) {
+    console.error("Discord Activity user verification failed", userResponse.status);
+    return jsonError("Discord could not verify this Activity session.", 401);
   }
 
   const user = await userResponse.json() as DiscordOAuthUser;
@@ -87,6 +88,29 @@ export async function authenticateActivityRequest(request: Request): Promise<Act
     return jsonError("Discord returned an invalid user record.", 401);
   }
 
+  // Discord's user-scoped guild-member endpoint can intermittently reject a
+  // still-valid Activity token after the initial Activity bootstrap. When that
+  // happens, verify membership with Hagrid's bot credential instead of forcing
+  // the user to re-open the Activity.
+  if (!memberResponse.ok) {
+    if (!env.DISCORD_BOT_TOKEN) {
+      console.error("Discord Activity member verification failed", memberResponse.status);
+      return jsonError("Discord could not verify this Activity session for the selected server.", 401);
+    }
+    const botMemberResponse = await fetch(
+      `${DISCORD_API_BASE}/guilds/${guildId}/members/${user.id}`,
+      {headers: {Authorization: `Bot ${env.DISCORD_BOT_TOKEN}`}},
+    );
+    if (!botMemberResponse.ok) {
+      console.error(
+        "Discord Activity member verification failed",
+        memberResponse.status,
+        "bot fallback",
+        botMemberResponse.status,
+      );
+      return jsonError("Discord could not verify this Activity session for the selected server.", 401);
+    }
+  }
   return {
     guildId,
     userId: user.id,
