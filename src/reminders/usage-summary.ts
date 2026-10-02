@@ -42,7 +42,10 @@ function sentenceForRemaining(doubles: number, standard: number, combined: numbe
     pieces.push(pieces.length === 0 ? `has ${clause}` : clause);
   }
 
-  if (lowOverall) {
+  // Overall is most useful when it adds information that the mode warnings do
+  // not already fully express. If both modes are already low, the combined
+  // remainder is redundant (for example: 0 left in 2s and 2 left in 3s).
+  if (lowOverall && !(lowDoubles && lowStandard)) {
     const clause = `${plural(combined, "use")} overall`;
     pieces.push(pieces.length === 0 ? `has ${clause}` : clause);
   }
