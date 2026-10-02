@@ -2,6 +2,7 @@ import {getGuildConfig} from "../db";
 import {discordMessage, discordUpdateMessage, sendDiscordChannelMessage} from "../discord";
 import {dumpThreadId} from "../dumps/config";
 import {buildDumpMessages, type DumpKind} from "../dumps/format";
+import {recordSimulatedWrite} from "../testing/simulated-write";
 import type {DiscordCommandOption, DiscordInteraction, Env} from "../types";
 
 const DUMP_KINDS = new Set<DumpKind>(["eligibility", "salary", "usage"]);
@@ -72,16 +73,38 @@ async function runDump(
     ? ["eligibility", "salary", "usage"]
     : [kind];
 
+  const actorId = invokerId(interaction)!;
+
   for (const dumpKind of kinds) {
     const messages = await buildDumpMessages(env, config.franchise_name, dumpKind, matchWeek);
+    const threadId = dumpThreadId(dumpKind);
+
+    await recordSimulatedWrite(env, {
+      guildId: interaction.guild_id,
+      commandName: "test dump",
+      operationName: `weekly_${dumpKind}_dump`,
+      targetName: `discord_thread:${threadId}`,
+      payload: {
+        season_number: 20,
+        match_week: matchWeek,
+        franchise_name: config.franchise_name,
+        dump_kind: dumpKind,
+        thread_id: threadId,
+        message_count: messages.length,
+        messages,
+        simulated_scheduler_write: true,
+      },
+      createdByDiscordId: actorId,
+    });
+
     for (let index = 0; index < messages.length; index += 1) {
       const prefix = index === 0 ? "**[TEST DUMP]**\n" : "**[TEST DUMP — continued]**\n";
-      await sendDiscordChannelMessage(env, dumpThreadId(dumpKind), prefix + messages[index]);
+      await sendDiscordChannelMessage(env, threadId, prefix + messages[index]);
     }
   }
 
   return discordUpdateMessage(
-    `✅ Test ${kind === "all" ? "eligibility, salary, and usage dumps" : kind + " dump"} posted to the configured S20 dump thread${kind === "all" ? "s" : ""} for Match Week ${matchWeek}. No scheduled dump state was changed.`,
+    `✅ Test ${kind === "all" ? "eligibility, salary, and usage dumps" : kind + " dump"} posted to the configured S20 dump thread${kind === "all" ? "s" : ""} for Match Week ${matchWeek}. A simulated scheduler write was recorded for each dump; no production scheduled state was changed.`,
     [],
   );
 }
