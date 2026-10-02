@@ -1,4 +1,4 @@
-import type {DiscordInteraction} from "./types";
+import type {DiscordInteraction, Env} from "./types";
 
 const encoder = new TextEncoder();
 
@@ -109,6 +109,26 @@ export async function editOriginalInteraction(
   if (!response.ok) {
     const body = await response.text();
     throw new Error(`Discord interaction update failed (${response.status}): ${body.slice(0, 500)}`);
+  }
+}
+
+export async function sendDiscordChannelMessage(
+  env: Env,
+  channelId: string,
+  content: string,
+): Promise<void> {
+  if (!env.DISCORD_BOT_TOKEN) throw new Error("DISCORD_BOT_TOKEN is not configured.");
+  const response = await fetch(`https://discord.com/api/v10/channels/${channelId}/messages`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bot ${env.DISCORD_BOT_TOKEN}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({content, allowed_mentions: {parse: ["users"]}}),
+  });
+  if (!response.ok) {
+    const body = await response.text();
+    throw new Error(`Discord channel message failed (${response.status}): ${body.slice(0, 500)}`);
   }
 }
 
