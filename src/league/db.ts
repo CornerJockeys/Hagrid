@@ -74,6 +74,21 @@ const CURRENT_PLAYER_UNION = `
          eligible_through, source_as_of, refreshed_at
   FROM league_players_current
   UNION ALL
+  SELECT f.sprocket_player_id, f.member_id, f.discord_id, f.name, f.salary, f.skill_group,
+         f.game_id, f.game_title, f.franchise_name, f.staff_position, f.slot,
+         f.current_scrim_points, f.eligible_through, f.source_as_of,
+         COALESCE(f.source_as_of, '') AS refreshed_at
+  FROM franchise_players_current f
+  WHERE NOT EXISTS (
+    SELECT 1 FROM league_players_current r
+    WHERE r.sprocket_player_id = f.sprocket_player_id
+  )
+    AND f.guild_id = (
+      SELECT MIN(f2.guild_id)
+      FROM franchise_players_current f2
+      WHERE f2.sprocket_player_id = f.sprocket_player_id
+    )
+  UNION ALL
   SELECT p.sprocket_player_id, NULL AS member_id, NULL AS discord_id, p.name, p.salary,
          p.league AS skill_group, NULL AS game_id, 'Rocket League' AS game_title,
          p.status AS franchise_name, NULL AS staff_position, NULL AS slot,
@@ -83,7 +98,11 @@ const CURRENT_PLAYER_UNION = `
   WHERE NOT EXISTS (
     SELECT 1 FROM league_players_current r
     WHERE r.sprocket_player_id = p.sprocket_player_id
-  )`;
+  )
+    AND NOT EXISTS (
+      SELECT 1 FROM franchise_players_current f
+      WHERE f.sprocket_player_id = p.sprocket_player_id
+    )`;
 
 function normalize(value: string): string {
   return value.trim().replace(/\s+/g, " ").toLocaleLowerCase("en-US");

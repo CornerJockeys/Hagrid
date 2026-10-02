@@ -1,6 +1,6 @@
 import {discordAutocomplete, discordDeferred, discordMessage, editOriginalInteraction} from "../discord";
 import {currentLeagueWeekStart, eligibilityCalendarDate, isEligibleForWeek} from "../eligibility";
-import type {LeaguePlayerRow, LeagueScrimStatRow} from "../league/db";
+import {searchLeaguePlayers, type LeaguePlayerRow, type LeagueScrimStatRow} from "../league/db";
 import {
   formatEasternTimestamp,
   formatSalary,
@@ -232,16 +232,10 @@ export async function handlePlayerAutocomplete(
   const query = typeof focused?.value === "string" ? focused.value : "";
 
   try {
-    const live = await livePlayerRows(env);
-    const needle = normalizeLookup(query);
-    const players = live.players
-      .filter(player =>
-        !needle ||
-        normalizeLookup(player.name).includes(needle) ||
-        normalizeLookup(player.sprocket_player_id).includes(needle),
-      )
-      .slice(0, 25);
-
+    // Autocomplete has Discord's short interaction deadline. Keep this path
+    // entirely inside D1; live Sprocket fetches happen only after the command
+    // has already been deferred.
+    const players = await searchLeaguePlayers(env.DB, query, 25);
     return discordAutocomplete(players.map(player => {
       const division = teamDivision(player.skill_group) ?? player.skill_group ?? "—";
       return {
