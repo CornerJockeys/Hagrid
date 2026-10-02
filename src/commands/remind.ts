@@ -1,12 +1,16 @@
 import {getGuildConfig} from "../db";
-import {discordMessage, discordUpdateMessage} from "../discord";
-import {getLeagueTeamPlayers} from "../league/db";
+import {discordMessage, discordUpdateMessage, sendDiscordChannelMessage} from "../discord";
 import {isCompetitiveSlot, slotLabel, teamDivision, type TeamDivision} from "../league/view";
 import {easternDate, parseReminderDate} from "../reminders/logic";
+import {eligibilityNeedSteps, formatEligibilityNeed, formatShortDate, inferScrimPointAward} from "../reminders/eligibility-summary";
+import {getEligibilityEvents, getLeagueEligibilityRules} from "../sprocket/eligibility-data";
+import {getFranchisePlayers} from "../sprocket/players";
 import type {DiscordInteraction, Env} from "../types";
 
 const DIVISIONS: TeamDivision[] = ["FL", "AL", "CL", "ML"];
 const CADENCES = new Set(["normal", "daily", "once"]);
+const DIVISION_NAMES: Record<TeamDivision, string> = {FL: "Foundation League", AL: "Academy League", CL: "Champion League", ML: "Master League"};
+type ReminderScope = "player" | "division" | "team";
 
 function invokerId(interaction: DiscordInteraction): string | null {
   return interaction.member?.user?.id ?? interaction.user?.id ?? null;
