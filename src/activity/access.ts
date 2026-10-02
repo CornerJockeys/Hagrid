@@ -2,7 +2,7 @@ import {
   STAFF_ROLE_IDS,
   captainDivisionsFromRoleIds,
   hasAnyStaffRoleIds,
-} from "../discord-roles";
+} from "../discord-roles.ts";
 import type {Env} from "../types";
 import type {ActivityPrincipal} from "./auth";
 
