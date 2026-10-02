@@ -1,4 +1,5 @@
 import type {Env, ScheduledEventLike} from "../types";
+import {promoteScoutingSnapshotBulk} from "./bulk";
 import {getProspectIdentities, getScoutingStatLines} from "../sprocket/scouting";
 import {
   buildScoutingRecords,
@@ -86,62 +87,6 @@ async function getState(env: Env): Promise<ScoutingStateRow | null> {
     .first<ScoutingStateRow>();
 }
 
-function insertPoolStatement(env: Env, identity: ProspectIdentity, sourceHash: string, now: string) {
-  return env.DB.prepare(
-    `INSERT INTO prospect_pool_current (
-       sprocket_player_id, league, status, name, salary, source_hash, refreshed_at
-     ) VALUES (?, ?, ?, ?, ?, ?, ?)`,
-  ).bind(
-    identity.sprocketPlayerId,
-    identity.league,
-    identity.status,
-    identity.name,
-    identity.salary,
-    sourceHash,
-    now,
-  );
-}
-
-function insertCurrentStatement(env: Env, record: ScoutingRecord, sourceHash: string, now: string) {
-  return env.DB.prepare(
-    `INSERT INTO scouting_players_current (
-       sprocket_player_id, mode, league, status, name, salary, games,
-       win_pct, score, sprocket, dpi, opi, goals, assists, saves, shots,
-       shot_pct, demos, eff_salary, temp, temp_score, bucket, main_role,
-       alt_role, role_confidence, flags, source_hash, refreshed_at
-     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-  ).bind(
-    record.sprocketPlayerId,
-    record.mode,
-    record.league,
-    record.status,
-    record.name,
-    record.salary,
-    record.games,
-    record.winPct,
-    record.score,
-    record.sprocket,
-    record.dpi,
-    record.opi,
-    record.goals,
-    record.assists,
-    record.saves,
-    record.shots,
-    record.shotPct,
-    record.demos,
-    record.effSalary,
-    record.temp,
-    record.tempScore,
-    record.bucket,
-    record.mainRole,
-    record.altRole,
-    record.roleConfidence,
-    record.flags,
-    sourceHash,
-    now,
-  );
-}
-
 async function archiveCurrentDay(env: Env, date: string): Promise<void> {
   const result = await env.DB.prepare(
     `INSERT OR IGNORE INTO scouting_daily_history (
@@ -202,42 +147,13 @@ export async function refreshScouting(env: Env, reason = "manual"): Promise<Scou
     throw new Error("The scouting calculation produced zero player/mode records.");
   }
 
-  const statements = [
-    env.DB.prepare("DELETE FROM prospect_pool_current"),
-    env.DB.prepare("DELETE FROM scouting_players_current"),
-  ];
-  for (const identity of identities) {
-    statements.push(insertPoolStatement(env, identity, sourceHash, checkedAt));
-  }
-  for (const record of records) {
-    statements.push(insertCurrentStatement(env, record, sourceHash, checkedAt));
-  }
-  statements.push(
-    env.DB.prepare(
-      `INSERT INTO scouting_refresh_state (
-         singleton, source_hash, algorithm_version, refreshed_at, checked_at, prospect_count, row_count
-       ) VALUES (1, ?, ?, ?, ?, ?, ?)
-       ON CONFLICT(singleton) DO UPDATE SET
-         source_hash = excluded.source_hash,
-         algorithm_version = excluded.algorithm_version,
-         refreshed_at = excluded.refreshed_at,
-         checked_at = excluded.checked_at,
-         prospect_count = excluded.prospect_count,
-         row_count = excluded.row_count`,
-    ).bind(
-      sourceHash,
-      SCOUTING_ALGORITHM_VERSION,
-      checkedAt,
-      checkedAt,
-      identities.length,
-      records.length,
-    ),
-  );
-
-  const results = await env.DB.batch(statements);
-  if (results.some(result => !result.success)) {
-    throw new Error("D1 rejected the scouting snapshot promotion.");
-  }
+  await promoteScoutingSnapshotBulk(env, {
+    identities,
+    records,
+    sourceHash,
+    algorithmVersion: SCOUTING_ALGORITHM_VERSION,
+    now: checkedAt,
+  });
 
   await archiveCurrentDay(env, easternDate(new Date(checkedAt)));
   console.log(`Scouting refresh (${reason}) promoted ${records.length} rows for ${identities.length} prospects.`);
