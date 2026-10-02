@@ -1,10 +1,32 @@
-import {
-  STAFF_ROLE_IDS,
-  captainDivisionsFromRoleIds,
-  hasAnyStaffRoleIds,
-} from "../discord-roles.ts";
 import type {Env} from "../types";
 import type {ActivityPrincipal} from "./auth";
+
+const ACTIVITY_STAFF_ROLE_IDS = {
+  FM: "468262078730469386",
+  GM: "857328892351610930",
+  AGM: "468185329141153792",
+  RL_CAPTAIN: "727696641502478338",
+} as const;
+
+const ACTIVITY_DIVISION_ROLE_IDS = {
+  FL: "1074149871466053722",
+  AL: "468184958222204940",
+  CL: "468185085087318017",
+  ML: "548359826258788353",
+} as const;
+
+function hasActivityStaffRole(roleIds: readonly string[]): boolean {
+  const roles = new Set(roleIds);
+  return Object.values(ACTIVITY_STAFF_ROLE_IDS).some(roleId => roles.has(roleId));
+}
+
+function activityCaptainDivisions(roleIds: readonly string[]): Array<"FL" | "AL" | "CL" | "ML"> {
+  const roles = new Set(roleIds);
+  if (!roles.has(ACTIVITY_ACTIVITY_STAFF_ROLE_IDS.RL_CAPTAIN)) return [];
+  return (Object.entries(ACTIVITY_DIVISION_ROLE_IDS) as Array<["FL" | "AL" | "CL" | "ML", string]>)
+    .filter(([, roleId]) => roles.has(roleId))
+    .map(([division]) => division);
+}
 
 interface AccessRow {
   sprocket_player_id: string;
@@ -93,10 +115,10 @@ export function accessFromRosterRow(row: AccessRow | null): ActivityAccess {
 
 function discordStaffLabel(roleIds: readonly string[]): string | null {
   const roles = new Set(roleIds);
-  if (roles.has(STAFF_ROLE_IDS.FM)) return "FM";
-  if (roles.has(STAFF_ROLE_IDS.GM)) return "GM";
-  if (roles.has(STAFF_ROLE_IDS.AGM)) return "AGM";
-  if (roles.has(STAFF_ROLE_IDS.RL_CAPTAIN)) return "Captain";
+  if (roles.has(ACTIVITY_STAFF_ROLE_IDS.FM)) return "FM";
+  if (roles.has(ACTIVITY_STAFF_ROLE_IDS.GM)) return "GM";
+  if (roles.has(ACTIVITY_STAFF_ROLE_IDS.AGM)) return "AGM";
+  if (roles.has(ACTIVITY_STAFF_ROLE_IDS.RL_CAPTAIN)) return "Captain";
   return null;
 }
 
@@ -118,8 +140,8 @@ export async function getActivityAccess(
   ).bind(auth.guildId, auth.userId).all<AccessRow>();
 
   const cached = accessFromRosterRows(result.results);
-  const discordStaff = hasAnyStaffRoleIds(auth.roleIds);
-  const captainDivisions = captainDivisionsFromRoleIds(auth.roleIds);
+  const discordStaff = hasActivityStaffRole(auth.roleIds);
+  const captainDivisions = activityCaptainDivisions(auth.roleIds);
   const discordDivision = captainDivisions.length === 1 ? captainDivisions[0] : null;
 
   // Discord roles are authoritative for staff/captain permissions. Roster data
