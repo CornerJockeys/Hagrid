@@ -116,7 +116,7 @@ The Activity includes a player-specific scrim eligibility view based on Sprocket
 - shows active scrim-point decay from the Monday starting the current week through 30 days from today
 - applies the published division-specific eligibility requirement rather than hard-coding one threshold
 - treats scrim points as active through 30 days after the scrim, matching the MLE Evidence calculation
-- applies Hagrid's weekly rule: eligibility is evaluated on Monday and remains locked through Sunday
+- applies the weekly rule from the Evidence view: reaching the requirement unlocks the rest of that week; if already eligible Monday, the full week remains locked through Sunday
 - shows the current player feed's scrim points and `Eligible Through` value beside the independently calculated decay curve
 - current players can view their own tracker; staff/captains can select any competitive player on the configured franchise
 
