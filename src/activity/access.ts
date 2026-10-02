@@ -1,3 +1,5 @@
+import {getGuildConfig} from "../db";
+import {getFranchisePlayers} from "../sprocket/players";
 import type {Env} from "../types";
 import type {ActivityPrincipal} from "./auth";
 
@@ -84,7 +86,29 @@ export async function getActivityAccess(
      WHERE config.guild_id = ?1 AND player.discord_id = ?2`,
   ).bind(auth.guildId, auth.userId).all<AccessRow>();
 
-  return accessFromRosterRows(result.results);
+  const cached = accessFromRosterRows(result.results);
+  if (cached.staff) return cached;
+
+  // Staff metadata can change between franchise syncs. Fall back to the current
+  // Sprocket franchise publication before denying Captain/AGM/GM views.
+  try {
+    const config = await getGuildConfig(env.DB, auth.guildId);
+    if (!config) return cached;
+    const livePlayers = await getFranchisePlayers(env, config.franchise_name);
+    const liveRows: AccessRow[] = livePlayers
+      .filter(player => player.discordId === auth.userId)
+      .map(player => ({
+        sprocket_player_id: player.sprocketPlayerId,
+        name: player.name,
+        skill_group: player.skillGroup,
+        staff_position: player.staffPosition,
+        slot: player.slot,
+      }));
+    return accessFromRosterRows([...result.results, ...liveRows]);
+  } catch (error) {
+    console.error("Live Activity staff fallback failed", error);
+    return cached;
+  }
 }
 
 export async function requireRosterAccess(
