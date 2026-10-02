@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import {daysUntil, easternHour, normalReminderDue, parseReminderDate, reminderDue} from "../src/reminders/logic.ts";
+import {daysUntil, easternHour, easternMinute, normalReminderDue, parseReminderDate, reminderDue} from "../src/reminders/logic.ts";
 
 test("reminder dates accept US and ISO forms", () => {
   assert.equal(parseReminderDate("10/24/26"), "2026-10-24");
@@ -23,6 +23,8 @@ test("normal reminder cadence is anchored to deadline every two days", () => {
 test("reminder send hour is evaluated in Eastern time", () => {
   assert.equal(easternHour(new Date("2026-10-24T17:00:00Z")), 13);
   assert.equal(easternHour(new Date("2026-12-24T18:00:00Z")), 13);
+  assert.equal(easternMinute(new Date("2026-10-24T17:30:00Z")), 30);
+  assert.equal(easternMinute(new Date("2026-12-24T18:30:00Z")), 30);
 });
 
 
