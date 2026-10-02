@@ -54,6 +54,19 @@ The franchise sync imports the configured franchise's Rocket League roster, slot
 
 `/remind` is a guided Discord flow for the configured franchise. The Captain, AGM, GM, or FM first chooses **Player**, **Division**, **Team**, **Usage Division**, or **Usage Team**. Player reminders then select a division, player, target date, and cadence. Division reminders select a division and target date, then post the players who still need scrims for that date. Team reminders do the same eligibility calculation across all four divisions. Usage Division posts low-usage warnings for one division and pings that division's linked captain; Usage Team posts the same summary for every division. Usage warnings trigger below 3 remaining 2s uses, below 3 remaining 3s uses, or below 4 remaining uses overall, with combined exhaustion checked first so unusable mode leftovers are omitted. Normal is described in the picker as **every 2 days at 1:30 PM Eastern, plus the target date**. Daily sends at **1:30 PM Eastern** each day through the target date, and Once sends at **1:30 PM Eastern** on the target date only. The 30-minute delay leaves room for the 1:00 PM eligibility/roster pull to finish before reminders are evaluated. Players can use `/reminders list` to see reminders assigned to them, while creators can also cancel their own active reminders.
 
+### NCP preview and dump tests
+
+```text
+/ncp
+/test dump
+```
+
+`/ncp` is restricted to AGM/GM/FM staff. The guided flow includes a **Dummy / Demo** path that previews division → mode → match/slot effects without saving anything. Live NCP submission remains deferred until the Season 20 matches/fixtures adapter is wired, because NCPs must preserve slot usage while excluding those games from playoff eligibility.
+
+`/test dump` safely simulates the weekly **Eligibility**, **Salary**, or **Usage** channel output (or all three) in the current channel. The tester chooses a Match Week label from 1–10; every dump title includes that Match Week number. Test dumps do not change scheduled dump state.
+
+The regular `/remind` command keeps its zero-option guided entry point. Because Discord does not allow a slash-command root action and subcommands under that same command at the same time, reminder demos are exposed as **Dummy / Demo** in the first `/remind` picker rather than as a literal `/remind dummy` subcommand.
+
 ### Standings
 
 ```text
