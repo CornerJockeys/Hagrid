@@ -14,6 +14,7 @@ import {
   formatEasternTimestamp,
   formatSalary,
   isCompetitiveSlot,
+  remainingUsage,
   slotLabel,
   teamDivision,
   teamDivisionOrder,
@@ -44,7 +45,11 @@ function selectedDivision(interaction: DiscordInteraction): TeamDivision | null 
 
 function usageText(usage: LeagueUsageRow | null): string {
   if (!usage) return "U —";
-  return `U 2s ${usage.doubles_uses}/6 · 3s ${usage.standard_uses}/8 · T ${usage.total_uses}/12`;
+  const division = teamDivision(usage.league);
+  if (!division) return `U 2s ${usage.doubles_uses}/6 · 3s ${usage.standard_uses}/8 · T ${usage.total_uses}/12`;
+  const remaining = remainingUsage(usage, division);
+  const exhausted = remaining.combined === 0 ? " · ⛔ exhausted" : "";
+  return `U 2s ${usage.doubles_uses}/6 (${remaining.doubles} left) · 3s ${usage.standard_uses}/8 (${remaining.standard} left) · T ${usage.total_uses}/12${exhausted}`;
 }
 
 function metric(value: number | null): string {
