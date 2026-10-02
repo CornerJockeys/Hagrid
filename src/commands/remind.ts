@@ -94,7 +94,7 @@ function divisionComponents(creatorId: string, scope: "player" | "division"): un
 function playerComponents(
   creatorId: string,
   division: TeamDivision,
-  players: Array<{sprocket_player_id: string; name: string; slot: string | null}>,
+  players: Array<{sprocketPlayerId: string; name: string; slot: string | null}>,
 ): unknown[] {
   return [{
     type: 1,
@@ -106,7 +106,7 @@ function playerComponents(
       max_values: 1,
       options: players.slice(0, 25).map(player => ({
         label: player.name.slice(0, 100),
-        value: player.sprocket_player_id,
+        value: player.sprocketPlayerId,
         description: `Slot ${slotLabel(player.slot)}`.slice(0, 100),
       })),
     }],
@@ -128,9 +128,9 @@ function cadenceComponents(
       min_values: 1,
       max_values: 1,
       options: [
-        {label: "Normal", value: "normal", description: "Every 2 days, anchored to the deadline"},
-        {label: "Daily", value: "daily", description: "Every day through the deadline"},
-        {label: "Once", value: "once", description: "Only on the deadline"},
+        {label: "Normal", value: "normal", description: "Every 2 days at 1:30 PM ET, plus the target date"},
+        {label: "Daily", value: "daily", description: "Every day at 1:30 PM ET through the target date"},
+        {label: "Once", value: "once", description: "One reminder at 1:30 PM ET on the target date"},
       ],
     }],
   }];
@@ -138,13 +138,13 @@ function cadenceComponents(
 
 function dateModal(
   creatorId: string,
-  division: TeamDivision,
-  playerId: string,
+  scope: ReminderScope,
+  context: string,
 ): Response {
   return Response.json({
     type: 9,
     data: {
-      custom_id: `remind:date:${creatorId}:${division}:${encode(playerId)}`,
+      custom_id: `remind:date:${creatorId}:${scope}:${encode(context)}`,
       title: "Before what date?",
       components: [{
         type: 1,
@@ -174,21 +174,37 @@ function modalInput(interaction: DiscordInteraction, customId: string): string |
   return null;
 }
 
+async function getConfiguredRoster(env: Env, guildId: string) {
+  const config = await getGuildConfig(env.DB, guildId);
+  if (!config) return {config: null, players: []};
+  const players = await getFranchisePlayers(env, config.franchise_name);
+  return {config, players};
+}
+
 async function resolvePlayer(
   env: Env,
   guildId: string,
   division: TeamDivision,
   playerId: string,
 ) {
-  const config = await getGuildConfig(env.DB, guildId);
+  const {config, players} = await getConfiguredRoster(env, guildId);
   if (!config) return {config: null, player: null};
-  const players = await getLeagueTeamPlayers(env.DB, config.franchise_name);
   const player = players.find(value =>
-    value.sprocket_player_id === playerId &&
+    value.sprocketPlayerId === playerId &&
     isCompetitiveSlot(value.slot) &&
-    teamDivision(value.skill_group) === division
+    teamDivision(value.skillGroup) === division
   ) ?? null;
   return {config, player};
+}
+
+function leagueRuleForDivision(
+  rules: Array<{leagueCode: string; leagueName: string; requirement: number}>,
+  division: TeamDivision,
+) {
+  return rules.find(rule =>
+    rule.leagueCode.trim().toLocaleUpperCase("en-US") === division ||
+    teamDivision(rule.leagueName) === division
+  ) ?? null;
 }
 
 export async function handleRemindCommand(
