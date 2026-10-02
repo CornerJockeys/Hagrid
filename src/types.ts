@@ -68,12 +68,23 @@ export interface DiscordResolvedData {
   attachments?: Record<string, DiscordAttachment>;
 }
 
+export interface DiscordModalField {
+  custom_id?: string;
+  value?: string;
+}
+
+export interface DiscordModalRow {
+  components?: DiscordModalField[];
+}
+
 export interface DiscordInteractionData {
   name?: string;
   options?: DiscordCommandOption[];
   resolved?: DiscordResolvedData;
   custom_id?: string;
   component_type?: number;
+  values?: string[];
+  components?: DiscordModalRow[];
 }
 
 export interface DiscordInteraction {
