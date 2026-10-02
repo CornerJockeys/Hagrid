@@ -1,16 +1,19 @@
 import {getGuildConfig} from "../db";
 import {discordMessage, discordUpdateMessage, sendDiscordChannelMessage} from "../discord";
 import {isCompetitiveSlot, slotLabel, teamDivision, type TeamDivision} from "../league/view";
+import {buildUsageAlerts} from "../reminders/usage-summary";
 import {easternDate, parseReminderDate} from "../reminders/logic";
 import {eligibilityNeedSteps, formatEligibilityNeed, formatShortDate, inferScrimPointAward} from "../reminders/eligibility-summary";
 import {getEligibilityEvents, getLeagueEligibilityRules} from "../sprocket/eligibility-data";
 import {getFranchisePlayers} from "../sprocket/players";
+import {getFranchiseRoleUsagesForSeason} from "../sprocket/role-usages";
+import {CURRENT_MLE_SEASON} from "../season-policy";
 import type {DiscordInteraction, Env} from "../types";
 
 const DIVISIONS: TeamDivision[] = ["FL", "AL", "CL", "ML"];
 const CADENCES = new Set(["normal", "daily", "once"]);
 const DIVISION_NAMES: Record<TeamDivision, string> = {FL: "Foundation League", AL: "Academy League", CL: "Champion League", ML: "Master League"};
-type ReminderScope = "player" | "division" | "team";
+type ReminderScope = "player" | "division" | "team" | "usage-division" | "usage-team";
 
 function invokerId(interaction: DiscordInteraction): string | null {
   return interaction.member?.user?.id ?? interaction.user?.id ?? null;
@@ -68,12 +71,14 @@ function scopeComponents(creatorId: string): unknown[] {
         {label: "Player", value: "player", description: "Choose one player, a date, and reminder frequency"},
         {label: "Division", value: "division", description: "Post an eligibility reminder for one division"},
         {label: "Team", value: "team", description: "Post an eligibility reminder for all divisions"},
+        {label: "Usage Division", value: "usage-division", description: "Post low-usage alerts for one division"},
+        {label: "Usage Team", value: "usage-team", description: "Post low-usage alerts for all divisions"},
       ],
     }],
   }];
 }
 
-function divisionComponents(creatorId: string, scope: "player" | "division"): unknown[] {
+function divisionComponents(creatorId: string, scope: "player" | "division" | "usage-division"): unknown[] {
   return [{
     type: 1,
     components: [{
@@ -281,6 +286,87 @@ async function buildDivisionEligibilityReminder(
   }
 
   return lines.join("\n");
+}
+
+function captainMentions(
+  players: Awaited<ReturnType<typeof getFranchisePlayers>>,
+  division: TeamDivision,
+): string[] {
+  return players
+    .filter(player => teamDivision(player.skillGroup) === division)
+    .filter(player => {
+      const role = `${player.staffPosition ?? ""} ${player.slot ?? ""}`.toLocaleUpperCase("en-US");
+      return /(^|\b)(CAPT|CAPTAIN)(\b|$)/.test(role);
+    })
+    .map(player => player.discordId)
+    .filter((value): value is string => Boolean(value))
+    .map(discordId => `<@${discordId}>`);
+}
+
+async function buildDivisionUsageReminder(
+  env: Env,
+  franchiseName: string,
+  division: TeamDivision,
+): Promise<string> {
+  const [players, usages] = await Promise.all([
+    getFranchisePlayers(env, franchiseName),
+    getFranchiseRoleUsagesForSeason(env, franchiseName, CURRENT_MLE_SEASON),
+  ]);
+
+  const alerts = buildUsageAlerts(division, players, usages);
+  const captains = captainMentions(players, division);
+  const lines = [
+    `**${franchiseName} ${DIVISION_NAMES[division]} Usage Reminder**`,
+    "",
+    captains.length > 0 ? captains.join(" ") : "_No linked division captain found._",
+    "",
+  ];
+
+  for (const alert of alerts) {
+    const who = alert.player?.discordId
+      ? `<@${alert.player.discordId}>`
+      : alert.player
+        ? `**${alert.player.name}**`
+        : `**Slot ${alert.slot}**`;
+    lines.push(`${who} ${alert.text}`);
+  }
+
+  if (alerts.length === 0) {
+    lines.push("✅ No roster slot is currently below the usage-warning thresholds.");
+  }
+
+  lines.push(
+    "",
+    "_Usage warnings trigger at fewer than 3 remaining uses in 2s, fewer than 3 in 3s, or fewer than 4 overall. Overall exhaustion is checked first, so illegal leftover mode uses are omitted._",
+  );
+
+  return lines.join("\n");
+}
+
+async function postUsageReminder(
+  interaction: DiscordInteraction,
+  env: Env,
+  scope: "division" | "team",
+  division: TeamDivision | null,
+): Promise<Response> {
+  if (!interaction.guild_id || !interaction.channel_id) {
+    return discordMessage("Usage reminders can only be posted inside a Discord server channel.");
+  }
+  const config = await getGuildConfig(env.DB, interaction.guild_id);
+  if (!config) return discordMessage("No franchise is configured for this Discord server.");
+
+  if (scope === "division") {
+    if (!division) return discordMessage("That usage reminder is no longer valid.");
+    const content = await buildDivisionUsageReminder(env, config.franchise_name, division);
+    await sendDiscordChannelMessage(env, interaction.channel_id, content.slice(0, 1950));
+    return discordMessage(`Posted the ${division} usage reminder.`);
+  }
+
+  for (const key of DIVISIONS) {
+    const content = await buildDivisionUsageReminder(env, config.franchise_name, key);
+    await sendDiscordChannelMessage(env, interaction.channel_id, content.slice(0, 1950));
+  }
+  return discordMessage("Posted the full-team usage reminders.");
 }
 
 async function postEligibilityReminder(
