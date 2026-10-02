@@ -4,6 +4,7 @@ import type {DiscordCommandOption, DiscordInteraction, Env, ExecutionContextLike
 
 interface ReminderRow {
   id: number;
+  sprocket_player_id: string;
   player_discord_id: string;
   player_name: string;
   division: string | null;
@@ -59,7 +60,7 @@ async function listReminders(interaction: DiscordInteraction, env: Env): Promise
     const guildId = interaction.guild_id!;
 
     const result = await env.DB.prepare(
-      `SELECT id, player_discord_id, player_name, division, target_scrims,
+      `SELECT id, sprocket_player_id, player_discord_id, player_name, division, target_scrims,
               baseline_scrim_events, due_date, cadence, created_by_discord_id,
               created_at, status
        FROM scrim_reminders
@@ -80,19 +81,8 @@ async function listReminders(interaction: DiscordInteraction, env: Env): Promise
       if (event.points <= 0) continue;
       eventCounts.set(event.playerId, (eventCounts.get(event.playerId) ?? 0) + 1);
     }
-    // Use the reminder's stored Sprocket ID rather than display names for progress.
-    const playerIds = new Map<number, string>();
-    const idRows = await env.DB.prepare(
-      `SELECT id, sprocket_player_id FROM scrim_reminders
-       WHERE guild_id = ? AND status = 'active'
-         AND (created_by_discord_id = ? OR player_discord_id = ?)`,
-    ).bind(guildId, userId, userId).all<{id: number; sprocket_player_id: string}>();
-    for (const row of idRows.results) playerIds.set(row.id, row.sprocket_player_id);
-    const completedFor = (row: ReminderRow): number => {
-      const playerId = playerIds.get(row.id);
-      if (!playerId) return 0;
-      return Math.max(0, (eventCounts.get(playerId) ?? 0) - row.baseline_scrim_events);
-    };
+    const completedFor = (row: ReminderRow): number =>
+      Math.max(0, (eventCounts.get(row.sprocket_player_id) ?? 0) - row.baseline_scrim_events);
 
     const lines = ["**Active Scrim Reminders**"];
     if (created.length === 0 && assigned.length === 0) {
@@ -125,7 +115,7 @@ async function cancelReminder(
     const guildId = interaction.guild_id!;
 
     const reminder = await env.DB.prepare(
-      `SELECT id, player_discord_id, player_name, division, target_scrims,
+      `SELECT id, sprocket_player_id, player_discord_id, player_name, division, target_scrims,
               baseline_scrim_events, due_date, cadence, created_by_discord_id,
               created_at, status
        FROM scrim_reminders
