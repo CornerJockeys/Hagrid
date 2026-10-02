@@ -32,6 +32,7 @@ export interface Env {
   DISCORD_PUBLIC_KEY: string;
   DISCORD_APPLICATION_ID?: string;
   DISCORD_CLIENT_SECRET?: string;
+  DISCORD_BOT_TOKEN?: string;
   SPROCKET_DATASET_BASE_URL?: string;
   SPROCKET_LEGACY_DATASET_BASE_URL?: string;
 }
@@ -81,6 +82,7 @@ export interface DiscordInteraction {
   token?: string;
   type: number;
   guild_id?: string;
+  channel_id?: string;
   member?: DiscordMember;
   user?: DiscordUser;
   data?: DiscordInteractionData;
