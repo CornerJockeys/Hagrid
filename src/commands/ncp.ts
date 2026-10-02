@@ -32,23 +32,6 @@ async function isAgmPlus(env: Env, guildId: string, discordId: string): Promise<
   });
 }
 
-function actionComponents(userId: string): unknown[] {
-  return [{
-    type: 1,
-    components: [{
-      type: 3,
-      custom_id: `ncp:action:${userId}`,
-      placeholder: "Choose an NCP action",
-      min_values: 1,
-      max_values: 1,
-      options: [
-        {label: "Submit NCP", value: "submit", description: "Record an NCP against usage and playoff eligibility"},
-        {label: "Dummy / Demo", value: "dummy", description: "Preview the NCP flow without saving anything"},
-      ],
-    }],
-  }];
-}
-
 function divisionComponents(userId: string, dummy: boolean): unknown[] {
   return [{
     type: 1,
@@ -103,6 +86,26 @@ function dummyPreview(division: TeamDivision, mode: string): string {
   ].join("\n");
 }
 
+export async function handleNcpDummyCommand(
+  interaction: DiscordInteraction,
+  env: Env,
+): Promise<Response> {
+  if (!interaction.guild_id || !interaction.channel_id) {
+    return discordMessage("NCP demos can only be used inside a Discord server channel.");
+  }
+  const userId = invokerId(interaction);
+  if (!userId) return discordMessage("Hagrid could not identify your Discord account.");
+  if (!(await isAgmPlus(env, interaction.guild_id, userId))) {
+    return discordMessage("Only AGM, GM, or FM staff can preview NCP workflows.");
+  }
+
+  return discordMessage(
+    "**NCP dummy / demo**\nChoose a division. Nothing will be saved or changed.",
+    true,
+    divisionComponents(userId, true),
+  );
+}
+
 export async function handleNcpCommand(
   interaction: DiscordInteraction,
   env: Env,
@@ -117,9 +120,9 @@ export async function handleNcpCommand(
   }
 
   return discordMessage(
-    "**NCP management**\nChoose whether to submit an NCP or preview the flow.",
+    "**Submit NCP**\nChoose a division.",
     true,
-    actionComponents(userId),
+    divisionComponents(userId, false),
   );
 }
 
@@ -138,19 +141,6 @@ export async function handleNcpComponent(
   }
   if (!(await isAgmPlus(env, interaction.guild_id, actorId))) {
     return discordMessage("You no longer have AGM+ permission for NCP management.");
-  }
-
-  if (parts[1] === "action") {
-    const action = selectedValue(interaction);
-    if (action !== "submit" && action !== "dummy") {
-      return discordUpdateMessage("Choose Submit NCP or Dummy / Demo.", actionComponents(userId));
-    }
-    return discordUpdateMessage(
-      action === "dummy"
-        ? "**NCP dummy / demo**\nChoose a division."
-        : "**Submit NCP**\nChoose a division.",
-      divisionComponents(userId, action === "dummy"),
-    );
   }
 
   if (parts[1] === "division") {
