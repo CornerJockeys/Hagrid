@@ -64,6 +64,7 @@ jobs:
             DISCORD_APPLICATION_ID
             DISCORD_PUBLIC_KEY
             DISCORD_CLIENT_SECRET
+            DISCORD_BOT_TOKEN
           )
           for name in "${required[@]}"; do
             if [ -z "${!name:-}" ]; then
@@ -101,9 +102,11 @@ jobs:
       - name: Deploy Worker and Activity
         run: npx wrangler deploy --config .wrangler.deploy.toml
 
-      - name: Sync Discord client secret to Worker
+      - name: Sync Discord secrets to Worker
         shell: bash
-        run: printf '%s' "$DISCORD_CLIENT_SECRET" | npx wrangler secret put DISCORD_CLIENT_SECRET --config .wrangler.deploy.toml
+        run: |
+          printf '%s' "$DISCORD_CLIENT_SECRET" | npx wrangler secret put DISCORD_CLIENT_SECRET --config .wrangler.deploy.toml
+          printf '%s' "$DISCORD_BOT_TOKEN" | npx wrangler secret put DISCORD_BOT_TOKEN --config .wrangler.deploy.toml
 
       - name: Resolve deployed Worker URL
         shell: bash
