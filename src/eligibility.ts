@@ -40,6 +40,28 @@ export function eligibilityCalendarDate(value: string | null): string | null {
     return canonicalDateParts(Number(usDate[3]), Number(usDate[1]), Number(usDate[2]));
   }
 
+  const namedMonthDate = trimmed.match(/^(\d{1,2})\s+([A-Za-z]{3,9})\s+(\d{4})(?:\s|$)/);
+  if (namedMonthDate) {
+    const months: Record<string, number> = {
+      jan: 1, january: 1,
+      feb: 2, february: 2,
+      mar: 3, march: 3,
+      apr: 4, april: 4,
+      may: 5,
+      jun: 6, june: 6,
+      jul: 7, july: 7,
+      aug: 8, august: 8,
+      sep: 9, sept: 9, september: 9,
+      oct: 10, october: 10,
+      nov: 11, november: 11,
+      dec: 12, december: 12,
+    };
+    const month = months[namedMonthDate[2].toLocaleLowerCase("en-US")];
+    if (month) {
+      return canonicalDateParts(Number(namedMonthDate[3]), month, Number(namedMonthDate[1]));
+    }
+  }
+
   // Timestamp strings with an explicit offset/Z are converted to their Eastern
   // calendar date because MLE weekly eligibility is evaluated on Eastern time.
   if (/[zZ]|[+-]\d{2}:?\d{2}$/.test(trimmed)) {
