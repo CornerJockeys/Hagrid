@@ -107,6 +107,11 @@ const commands = [
     ],
   },
   {
+    name: "ncp",
+    description: "Submit or preview a franchise NCP workflow (AGM+ only).",
+    type: 1,
+  },
+  {
     name: "player",
     description: "Show a league player profile and S20 game or scrim stats.",
     type: 1,
@@ -219,6 +224,18 @@ const commands = [
           {name: "Doubles", value: "Doubles"},
           {name: "Standard", value: "Standard"},
         ],
+      },
+    ],
+  },
+  {
+    name: "test",
+    description: "Run safe Hagrid feature simulations.",
+    type: 1,
+    options: [
+      {
+        type: 1,
+        name: "dump",
+        description: "Simulate a weekly eligibility, salary, or usage dump in this channel.",
       },
     ],
   },
