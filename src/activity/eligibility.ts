@@ -45,7 +45,7 @@ function playerSummary(player: FranchisePlayer): Record<string, unknown> {
 }
 
 export async function getActivityEligibility(request: Request, env: Env): Promise<Response> {
-  const auth = await authenticateActivityRequest(request);
+  const auth = await authenticateActivityRequest(request, env);
   if (isAuthResponse(auth)) return auth;
   const access = await requireRosterAccess(env, auth);
   if (isAccessResponse(access)) return access;
