@@ -1,16 +1,6 @@
 import {discordAutocomplete, discordDeferred, discordMessage, editOriginalInteraction} from "../discord";
 import {currentLeagueWeekStart, eligibilityCalendarDate, isEligibleForWeek} from "../eligibility";
-import {
-  getLeagueSnapshotInfo,
-  getPlayerScrimStats,
-  getTeamRoleUsage,
-  resolveLeaguePlayer,
-  resolveLeagueTeam,
-  searchLeaguePlayers,
-  type LeaguePlayerRow,
-  type LeagueScrimStatRow,
-} from "../league/db";
-import {ensureLeagueSnapshot} from "../league/refresh";
+import type {LeaguePlayerRow, LeagueScrimStatRow} from "../league/db";
 import {
   formatEasternTimestamp,
   formatSalary,
@@ -20,6 +10,15 @@ import {
 } from "../league/view";
 import {CURRENT_MLE_SEASON, SCRIM_STATS_START_DATE} from "../season-policy";
 import {getRocketLeaguePlayers} from "../sprocket/players";
+import {getProspectIdentities, getScoutingStatLines} from "../sprocket/scouting";
+import {getFranchiseRoleUsagesForSeason} from "../sprocket/role-usages";
+import {
+  leaguePlayerFromFranchise,
+  leaguePlayerFromProspect,
+  leagueScrimFromSource,
+  leagueUsageFromSource,
+  safeCommandError,
+} from "./live-data";
 import type {DiscordInteraction, Env, ExecutionContextLike} from "../types";
 
 const STAT_TYPES = new Set(["Game", "Scrim"] as const);
@@ -91,6 +90,52 @@ function latestTimestamp(values: string[]): string | null {
   return latest?.raw ?? null;
 }
 
+function normalizeLookup(value: string): string {
+  return value.trim().replace(/\s+/g, " ").toLocaleLowerCase("en-US");
+}
+
+async function livePlayerRows(env: Env): Promise<{players: LeaguePlayerRow[]; rosteredIds: Set<string>}> {
+  const [rostered, prospects] = await Promise.all([
+    getRocketLeaguePlayers(env),
+    getProspectIdentities(env),
+  ]);
+  const rows = new Map<string, LeaguePlayerRow>();
+  const rosteredIds = new Set<string>();
+
+  for (const player of rostered) {
+    rows.set(player.sprocketPlayerId, leaguePlayerFromFranchise(player));
+    rosteredIds.add(player.sprocketPlayerId);
+  }
+  for (const prospect of prospects) {
+    if (!rows.has(prospect.sprocketPlayerId)) {
+      rows.set(prospect.sprocketPlayerId, leaguePlayerFromProspect(prospect));
+    }
+  }
+
+  return {players: [...rows.values()], rosteredIds};
+}
+
+function resolvePlayerRows(
+  players: LeaguePlayerRow[],
+  requested: string,
+): {player: LeaguePlayerRow | null; suggestions: LeaguePlayerRow[]} {
+  const raw = requested.trim();
+  const exactId = players.find(player => player.sprocket_player_id === raw);
+  if (exactId) return {player: exactId, suggestions: []};
+
+  const needle = normalizeLookup(raw);
+  const exactNames = players.filter(player => normalizeLookup(player.name) === needle);
+  if (exactNames.length === 1) return {player: exactNames[0], suggestions: []};
+
+  const suggestions = players
+    .filter(player =>
+      normalizeLookup(player.name).includes(needle) ||
+      normalizeLookup(player.sprocket_player_id).includes(needle),
+    )
+    .slice(0, 5);
+  return {player: null, suggestions};
+}
+
 async function fetchAndRespond(
   interaction: DiscordInteraction,
   env: Env,
@@ -99,32 +144,31 @@ async function fetchAndRespond(
   mode: Mode,
 ): Promise<void> {
   try {
-    await ensureLeagueSnapshot(env);
-    const player = await resolveLeaguePlayer(env.DB, requestedPlayer);
+    const live = await livePlayerRows(env);
+    const resolved = resolvePlayerRows(live.players, requestedPlayer);
+    const player = resolved.player;
     if (!player) {
-      const suggestions = await searchLeaguePlayers(env.DB, requestedPlayer, 5);
-      const hint = suggestions.length > 0
-        ? ` Try the autocomplete result for ${suggestions.map(value => `${value.name} (${value.franchise_name})`).join(", ")}.`
+      const hint = resolved.suggestions.length > 0
+        ? ` Try the autocomplete result for ${resolved.suggestions.map(value => `${value.name} (${value.franchise_name})`).join(", ")}.`
         : "";
       await editOriginalInteraction(interaction, `I couldn't uniquely resolve that player.${hint}`);
       return;
     }
 
-    const [state, scrimStats, rosterTeam] = await Promise.all([
-      getLeagueSnapshotInfo(env.DB),
-      getPlayerScrimStats(env.DB, player.sprocket_player_id),
-      resolveLeagueTeam(env.DB, player.franchise_name),
-    ]);
-
+    const rostered = live.rosteredIds.has(player.sprocket_player_id);
     const weekStart = currentLeagueWeekStart();
-    const rostered = rosterTeam !== null;
     const lines = profileLines(player, weekStart, rostered);
 
-    if (rosterTeam && player.slot && teamDivision(player.skill_group)) {
-      const usages = await getTeamRoleUsage(env.DB, rosterTeam.franchise_name, CURRENT_MLE_SEASON);
-      if ((state?.usage_count ?? 0) === 0) {
+    if (rostered && player.slot && teamDivision(player.skill_group)) {
+      const sourceUsages = await getFranchiseRoleUsagesForSeason(
+        env,
+        player.franchise_name,
+        CURRENT_MLE_SEASON,
+      );
+      if (sourceUsages.length === 0) {
         lines.push(`Usage: awaiting S${CURRENT_MLE_SEASON} data.`);
       } else {
+        const usages = sourceUsages.map(leagueUsageFromSource);
         const usage = usageForPlayer(player, usages);
         lines.push(
           usage
@@ -134,7 +178,6 @@ async function fetchAndRespond(
       }
     }
 
-    let statsRefreshedAt: string | null = null;
     lines.push("");
     if (stats === "Game") {
       lines.push(
@@ -142,12 +185,16 @@ async function fetchAndRespond(
         `Awaiting the S${CURRENT_MLE_SEASON} official player game-stat dataset. Older-season game data is intentionally not used.`,
       );
     } else {
+      const sourceStats = await getScoutingStatLines(env);
+      const scrimStats = sourceStats
+        .filter(stat => stat.sprocketPlayerId === player.sprocket_player_id)
+        .map(leagueScrimFromSource);
       const selected = scrimStats.filter(stat => mode === "Both" || stat.mode === mode);
+
       lines.push(`**S${CURRENT_MLE_SEASON} Scrim Stats · ${SCRIM_STATS_START_DATE}+**`);
       if (selected.length === 0) {
         lines.push(`No ${mode === "Both" ? "2s/3s" : mode} scrim stats were found for this player.`);
       } else {
-        statsRefreshedAt = latestTimestamp(selected.map(stat => stat.refreshed_at));
         for (const stat of selected) {
           lines.push(...scrimLine(stat), "");
         }
@@ -158,19 +205,19 @@ async function fetchAndRespond(
     lines.push("");
     if (player.source_as_of) {
       lines.push(`Profile source as of ${formatEasternTimestamp(player.source_as_of)}.`);
-    } else if (player.refreshed_at) {
-      lines.push(`Profile refreshed ${formatEasternTimestamp(player.refreshed_at)}.`);
     }
-    if (statsRefreshedAt) lines.push(`Scrim stats refreshed ${formatEasternTimestamp(statsRefreshedAt)}.`);
-    if (rostered && state?.refreshed_at) {
-      lines.push(`League map refreshed ${formatEasternTimestamp(state.refreshed_at)}.`);
-    }
+    lines.push("Performance data loaded directly from the current Sprocket publication.");
 
     await editOriginalInteraction(interaction, lines.join("\n").slice(0, 1950));
   } catch (error) {
     console.error("Player lookup failed", error);
+    const detail = safeCommandError(error);
     try {
-      await editOriginalInteraction(interaction, "Hagrid hit an error while building that player profile.");
+      await editOriginalInteraction(
+        interaction,
+        `Hagrid hit an error while building that player profile.\n\n` +
+          `Diagnostic: \`${detail || "unknown error"}\``,
+      );
     } catch (responseError) {
       console.error("Failed to report player lookup error", responseError);
     }
@@ -185,35 +232,15 @@ export async function handlePlayerAutocomplete(
   const query = typeof focused?.value === "string" ? focused.value : "";
 
   try {
-    let players = await searchLeaguePlayers(env.DB, query, 25);
-    if (players.length === 0) {
-      const live = await getRocketLeaguePlayers(env);
-      const needle = query.trim().toLocaleLowerCase("en-US");
-      players = live
-        .filter(player =>
-          !needle ||
-          player.name.toLocaleLowerCase("en-US").includes(needle) ||
-          player.sprocketPlayerId.toLocaleLowerCase("en-US").includes(needle),
-        )
-        .slice(0, 25)
-        .map(player => ({
-          sprocket_player_id: player.sprocketPlayerId,
-          member_id: player.memberId,
-          discord_id: player.discordId,
-          name: player.name,
-          salary: player.salary,
-          skill_group: player.skillGroup,
-          game_id: player.gameId,
-          game_title: player.gameTitle,
-          franchise_name: player.franchise,
-          staff_position: player.staffPosition,
-          slot: player.slot,
-          current_scrim_points: player.currentScrimPoints,
-          eligible_through: player.eligibleThrough,
-          source_as_of: player.sourceAsOf,
-          refreshed_at: "",
-        }));
-    }
+    const live = await livePlayerRows(env);
+    const needle = normalizeLookup(query);
+    const players = live.players
+      .filter(player =>
+        !needle ||
+        normalizeLookup(player.name).includes(needle) ||
+        normalizeLookup(player.sprocket_player_id).includes(needle),
+      )
+      .slice(0, 25);
 
     return discordAutocomplete(players.map(player => {
       const division = teamDivision(player.skill_group) ?? player.skill_group ?? "—";
