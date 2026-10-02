@@ -29,7 +29,7 @@ test("Monday eligibility remains locked for the entire league week", () => {
   assert.equal(byDate.get("2026-10-05")?.eligible, false);
 });
 
-test("earning enough points after Monday does not unlock that week retroactively", () => {
+test("reaching the requirement midweek unlocks the rest of that week", () => {
   const points = buildEligibilityDecay(
     [{playerId: "1", createdDate: "2026-09-29", points: 30}],
     30,
@@ -38,7 +38,8 @@ test("earning enough points after Monday does not unlock that week retroactively
   const byDate = new Map(points.map(point => [point.date, point]));
 
   assert.equal(byDate.get("2026-09-28")?.eligible, false);
-  assert.equal(byDate.get("2026-09-30")?.points, 30);
-  assert.equal(byDate.get("2026-10-04")?.eligible, false);
+  assert.equal(byDate.get("2026-09-29")?.points, 30);
+  assert.equal(byDate.get("2026-09-29")?.eligible, true);
+  assert.equal(byDate.get("2026-10-04")?.eligible, true);
   assert.equal(byDate.get("2026-10-05")?.eligible, true);
 });
