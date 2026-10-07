@@ -96,28 +96,29 @@ export function mountTeamEligibilityPanel(
     });
   };
 
-  const render = (): void => {
-    if (!data) return;
-    if (data.players.length === 0) {
+  const render = (): number => {
+    if (!data) return 0;
+    const players = data.players.filter(player => division === "all" || player.division === division);
+    if (players.length === 0) {
       output.innerHTML = `<div class="table-empty"><strong>No competitive roster entries matched this division.</strong></div>`;
-      return;
+      return 0;
     }
 
-    const eligible = data.players.filter(player => player.current_week_eligible).length;
-    const mismatches = data.players.filter(player => player.current_week_eligible !== player.source_week_eligible).length;
+    const eligible = players.filter(player => player.current_week_eligible).length;
+    const mismatches = players.filter(player => player.current_week_eligible !== player.source_week_eligible).length;
 
     output.innerHTML = `
       <div class="eligibility-summary">
-        <div><span>Roster</span><strong>${data.players.length}</strong></div>
+        <div><span>Roster</span><strong>${players.length}</strong></div>
         <div><span>Eligible this week</span><strong>${eligible}</strong></div>
-        <div><span>Need attention</span><strong>${data.players.length - eligible}</strong></div>
+        <div><span>Need attention</span><strong>${players.length - eligible}</strong></div>
         <div><span>Source mismatches</span><strong>${mismatches}</strong></div>
       </div>
       <div class="prospect-table-scroll">
         <table class="prospect-table">
           <thead><tr><th>Player</th><th>Division</th><th>Slot</th><th>Status</th><th>Points</th><th>Req.</th><th>Eligible Through</th><th>Salary</th></tr></thead>
           <tbody>
-            ${data.players.map(player => `
+            ${players.map(player => `
               <tr>
                 <td class="prospect-name"><strong>${escapeHtml(player.name)}</strong></td>
                 <td>${escapeHtml(player.division ?? "—")}</td>
@@ -133,16 +134,17 @@ export function mountTeamEligibilityPanel(
       </div>
       ${mismatches > 0 ? `<div class="eligibility-note warning">${mismatches} player${mismatches === 1 ? "" : "s"} currently differ between Hagrid's weekly-latched calculation and Sprocket's Eligible Through field.</div>` : ""}
     `;
+    return players.length;
   };
 
   const load = async (): Promise<void> => {
     try {
       setStatus("Loading team eligibility…");
       data = await api<TeamEligibilityResponse>(
-        `/api/activity/eligibility/team?division=${encodeURIComponent(division)}`,
+        "/api/activity/eligibility/team?division=all",
       );
-      render();
-      setStatus(`Loaded ${data.players.length} team eligibility row${data.players.length === 1 ? "" : "s"}.`, "success");
+      const visible = render();
+      setStatus(`Loaded ${data.players.length} team eligibility row${data.players.length === 1 ? "" : "s"}; showing ${visible}.`, "success");
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       output.innerHTML = `<div class="table-empty"><strong>Could not load team eligibility.</strong><span>${escapeHtml(message)}</span></div>`;
@@ -157,7 +159,8 @@ export function mountTeamEligibilityPanel(
       if (value === division) return;
       division = value;
       syncButtons();
-      void load();
+      const visible = render();
+      setStatus(`Showing ${visible} ${division === "all" ? "team" : division} eligibility row${visible === 1 ? "" : "s"}.`, "success");
     });
   });
   panel.querySelector("#team-eligibility-refresh")?.addEventListener("click", () => void load());

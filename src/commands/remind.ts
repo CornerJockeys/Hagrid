@@ -15,6 +15,15 @@ const DIVISIONS: TeamDivision[] = ["FL", "AL", "CL", "ML"];
 const CADENCES = new Set(["normal", "daily", "once"]);
 const DIVISION_NAMES: Record<TeamDivision, string> = {FL: "Foundation League", AL: "Academy League", CL: "Champion League", ML: "Master League"};
 type ReminderScope = "player" | "division" | "team" | "usage-division" | "usage-team";
+type EligibilityReminderSnapshot = {
+  players: Awaited<ReturnType<typeof getFranchisePlayers>>;
+  events: Awaited<ReturnType<typeof getEligibilityEvents>>;
+  rules: Awaited<ReturnType<typeof getLeagueEligibilityRules>>;
+};
+type UsageReminderSnapshot = {
+  players: Awaited<ReturnType<typeof getFranchisePlayers>>;
+  usages: Awaited<ReturnType<typeof getFranchiseRoleUsagesForSeason>>;
+};
 
 function invokerId(interaction: DiscordInteraction): string | null {
   return interaction.member?.user?.id ?? interaction.user?.id ?? null;
@@ -326,12 +335,17 @@ async function buildDivisionEligibilityReminder(
   franchiseName: string,
   division: TeamDivision,
   targetDate: string,
+  snapshot?: EligibilityReminderSnapshot,
 ): Promise<string> {
-  const [players, events, rules] = await Promise.all([
-    getFranchisePlayers(env, franchiseName),
-    getEligibilityEvents(env),
-    getLeagueEligibilityRules(env),
-  ]);
+  const loaded = snapshot ?? await (async (): Promise<EligibilityReminderSnapshot> => {
+    const [players, events, rules] = await Promise.all([
+      getFranchisePlayers(env, franchiseName),
+      getEligibilityEvents(env),
+      getLeagueEligibilityRules(env),
+    ]);
+    return {players, events, rules};
+  })();
+  const {players, events, rules} = loaded;
 
   const rule = leagueRuleForDivision(rules, division);
   if (!rule) {
@@ -416,11 +430,16 @@ async function buildDivisionUsageReminder(
   env: Env,
   franchiseName: string,
   division: TeamDivision,
+  snapshot?: UsageReminderSnapshot,
 ): Promise<string> {
-  const [players, usages] = await Promise.all([
-    getFranchisePlayers(env, franchiseName),
-    getFranchiseRoleUsagesForSeason(env, franchiseName, CURRENT_MLE_SEASON),
-  ]);
+  const loaded = snapshot ?? await (async (): Promise<UsageReminderSnapshot> => {
+    const [players, usages] = await Promise.all([
+      getFranchisePlayers(env, franchiseName),
+      getFranchiseRoleUsagesForSeason(env, franchiseName, CURRENT_MLE_SEASON),
+    ]);
+    return {players, usages};
+  })();
+  const {players, usages} = loaded;
 
   const alerts = buildUsageAlerts(division, players, usages);
   const captains = captainMentions(players, division);
@@ -469,8 +488,13 @@ async function postUsageReminder(
     return discordMessage(`Posted the ${division} usage reminder.`);
   }
 
+  const [players, usages] = await Promise.all([
+    getFranchisePlayers(env, config.franchise_name),
+    getFranchiseRoleUsagesForSeason(env, config.franchise_name, CURRENT_MLE_SEASON),
+  ]);
+  const snapshot: UsageReminderSnapshot = {players, usages};
   for (const key of DIVISIONS) {
-    const content = await buildDivisionUsageReminder(env, config.franchise_name, key);
+    const content = await buildDivisionUsageReminder(env, config.franchise_name, key, snapshot);
     await sendDiscordChannelMessage(env, interaction.channel_id, content.slice(0, 1950));
   }
   return discordMessage("Posted the full-team usage reminders.");
@@ -496,8 +520,20 @@ async function postEligibilityReminder(
     return discordMessage(`Posted the ${division} eligibility reminder for ${formatShortDate(targetDate)}.`);
   }
 
+  const [players, events, rules] = await Promise.all([
+    getFranchisePlayers(env, config.franchise_name),
+    getEligibilityEvents(env),
+    getLeagueEligibilityRules(env),
+  ]);
+  const snapshot: EligibilityReminderSnapshot = {players, events, rules};
   for (const key of DIVISIONS) {
-    const content = await buildDivisionEligibilityReminder(env, config.franchise_name, key, targetDate);
+    const content = await buildDivisionEligibilityReminder(
+      env,
+      config.franchise_name,
+      key,
+      targetDate,
+      snapshot,
+    );
     await sendDiscordChannelMessage(env, interaction.channel_id, content.slice(0, 1950));
   }
   return discordMessage(`Posted the full-team eligibility reminder for ${formatShortDate(targetDate)}.`);

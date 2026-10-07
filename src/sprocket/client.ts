@@ -35,12 +35,26 @@ function validateDatasetPath(dataset: string): void {
   }
 }
 
-async function fetchCsvAtBase(
+const DATASET_CACHE_TTL_MS = 60_000;
+
+interface DatasetCacheEntry {
+  expiresAt: number;
+  rows: CsvRecord[];
+}
+
+const datasetCache = new Map<string, DatasetCacheEntry>();
+const datasetRequestsInFlight = new Map<string, Promise<CsvRecord[]>>();
+
+function datasetCacheKey(dataset: string, baseUrl: string): string {
+  return `${baseUrl.replace(/\/+$/, "")}/${dataset}.csv`;
+}
+
+async function fetchCsvAtBaseUncached(
   dataset: string,
   baseUrl: string,
 ): Promise<CsvRecord[]> {
   validateDatasetPath(dataset);
-  const url = `${baseUrl.replace(/\/+$/, "")}/${dataset}.csv`;
+  const url = datasetCacheKey(dataset, baseUrl);
 
   let response: Response;
   try {
@@ -79,6 +93,36 @@ async function fetchCsvAtBase(
       url,
     );
   }
+}
+
+async function fetchCsvAtBase(
+  dataset: string,
+  baseUrl: string,
+): Promise<CsvRecord[]> {
+  validateDatasetPath(dataset);
+  const key = datasetCacheKey(dataset, baseUrl);
+  const now = Date.now();
+  const cached = datasetCache.get(key);
+  if (cached && cached.expiresAt > now) return cached.rows;
+  if (cached) datasetCache.delete(key);
+
+  const existing = datasetRequestsInFlight.get(key);
+  if (existing) return existing;
+
+  const request = fetchCsvAtBaseUncached(dataset, baseUrl)
+    .then(rows => {
+      datasetCache.set(key, {
+        expiresAt: Date.now() + DATASET_CACHE_TTL_MS,
+        rows,
+      });
+      return rows;
+    })
+    .finally(() => {
+      datasetRequestsInFlight.delete(key);
+    });
+
+  datasetRequestsInFlight.set(key, request);
+  return request;
 }
 
 export async function fetchCsvDataset(env: Env, dataset: string): Promise<CsvRecord[]> {
