@@ -33,6 +33,7 @@ jobs:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
       CLOUDFLARE_D1_DATABASE_ID: ${{ vars.CLOUDFLARE_D1_DATABASE_ID }}
+      CLOUDFLARE_KV_NAMESPACE_ID: ${{ vars.CLOUDFLARE_KV_NAMESPACE_ID }}
       DISCORD_APPLICATION_ID: ${{ vars.DISCORD_APPLICATION_ID }}
       DISCORD_PUBLIC_KEY: ${{ vars.DISCORD_PUBLIC_KEY }}
       DISCORD_CLIENT_SECRET: ${{ secrets.DISCORD_CLIENT_SECRET }}
@@ -89,6 +90,14 @@ jobs:
           DATABASE_ID="$(node scripts/ensure-d1.mjs)"
           echo "CLOUDFLARE_D1_DATABASE_ID=$DATABASE_ID" >> "$GITHUB_ENV"
           echo "Using D1 database ${DATABASE_ID:0:8}…"
+
+      - name: Provision or reuse KV cache namespace
+        shell: bash
+        run: |
+          set -euo pipefail
+          NAMESPACE_ID="$(node scripts/ensure-kv.mjs)"
+          echo "CLOUDFLARE_KV_NAMESPACE_ID=$NAMESPACE_ID" >> "$GITHUB_ENV"
+          echo "Using KV namespace ${NAMESPACE_ID:0:8}…"
 
       - name: Prepare production Wrangler config
         run: npm run prepare:deploy-config
