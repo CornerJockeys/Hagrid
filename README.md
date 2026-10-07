@@ -209,9 +209,12 @@ Each refresh:
 
 1. fetches the current FA/PEND identity/status source and current scouting stat source,
 2. computes a stable source hash that also includes the HCPB algorithm version,
-3. skips recalculation/D1 replacement if the effective source is unchanged,
-4. recalculates and promotes the live pool + HCPB snapshot when it changes,
-5. keeps a compact daily HCPB history rather than writing 24 historical copies every day.
+3. compares that hash with the current Workers KV snapshot,
+4. skips D1 current-snapshot writes entirely when the effective source is unchanged,
+5. recalculates and replaces the live KV pool + HCPB snapshot when it changes,
+6. writes only the compact once-per-day HCPB history to D1.
+
+The legacy D1 current scouting tables remain as a fallback/bootstrap path, but production reads prefer KV. This keeps the hourly `:20` refresh cadence without rewriting the full current scouting dataset in D1 every time Sprocket changes.
 
 ## Data sources
 
@@ -256,7 +259,8 @@ Initial hosting target:
 
 - **Cloudflare Workers** — Discord interactions, Activity API, dataset processing, replay analysis, scheduled tasks
 - **Workers Static Assets** — built Activity frontend
-- **D1** — current franchise state, history, configuration, availability, scouting snapshots, pool snapshot, and sync metadata
+- **Workers KV** — current derived scouting/pool snapshot and source hash used by the Activity and pool lookups
+- **D1** — durable franchise state, history, configuration, availability, reminders, daily scouting history, and sync metadata
 - **R2 (optional)** — source archives/replay retention if later needed
 - **Cron Triggers** — Monday franchise sync + hourly scouting refresh
 
@@ -295,6 +299,7 @@ Optional variables:
 
 ```text
 CLOUDFLARE_D1_DATABASE_ID   # workflow otherwise finds/creates a DB named hagrid
+CLOUDFLARE_KV_NAMESPACE_ID   # workflow otherwise finds/creates a KV namespace named hagrid-cache
 HAGRID_BASE_URL             # workflow otherwise derives hagrid.<account>.workers.dev
 HAGRID_SMOKE_FRANCHISE      # defaults to Wizards
 ```
