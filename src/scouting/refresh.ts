@@ -154,7 +154,13 @@ async function getCurrentScoutingRecordsForCache(env: Env): Promise<ScoutingReco
   }));
 }
 
-async function archiveCurrentDay(env: Env, date: string): Promise<void> {
+async function archiveRecordsForDay(
+  env: Env,
+  date: string,
+  records: ScoutingRecord[],
+  sourceHash: string,
+  refreshedAt: string,
+): Promise<void> {
   const result = await env.DB.prepare(
     `INSERT OR IGNORE INTO scouting_daily_history (
        snapshot_date, sprocket_player_id, mode, league, status, name, salary, games,
@@ -162,12 +168,38 @@ async function archiveCurrentDay(env: Env, date: string): Promise<void> {
        demos, eff_salary, temp, temp_score, bucket, main_role, alt_role,
        role_confidence, flags, source_hash, refreshed_at
      )
-     SELECT ?, sprocket_player_id, mode, league, status, name, salary, games,
-       win_pct, score, sprocket, dpi, opi, goals, assists, saves, shots, shot_pct,
-       demos, eff_salary, temp, temp_score, bucket, main_role, alt_role,
-       role_confidence, flags, source_hash, refreshed_at
-     FROM scouting_players_current`,
-  ).bind(date).run();
+     SELECT
+       ?2,
+       json_extract(value, '$.sprocketPlayerId'),
+       json_extract(value, '$.mode'),
+       json_extract(value, '$.league'),
+       json_extract(value, '$.status'),
+       json_extract(value, '$.name'),
+       json_extract(value, '$.salary'),
+       COALESCE(json_extract(value, '$.games'), 0),
+       json_extract(value, '$.winPct'),
+       json_extract(value, '$.score'),
+       json_extract(value, '$.sprocket'),
+       json_extract(value, '$.dpi'),
+       json_extract(value, '$.opi'),
+       json_extract(value, '$.goals'),
+       json_extract(value, '$.assists'),
+       json_extract(value, '$.saves'),
+       json_extract(value, '$.shots'),
+       json_extract(value, '$.shotPct'),
+       json_extract(value, '$.demos'),
+       json_extract(value, '$.effSalary'),
+       json_extract(value, '$.temp'),
+       json_extract(value, '$.tempScore'),
+       json_extract(value, '$.bucket'),
+       json_extract(value, '$.mainRole'),
+       json_extract(value, '$.altRole'),
+       json_extract(value, '$.roleConfidence'),
+       COALESCE(json_extract(value, '$.flags'), ''),
+       ?3,
+       ?4
+     FROM json_each(?1)`,
+  ).bind(JSON.stringify(records), date, sourceHash, refreshedAt).run();
   if (!result.success) throw new Error("D1 rejected the daily scouting archive.");
 }
 
@@ -199,7 +231,13 @@ export async function refreshScouting(env: Env, reason = "manual"): Promise<Scou
   ) {
     let lastArchivedDate = cached.state.lastArchivedDate;
     if (lastArchivedDate !== archiveDate) {
-      await archiveCurrentDay(env, archiveDate);
+      await archiveRecordsForDay(
+        env,
+        archiveDate,
+        cached.records,
+        cached.state.sourceHash,
+        cached.state.refreshedAt,
+      );
       lastArchivedDate = archiveDate;
     }
 
@@ -229,11 +267,14 @@ export async function refreshScouting(env: Env, reason = "manual"): Promise<Scou
     state.source_hash === sourceHash &&
     state.algorithm_version === SCOUTING_ALGORITHM_VERSION
   ) {
-    const checked = await env.DB.prepare(
-      `UPDATE scouting_refresh_state SET checked_at = ? WHERE singleton = 1`,
-    ).bind(checkedAt).run();
-    if (!checked.success) throw new Error("D1 rejected the scouting freshness update.");
-    await archiveCurrentDay(env, archiveDate);
+    const existingRecords = await getCurrentScoutingRecordsForCache(env);
+    await archiveRecordsForDay(
+      env,
+      archiveDate,
+      existingRecords,
+      state.source_hash,
+      state.refreshed_at,
+    );
 
     await putCachedScoutingSnapshot(env, {
       state: {
@@ -246,7 +287,7 @@ export async function refreshScouting(env: Env, reason = "manual"): Promise<Scou
         lastArchivedDate: archiveDate,
       },
       identities,
-      records: await getCurrentScoutingRecordsForCache(env),
+      records: existingRecords,
     });
 
     console.log(`Scouting refresh (${reason}) found no source changes and primed KV from D1.`);
@@ -265,29 +306,42 @@ export async function refreshScouting(env: Env, reason = "manual"): Promise<Scou
     throw new Error("The scouting calculation produced zero player/mode records.");
   }
 
-  await promoteScoutingSnapshotBulk(env, {
-    identities,
-    records,
-    sourceHash,
-    algorithmVersion: SCOUTING_ALGORITHM_VERSION,
-    now: checkedAt,
-  });
+  if (env.HAGRID_CACHE) {
+    const alreadyArchivedToday = cached?.state.lastArchivedDate === archiveDate;
+    if (!alreadyArchivedToday) {
+      await archiveRecordsForDay(env, archiveDate, records, sourceHash, checkedAt);
+    }
 
-  await archiveCurrentDay(env, archiveDate);
-  await putCachedScoutingSnapshot(env, {
-    state: {
+    await putCachedScoutingSnapshot(env, {
+      state: {
+        sourceHash,
+        algorithmVersion: SCOUTING_ALGORITHM_VERSION,
+        refreshedAt: checkedAt,
+        checkedAt,
+        prospectCount: identities.length,
+        rowCount: records.length,
+        lastArchivedDate: archiveDate,
+      },
+      identities,
+      records,
+    });
+
+    console.log(
+      `Scouting refresh (${reason}) cached ${records.length} rows for ${identities.length} prospects; current D1 rewrite skipped.`,
+    );
+  } else {
+    await promoteScoutingSnapshotBulk(env, {
+      identities,
+      records,
       sourceHash,
       algorithmVersion: SCOUTING_ALGORITHM_VERSION,
-      refreshedAt: checkedAt,
-      checkedAt,
-      prospectCount: identities.length,
-      rowCount: records.length,
-      lastArchivedDate: archiveDate,
-    },
-    identities,
-    records,
-  });
-  console.log(`Scouting refresh (${reason}) promoted ${records.length} rows for ${identities.length} prospects.`);
+      now: checkedAt,
+    });
+    await archiveRecordsForDay(env, archiveDate, records, sourceHash, checkedAt);
+    console.log(
+      `Scouting refresh (${reason}) promoted ${records.length} rows for ${identities.length} prospects.`,
+    );
+  }
 
   return {
     changed: true,
@@ -300,6 +354,9 @@ export async function refreshScouting(env: Env, reason = "manual"): Promise<Scou
 }
 
 export async function ensureScoutingSnapshot(env: Env): Promise<ScoutingRefreshSummary | null> {
+  const cached = await getCachedScoutingSnapshot(env);
+  if (cached && cached.state.rowCount > 0) return null;
+
   const state = await getState(env);
   if (state && state.row_count > 0) return null;
   return refreshScouting(env, "cold-start");
