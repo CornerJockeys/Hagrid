@@ -1,4 +1,5 @@
 import type {Env} from "../types";
+import {getCachedScoutingSnapshot} from "./cache";
 import type {
   LeagueCode,
   ProspectStatus,
@@ -120,6 +121,18 @@ function fromStored(row: StoredScoutingRow): ScoutingRecord {
 }
 
 export async function getScoutingState(env: Env): Promise<ScoutingState | null> {
+  const cached = await getCachedScoutingSnapshot(env);
+  if (cached) {
+    return {
+      sourceHash: cached.state.sourceHash,
+      algorithmVersion: cached.state.algorithmVersion,
+      refreshedAt: cached.state.refreshedAt,
+      checkedAt: cached.state.checkedAt,
+      prospectCount: cached.state.prospectCount,
+      rowCount: cached.state.rowCount,
+    };
+  }
+
   const row = await env.DB.prepare(
     `SELECT source_hash, algorithm_version, refreshed_at, checked_at, prospect_count, row_count
      FROM scouting_refresh_state WHERE singleton = 1`,
@@ -136,6 +149,9 @@ export async function getScoutingState(env: Env): Promise<ScoutingState | null> 
 }
 
 export async function getCurrentScoutingRecords(env: Env): Promise<ScoutingRecord[]> {
+  const cached = await getCachedScoutingSnapshot(env);
+  if (cached) return cached.records;
+
   const result = await env.DB.prepare(
     `SELECT sprocket_player_id, mode, league, status, name, salary, games,
        win_pct, score, sprocket, dpi, opi, goals, assists, saves, shots, shot_pct,
@@ -292,6 +308,26 @@ export async function getPoolPlayers(
   status: ProspectStatus | null,
   salary: number | null = null,
 ): Promise<PoolPlayer[]> {
+  const cached = await getCachedScoutingSnapshot(env);
+  if (cached) {
+    return cached.identities
+      .filter(player => player.league === league)
+      .filter(player => !status || player.status === status)
+      .filter(player => salary === null || (player.salary !== null && Math.abs(player.salary - salary) < 0.001))
+      .sort((left, right) =>
+        left.status.localeCompare(right.status) ||
+        (right.salary ?? Number.NEGATIVE_INFINITY) - (left.salary ?? Number.NEGATIVE_INFINITY) ||
+        left.name.localeCompare(right.name, "en-US", {sensitivity: "base"}),
+      )
+      .map(player => ({
+        sprocketPlayerId: player.sprocketPlayerId,
+        name: player.name,
+        salary: player.salary,
+        league: player.league,
+        status: player.status,
+      }));
+  }
+
   const clauses = ["league = ?"];
   const values: unknown[] = [league];
 
