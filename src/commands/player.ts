@@ -1,6 +1,7 @@
 import {discordAutocomplete, discordDeferred, discordMessage, editOriginalInteraction} from "../discord";
 import {currentLeagueWeekStart, eligibilityCalendarDate, isEligibleForWeek} from "../eligibility";
 import {searchLeaguePlayers, type LeaguePlayerRow, type LeagueScrimStatRow} from "../league/db";
+import {getCachedScoutingSnapshot} from "../scouting/cache";
 import {
   formatEasternTimestamp,
   formatSalary,
@@ -240,7 +241,32 @@ export async function handlePlayerAutocomplete(
     // Autocomplete has Discord's short interaction deadline. Keep this path
     // entirely inside D1; live Sprocket fetches happen only after the command
     // has already been deferred.
-    const players = await searchLeaguePlayers(env.DB, query, 25);
+    const [storedPlayers, cached] = await Promise.all([
+      searchLeaguePlayers(env.DB, query, 25),
+      getCachedScoutingSnapshot(env),
+    ]);
+
+    let players = storedPlayers;
+    if (cached) {
+      const needle = normalizeLookup(query);
+      const currentProspects = cached.identities
+        .filter(player =>
+          normalizeLookup(player.name).includes(needle) ||
+          normalizeLookup(player.sprocketPlayerId).includes(needle),
+        )
+        .map(leaguePlayerFromProspect);
+
+      const merged = new Map<string, LeaguePlayerRow>();
+      for (const prospect of currentProspects) merged.set(prospect.sprocket_player_id, prospect);
+      for (const player of storedPlayers) {
+        if (player.franchise_name === "FA" || player.franchise_name === "PEND") continue;
+        merged.set(player.sprocket_player_id, player);
+      }
+      players = [...merged.values()]
+        .sort((left, right) => left.name.localeCompare(right.name, "en-US", {sensitivity: "base"}))
+        .slice(0, 25);
+    }
+
     return discordAutocomplete(players.map(player => {
       const division = teamDivision(player.skill_group) ?? player.skill_group ?? "—";
       return {
