@@ -10,6 +10,10 @@ directory = "./activity/dist"
 not_found_handling = "single-page-application"
 run_worker_first = ["/api/*", "/interactions", "/health", "/ready"]
 
+[[kv_namespaces]]
+binding = "HAGRID_CACHE"
+id = "REPLACE_WITH_KV_NAMESPACE_ID"
+
 [[d1_databases]]
 binding = "DB"
 database_name = "hagrid"
