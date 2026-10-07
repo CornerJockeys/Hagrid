@@ -1,5 +1,6 @@
 import type {Env, ScheduledEventLike} from "../types";
 import {promoteScoutingSnapshotBulk} from "./bulk";
+import {getCachedScoutingSnapshot, putCachedScoutingSnapshot} from "./cache";
 import {getProspectIdentities, getScoutingStatLines} from "../sprocket/scouting";
 import {
   buildScoutingRecords,
@@ -87,6 +88,72 @@ async function getState(env: Env): Promise<ScoutingStateRow | null> {
     .first<ScoutingStateRow>();
 }
 
+async function getCurrentScoutingRecordsForCache(env: Env): Promise<ScoutingRecord[]> {
+  const result = await env.DB.prepare(
+    `SELECT sprocket_player_id, mode, league, status, name, salary, games,
+       win_pct, score, sprocket, dpi, opi, goals, assists, saves, shots, shot_pct,
+       demos, eff_salary, temp, temp_score, bucket, main_role, alt_role,
+       role_confidence, flags
+     FROM scouting_players_current`,
+  ).all<{
+    sprocket_player_id: string;
+    mode: ScoutingRecord["mode"];
+    league: ScoutingRecord["league"];
+    status: ScoutingRecord["status"];
+    name: string;
+    salary: number | null;
+    games: number;
+    win_pct: number | null;
+    score: number | null;
+    sprocket: number | null;
+    dpi: number | null;
+    opi: number | null;
+    goals: number | null;
+    assists: number | null;
+    saves: number | null;
+    shots: number | null;
+    shot_pct: number | null;
+    demos: number | null;
+    eff_salary: number | null;
+    temp: number;
+    temp_score: number;
+    bucket: ScoutingRecord["bucket"];
+    main_role: ScoutingRecord["mainRole"];
+    alt_role: ScoutingRecord["altRole"];
+    role_confidence: ScoutingRecord["roleConfidence"];
+    flags: string;
+  }>();
+
+  return result.results.map(row => ({
+    sprocketPlayerId: row.sprocket_player_id,
+    mode: row.mode,
+    league: row.league,
+    status: row.status,
+    name: row.name,
+    salary: row.salary,
+    games: row.games,
+    winPct: row.win_pct,
+    score: row.score,
+    sprocket: row.sprocket,
+    dpi: row.dpi,
+    opi: row.opi,
+    goals: row.goals,
+    assists: row.assists,
+    saves: row.saves,
+    shots: row.shots,
+    shotPct: row.shot_pct,
+    demos: row.demos,
+    effSalary: row.eff_salary,
+    temp: row.temp,
+    tempScore: row.temp_score,
+    bucket: row.bucket,
+    mainRole: row.main_role,
+    altRole: row.alt_role,
+    roleConfidence: row.role_confidence,
+    flags: row.flags,
+  }));
+}
+
 async function archiveCurrentDay(env: Env, date: string): Promise<void> {
   const result = await env.DB.prepare(
     `INSERT OR IGNORE INTO scouting_daily_history (
@@ -119,9 +186,45 @@ export async function refreshScouting(env: Env, reason = "manual"): Promise<Scou
   }
 
   const sourceHash = await sha256(normalizeHashInput(identities, lines));
-  const state = await getState(env);
+  const [cached, state] = await Promise.all([
+    getCachedScoutingSnapshot(env),
+    getState(env),
+  ]);
+  const archiveDate = easternDate(new Date(checkedAt));
 
   if (
+    cached &&
+    cached.state.sourceHash === sourceHash &&
+    cached.state.algorithmVersion === SCOUTING_ALGORITHM_VERSION
+  ) {
+    let lastArchivedDate = cached.state.lastArchivedDate;
+    if (lastArchivedDate !== archiveDate) {
+      await archiveCurrentDay(env, archiveDate);
+      lastArchivedDate = archiveDate;
+    }
+
+    await putCachedScoutingSnapshot(env, {
+      ...cached,
+      state: {
+        ...cached.state,
+        checkedAt,
+        lastArchivedDate,
+      },
+    });
+
+    console.log(`Scouting refresh (${reason}) found no source changes; D1 snapshot writes skipped.`);
+    return {
+      changed: false,
+      sourceHash,
+      refreshedAt: cached.state.refreshedAt,
+      checkedAt,
+      prospectCount: cached.state.prospectCount,
+      rowCount: cached.state.rowCount,
+    };
+  }
+
+  if (
+    !cached &&
     state &&
     state.source_hash === sourceHash &&
     state.algorithm_version === SCOUTING_ALGORITHM_VERSION
@@ -130,8 +233,23 @@ export async function refreshScouting(env: Env, reason = "manual"): Promise<Scou
       `UPDATE scouting_refresh_state SET checked_at = ? WHERE singleton = 1`,
     ).bind(checkedAt).run();
     if (!checked.success) throw new Error("D1 rejected the scouting freshness update.");
-    await archiveCurrentDay(env, easternDate(new Date(checkedAt)));
-    console.log(`Scouting refresh (${reason}) found no source changes.`);
+    await archiveCurrentDay(env, archiveDate);
+
+    await putCachedScoutingSnapshot(env, {
+      state: {
+        sourceHash,
+        algorithmVersion: SCOUTING_ALGORITHM_VERSION,
+        refreshedAt: state.refreshed_at,
+        checkedAt,
+        prospectCount: state.prospect_count,
+        rowCount: state.row_count,
+        lastArchivedDate: archiveDate,
+      },
+      identities,
+      records: await getCurrentScoutingRecordsForCache(env),
+    });
+
+    console.log(`Scouting refresh (${reason}) found no source changes and primed KV from D1.`);
     return {
       changed: false,
       sourceHash,
@@ -155,7 +273,20 @@ export async function refreshScouting(env: Env, reason = "manual"): Promise<Scou
     now: checkedAt,
   });
 
-  await archiveCurrentDay(env, easternDate(new Date(checkedAt)));
+  await archiveCurrentDay(env, archiveDate);
+  await putCachedScoutingSnapshot(env, {
+    state: {
+      sourceHash,
+      algorithmVersion: SCOUTING_ALGORITHM_VERSION,
+      refreshedAt: checkedAt,
+      checkedAt,
+      prospectCount: identities.length,
+      rowCount: records.length,
+      lastArchivedDate: archiveDate,
+    },
+    identities,
+    records,
+  });
   console.log(`Scouting refresh (${reason}) promoted ${records.length} rows for ${identities.length} prospects.`);
 
   return {
