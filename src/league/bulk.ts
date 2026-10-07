@@ -296,8 +296,58 @@ export async function promoteLeagueSnapshotBulk(
     ),
   );
 
-  const results = await env.DB.batch(statements);
-  if (results.some(result => !result.success)) {
-    throw new Error("D1 rejected the league snapshot bulk promotion.");
+  try {
+    const results = await env.DB.batch(statements);
+    const rejected = results
+      .map((result, index) => ({index, result}))
+      .filter(({result}) => !result.success);
+
+    if (rejected.length > 0) {
+      console.error(
+        "D1 rejected league snapshot bulk promotion statements.",
+        JSON.stringify(
+          rejected.map(({index, result}) => ({
+            statementIndex: index,
+            success: result.success,
+            error: "error" in result ? result.error : undefined,
+            meta: "meta" in result ? result.meta : undefined,
+          })),
+        ),
+      );
+      throw new Error("D1 rejected the league snapshot bulk promotion.");
+    }
+  } catch (error) {
+    const details =
+      error instanceof Error
+        ? {
+            name: error.name,
+            message: error.message,
+            stack: error.stack,
+            cause: error.cause instanceof Error
+              ? {
+                  name: error.cause.name,
+                  message: error.cause.message,
+                  stack: error.cause.stack,
+                }
+              : error.cause == null
+                ? undefined
+                : String(error.cause),
+          }
+        : {value: String(error)};
+
+    console.error(
+      "League snapshot D1 batch threw.",
+      JSON.stringify({
+        details,
+        statementCount: statements.length,
+        historyCloseCount: history.closeIds.length,
+        historyInsertCount: history.insertPlayers.length,
+        teamCount: input.teams.length,
+        playerCount: input.players.length,
+        usageCount: input.usages.length,
+        scrimStatCount: input.scrimStats.length,
+      }),
+    );
+    throw error;
   }
 }
