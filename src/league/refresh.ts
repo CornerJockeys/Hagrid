@@ -6,6 +6,7 @@ import {CURRENT_MLE_SEASON} from "../season-policy";
 import type {Env, ScheduledEventLike} from "../types";
 import {promoteLeagueSnapshotBulk} from "./bulk";
 import type {RawScoutingLine} from "../scouting/calculate";
+import {teamDivision} from "./view";
 
 export const LEAGUE_REFRESH_CRON = "20 * * * *";
 
@@ -141,6 +142,41 @@ async function sha256(value: string): Promise<string> {
   return [...new Uint8Array(digest)].map(byte => byte.toString(16).padStart(2, "0")).join("");
 }
 
+function canonicalLeagueScrimStats(
+  players: FranchisePlayer[],
+  lines: RawScoutingLine[],
+): RawScoutingLine[] {
+  const playerById = new Map(players.map(player => [player.sprocketPlayerId, player]));
+  const grouped = new Map<string, RawScoutingLine[]>();
+
+  for (const line of lines) {
+    if (!playerById.has(line.sprocketPlayerId)) continue;
+    const key = `${line.sprocketPlayerId}|${line.mode}`;
+    const group = grouped.get(key) ?? [];
+    group.push(line);
+    grouped.set(key, group);
+  }
+
+  const selected: RawScoutingLine[] = [];
+  for (const group of grouped.values()) {
+    const player = playerById.get(group[0].sprocketPlayerId)!;
+    const division = teamDivision(player.skillGroup);
+
+    group.sort((left, right) => {
+      const leftLeagueMatch = division !== null && left.league === division ? 1 : 0;
+      const rightLeagueMatch = division !== null && right.league === division ? 1 : 0;
+      return rightLeagueMatch - leftLeagueMatch || right.games - left.games;
+    });
+
+    selected.push(group[0]);
+  }
+
+  return selected.sort((left, right) =>
+    left.sprocketPlayerId.localeCompare(right.sprocketPlayerId) ||
+    left.mode.localeCompare(right.mode),
+  );
+}
+
 function latestSourceAsOf(players: FranchisePlayer[], usages: RoleUsage[], fallback: string): string {
   const values = [
     ...players.map(value => value.sourceAsOf),
@@ -188,8 +224,7 @@ export async function refreshLeagueSnapshot(env: Env, reason = "manual"): Promis
   if (teams.length === 0) throw new Error("The Sprocket teams dataset returned no franchises.");
   if (players.length === 0) throw new Error("The Sprocket players dataset returned no Rocket League players.");
 
-  const playerIds = new Set(players.map(player => player.sprocketPlayerId));
-  const scrimStats = rawScrimStats.filter(stat => playerIds.has(stat.sprocketPlayerId));
+  const scrimStats = canonicalLeagueScrimStats(players, rawScrimStats);
   const sourceHash = await sha256(normalizeHashInput(teams, players, usages, scrimStats));
   const sourceAsOf = latestSourceAsOf(players, usages, checkedAt);
   const state = await getState(env);
