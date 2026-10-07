@@ -34,3 +34,11 @@ test("invalid or missing eligibility does not count as eligible", () => {
   assert.equal(isEligibleForWeek(null, "2026-09-28"), false);
   assert.equal(isEligibleForWeek("not-a-date", "2026-09-28"), false);
 });
+
+
+test("named-month eligibility dates from Sprocket are parsed", () => {
+  assert.equal(eligibilityCalendarDate("21 Oct 2026"), "2026-10-21");
+  assert.equal(eligibilityCalendarDate("19 October 2026"), "2026-10-19");
+  assert.equal(isEligibleForWeek("21 Oct 2026", "2026-09-28"), true);
+  assert.equal(isEligibleForWeek("19 Oct 2026", "2026-10-19"), true);
+});
