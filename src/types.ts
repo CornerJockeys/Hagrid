@@ -18,6 +18,12 @@ export interface D1Database {
   batch(statements: D1PreparedStatement[]): Promise<D1RunResult[]>;
 }
 
+export interface KVNamespace {
+  get(key: string, type?: "text"): Promise<string | null>;
+  put(key: string, value: string): Promise<void>;
+  delete(key: string): Promise<void>;
+}
+
 export interface ExecutionContextLike {
   waitUntil(promise: Promise<unknown>): void;
 }
@@ -29,6 +35,7 @@ export interface ScheduledEventLike {
 
 export interface Env {
   DB: D1Database;
+  HAGRID_CACHE?: KVNamespace;
   DISCORD_PUBLIC_KEY: string;
   DISCORD_APPLICATION_ID?: string;
   DISCORD_CLIENT_SECRET?: string;
