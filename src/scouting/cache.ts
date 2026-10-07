@@ -10,6 +10,7 @@ export interface CachedScoutingState {
   checkedAt: string;
   prospectCount: number;
   rowCount: number;
+  lastArchivedDate?: string;
 }
 
 export interface CachedScoutingSnapshot {
