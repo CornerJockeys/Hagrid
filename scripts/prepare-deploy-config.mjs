@@ -18,6 +18,7 @@ const databaseId = required(
   "CLOUDFLARE_D1_DATABASE_ID",
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i,
 );
+const kvNamespaceId = required("CLOUDFLARE_KV_NAMESPACE_ID", /^[0-9a-f]{32}$/i);
 const applicationId = required("DISCORD_APPLICATION_ID", /^\d{10,25}$/);
 const publicKey = required("DISCORD_PUBLIC_KEY", /^[0-9a-f]{64}$/i);
 
@@ -28,6 +29,13 @@ if (!config.includes('database_id = "REPLACE_WITH_D1_DATABASE_ID"')) {
 config = config.replace(
   'database_id = "REPLACE_WITH_D1_DATABASE_ID"',
   `database_id = ${tomlString(databaseId)}`,
+);
+if (!config.includes('id = "REPLACE_WITH_KV_NAMESPACE_ID"')) {
+  throw new Error("wrangler.toml does not contain the expected KV placeholder.");
+}
+config = config.replace(
+  'id = "REPLACE_WITH_KV_NAMESPACE_ID"',
+  `id = ${tomlString(kvNamespaceId)}`,
 );
 
 const vars = [
@@ -47,4 +55,6 @@ for (const [name, key] of [
 
 config += `${vars.join("\n")}\n`;
 await writeFile(outputPath, config, "utf8");
-console.log(`Prepared ${outputPath} for D1 ${databaseId.slice(0, 8)}… and Discord app ${applicationId}.`);
+console.log(
+  `Prepared ${outputPath} for D1 ${databaseId.slice(0, 8)}…, KV ${kvNamespaceId.slice(0, 8)}…, and Discord app ${applicationId}.`,
+);
