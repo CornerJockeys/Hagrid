@@ -34,6 +34,21 @@ function shiftWeek(value: string, amount: number): string {
   return date.toISOString().slice(0, 10);
 }
 
+function currentEasternWeekStart(now = new Date()): string {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: "America/New_York",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    weekday: "short",
+  }).formatToParts(now);
+  const value = (type: string): string => parts.find(part => part.type === type)?.value ?? "";
+  const weekday = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].indexOf(value("weekday"));
+  const date = new Date(Date.UTC(Number(value("year")), Number(value("month")) - 1, Number(value("day"))));
+  date.setUTCDate(date.getUTCDate() - ((weekday + 6) % 7));
+  return date.toISOString().slice(0, 10);
+}
+
 function formatWeek(value: string): string {
   const start = new Date(`${value}T00:00:00Z`);
   const end = new Date(start);
@@ -276,9 +291,11 @@ export function mountPersonalAvailabilityPanel(
     lastPaintedKey = "";
   });
   window.addEventListener("focus", () => {
-    if (followsCurrentWeek && !dirty) {
-      void load().catch(error => setStatus(error instanceof Error ? error.message : String(error), "error"));
-    }
+    if (!followsCurrentWeek || dirty) return;
+    const currentWeek = currentEasternWeekStart();
+    if (currentWeek === weekStart) return;
+    weekStart = currentWeek;
+    void load().catch(error => setStatus(error instanceof Error ? error.message : String(error), "error"));
   });
 
   renderGrid();

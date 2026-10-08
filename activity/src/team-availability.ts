@@ -60,6 +60,21 @@ function shiftWeek(value: string, amount: number): string {
   return date.toISOString().slice(0, 10);
 }
 
+function currentEasternWeekStart(now = new Date()): string {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: "America/New_York",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    weekday: "short",
+  }).formatToParts(now);
+  const value = (type: string): string => parts.find(part => part.type === type)?.value ?? "";
+  const weekday = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].indexOf(value("weekday"));
+  const date = new Date(Date.UTC(Number(value("year")), Number(value("month")) - 1, Number(value("day"))));
+  date.setUTCDate(date.getUTCDate() - ((weekday + 6) % 7));
+  return date.toISOString().slice(0, 10);
+}
+
 function formatWeek(value: string): string {
   const start = new Date(`${value}T00:00:00Z`);
   const end = new Date(start);
@@ -160,6 +175,7 @@ export function mountTeamAvailabilityPanel(
   let resolution: Resolution = 60;
   let selectedDivision: TeamDivisionFilter = "all";
   let data: TeamAvailabilityResponse | null = null;
+  let loadVersion = 0;
 
   panel.innerHTML = `
     <div class="panel-heading">
@@ -334,17 +350,21 @@ export function mountTeamAvailabilityPanel(
   };
 
   const load = async (): Promise<void> => {
+    const version = ++loadVersion;
     try {
       setStatus("Loading team availability…");
       const params = new URLSearchParams({division: selectedDivision});
       if (!followsCurrentWeek) params.set("week", weekStart);
-      data = await api<TeamAvailabilityResponse>(
+      const next = await api<TeamAvailabilityResponse>(
         `/api/activity/availability/team?${params.toString()}`,
       );
-      weekStart = data.week_start;
+      if (version !== loadVersion) return;
+      data = next;
+      weekStart = next.week_start;
       render();
-      setStatus(`Loaded ${data.players.length} rostered player${data.players.length === 1 ? "" : "s"}.`, "success");
+      setStatus(`Loaded ${next.players.length} rostered player${next.players.length === 1 ? "" : "s"}.`, "success");
     } catch (error) {
+      if (version !== loadVersion) return;
       setStatus(error instanceof Error ? error.message : String(error), "error");
     }
   };
@@ -378,7 +398,12 @@ export function mountTeamAvailabilityPanel(
     if (event.key === "Escape" && detailRoot.childElementCount > 0) closeDetail();
   });
   window.addEventListener("focus", () => {
-    if (followsCurrentWeek) void load();
+    if (!followsCurrentWeek) return;
+    const currentWeek = currentEasternWeekStart();
+    if (currentWeek !== weekStart) {
+      weekStart = currentWeek;
+      void load();
+    }
   });
 
   syncDivisionButtons();
