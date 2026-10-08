@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {accessFromRosterRow, accessFromRosterRows} from "../src/activity/access.ts";
+import {currentEasternWeekStart} from "../src/activity/availability.ts";
 import {
   aggregateTeamAvailability,
   divisionCode,
@@ -130,4 +131,10 @@ test("team availability includes PLAYER roster slots and preserves missing/unlin
     allTeams.players.map(player => player.name).sort(),
     ["Alpha", "Bravo", "Charlie", "Delta"],
   );
+});
+
+
+test("availability week rolls to the new Monday in Eastern time", () => {
+  assert.equal(currentEasternWeekStart(new Date("2026-10-12T03:59:00Z")), "2026-10-05");
+  assert.equal(currentEasternWeekStart(new Date("2026-10-12T04:01:00Z")), "2026-10-12");
 });
