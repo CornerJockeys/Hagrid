@@ -19,6 +19,7 @@ test("Activity staff access recognizes franchise staff, AGMs, and captains", () 
   });
   assert.equal(gm.rosterMember, true);
   assert.equal(gm.staff, true);
+  assert.equal(gm.agmPlus, true);
 
   const agm = accessFromRosterRow({
     sprocket_player_id: "4",
@@ -29,6 +30,7 @@ test("Activity staff access recognizes franchise staff, AGMs, and captains", () 
   });
   assert.equal(agm.rosterMember, true);
   assert.equal(agm.staff, true);
+  assert.equal(agm.agmPlus, true);
 
   const agmSlotFallback = accessFromRosterRow({
     sprocket_player_id: "5",
@@ -38,6 +40,7 @@ test("Activity staff access recognizes franchise staff, AGMs, and captains", () 
     slot: "AGM",
   });
   assert.equal(agmSlotFallback.staff, true);
+  assert.equal(agmSlotFallback.agmPlus, true);
 
   const duplicateIdentity = accessFromRosterRows([
     {
@@ -56,6 +59,7 @@ test("Activity staff access recognizes franchise staff, AGMs, and captains", () 
     },
   ]);
   assert.equal(duplicateIdentity.staff, true);
+  assert.equal(duplicateIdentity.agmPlus, true);
   assert.equal(duplicateIdentity.staffPosition, "Assistant General Manager");
 
   const captain = accessFromRosterRow({
@@ -66,6 +70,7 @@ test("Activity staff access recognizes franchise staff, AGMs, and captains", () 
     slot: "PLAYERA",
   });
   assert.equal(captain.staff, true);
+  assert.equal(captain.agmPlus, false);
 
   const player = accessFromRosterRow({
     sprocket_player_id: "3",
@@ -75,6 +80,7 @@ test("Activity staff access recognizes franchise staff, AGMs, and captains", () 
     slot: "PLAYERB",
   });
   assert.equal(player.staff, false);
+  assert.equal(player.agmPlus, false);
 });
 
 test("division normalization handles public MLE league names", () => {
