@@ -14,9 +14,20 @@ interface AvailabilitySlot {
   state: SlotState;
 }
 
+interface AvailabilityPlayer {
+  sprocket_player_id: string;
+  name: string;
+  division: string | null;
+  slot: string | null;
+  discord_linked?: boolean;
+  editable?: boolean;
+}
+
 interface AvailabilityResponse {
   week_start: string;
   previous_week_start: string;
+  player: AvailabilityPlayer;
+  selectable_players: AvailabilityPlayer[];
   slots: AvailabilitySlot[];
 }
 
@@ -62,6 +73,9 @@ export function mountPersonalAvailabilityPanel(
   windowConfig: AvailabilityWindow,
 ): {load: () => Promise<void>} {
   let weekStart = initialWeek;
+  let selectedPlayerId = "";
+  let currentPlayer: AvailabilityPlayer | null = null;
+  let selectablePlayers: AvailabilityPlayer[] = [];
   let resolution: Resolution = 60;
   let editMode: EditMode = "drag";
   let slots = new Map<string, SlotState>();
@@ -86,13 +100,18 @@ export function mountPersonalAvailabilityPanel(
   };
 
   const updateSaveState = (): void => {
+    const editable = currentPlayer?.editable !== false;
     const button = panel.querySelector<HTMLButtonElement>("#save-availability");
-    if (button) button.disabled = !dirty;
+    if (button) button.disabled = !editable || !dirty;
     const marker = panel.querySelector<HTMLSpanElement>("#dirty-marker");
-    if (marker) marker.textContent = dirty ? "Unsaved changes" : "Saved";
+    if (marker) marker.textContent = editable ? (dirty ? "Unsaved changes" : "Saved") : "Read only";
+    panel.querySelectorAll<HTMLButtonElement>("#copy-previous, #clear-availability").forEach(control => {
+      control.disabled = !editable;
+    });
   };
 
   const applyDisplayCell = (day: number, minute: number, selected: boolean): void => {
+    if (currentPlayer?.editable === false) return;
     for (let offset = 0; offset < resolution; offset += 30) {
       const key = slotKey(day, minute + offset);
       if (selected) slots.set(key, 1);
@@ -136,16 +155,18 @@ export function mountPersonalAvailabilityPanel(
       for (let day = 0; day < 7; day += 1) {
         const selected = displayCellSelected(day, minute);
         const partial = displayCellPartial(day, minute);
+        const editable = currentPlayer?.editable !== false;
         if (editMode === "checkbox") {
-          parts.push(`<label class="availability-cell checkbox-cell ${selected ? "selected" : ""} ${partial ? "partial" : ""}" data-day="${day}" data-minute="${minute}" role="checkbox" aria-checked="${selected}"><input type="checkbox" ${selected ? "checked" : ""} /></label>`);
+          parts.push(`<label class="availability-cell checkbox-cell ${selected ? "selected" : ""} ${partial ? "partial" : ""} ${editable ? "" : "read-only"}" data-day="${day}" data-minute="${minute}" role="checkbox" aria-checked="${selected}"><input type="checkbox" ${selected ? "checked" : ""} ${editable ? "" : "disabled"} /></label>`);
         } else {
-          parts.push(`<button class="availability-cell drag-cell ${selected ? "selected" : ""} ${partial ? "partial" : ""}" data-day="${day}" data-minute="${minute}" role="checkbox" aria-checked="${selected}" aria-label="${dayNames[day]} ${formatTime(minute)}"></button>`);
+          parts.push(`<button class="availability-cell drag-cell ${selected ? "selected" : ""} ${partial ? "partial" : ""} ${editable ? "" : "read-only"}" data-day="${day}" data-minute="${minute}" role="checkbox" aria-checked="${selected}" aria-label="${dayNames[day]} ${formatTime(minute)}" ${editable ? "" : "disabled"}></button>`);
         }
       }
     }
     grid.innerHTML = parts.join("");
 
     grid.querySelectorAll<HTMLElement>(".availability-cell").forEach(cell => {
+      if (currentPlayer?.editable === false) return;
       const day = Number(cell.dataset.day);
       const minute = Number(cell.dataset.minute);
       if (editMode === "checkbox") {
@@ -175,15 +196,56 @@ export function mountPersonalAvailabilityPanel(
 
   const load = async (): Promise<void> => {
     setStatus("Loading availability…");
-    const data = await api<AvailabilityResponse>(`/api/activity/availability?week=${encodeURIComponent(weekStart)}`);
+    const playerQuery = selectedPlayerId ? `&player_id=${encodeURIComponent(selectedPlayerId)}` : "";
+    const data = await api<AvailabilityResponse>(
+      `/api/activity/availability?week=${encodeURIComponent(weekStart)}${playerQuery}`,
+    );
     weekStart = data.week_start;
+    currentPlayer = data.player;
+    selectedPlayerId = data.player.sprocket_player_id;
+    selectablePlayers = data.selectable_players;
     slots = new Map(data.slots.map(slot => [slotKey(slot.day, slot.minute), slot.state]));
     dirty = false;
+
     const label = panel.querySelector("#week-label");
     if (label) label.textContent = formatWeek(weekStart);
+
+    const heading = panel.querySelector<HTMLElement>("#availability-heading");
+    if (heading) heading.textContent = data.player.editable === false ? `${data.player.name} Availability` : "My Availability";
+    const description = panel.querySelector<HTMLElement>("#availability-description");
+    if (description) {
+      description.textContent = data.player.editable === false
+        ? "Read-only view of this player's saved availability for the selected week."
+        : "Noon to midnight, seven days a week. Drag across the grid or switch to checkbox editing.";
+    }
+
+    const control = panel.querySelector<HTMLElement>("#availability-player-control");
+    if (control) {
+      control.innerHTML = selectablePlayers.length > 0
+        ? `<span>Player</span><select id="availability-player-select">${selectablePlayers
+            .slice()
+            .sort((a, b) => (a.division ?? "").localeCompare(b.division ?? "") || a.name.localeCompare(b.name))
+            .map(player => {
+              const suffix = [player.division, player.slot?.replace(/^PLAYER/i, "")].filter(Boolean).join(" · ");
+              return `<option value="${player.sprocket_player_id}" ${player.sprocket_player_id === selectedPlayerId ? "selected" : ""}>${player.name}${suffix ? ` — ${suffix}` : ""}</option>`;
+            }).join("")}</select>`
+        : "";
+      control.querySelector<HTMLSelectElement>("#availability-player-select")?.addEventListener("change", event => {
+        if (dirty && !window.confirm("Discard your unsaved availability changes?")) {
+          (event.target as HTMLSelectElement).value = selectedPlayerId;
+          return;
+        }
+        selectedPlayerId = (event.target as HTMLSelectElement).value;
+        void load().catch(error => setStatus(error instanceof Error ? error.message : String(error), "error"));
+      });
+    }
+
     renderGrid();
     updateSaveState();
-    setStatus("Availability loaded.", "success");
+    setStatus(
+      data.player.editable === false ? `${data.player.name}'s availability loaded.` : "Availability loaded.",
+      "success",
+    );
   };
 
   const changeWeek = async (amount: number): Promise<void> => {
@@ -199,6 +261,7 @@ export function mountPersonalAvailabilityPanel(
   const copyPreviousWeek = async (): Promise<void> => {
     try {
       const previous = shiftWeek(weekStart, -1);
+      if (currentPlayer?.editable === false) return;
       const data = await api<AvailabilityResponse>(`/api/activity/availability?week=${encodeURIComponent(previous)}`);
       slots = new Map(data.slots.map(slot => [slotKey(slot.day, slot.minute), slot.state]));
       dirty = true;
@@ -216,6 +279,7 @@ export function mountPersonalAvailabilityPanel(
   };
 
   const save = async (): Promise<void> => {
+    if (currentPlayer?.editable === false) return;
     try {
       setStatus("Saving availability…");
       const payload = [...slots.entries()].map(([key, state]) => {
@@ -235,9 +299,10 @@ export function mountPersonalAvailabilityPanel(
   };
 
   panel.innerHTML = `
-    <div class="panel-heading"><div><div class="eyebrow">Eastern Time (ET)</div><h2>My Availability</h2><p>Noon to midnight, seven days a week. Drag across the grid or switch to checkbox editing.</p></div>
+    <div class="panel-heading"><div><div class="eyebrow">Eastern Time (ET)</div><h2 id="availability-heading">My Availability</h2><p id="availability-description">Noon to midnight, seven days a week. Drag across the grid or switch to checkbox editing.</p></div>
       <div class="week-picker"><button id="previous-week" class="icon-button" aria-label="Previous week">←</button><div><strong id="week-label">${formatWeek(weekStart)}</strong><span id="dirty-marker">Saved</span></div><button id="next-week" class="icon-button" aria-label="Next week">→</button></div></div>
     <div class="toolbar">
+      <label id="availability-player-control" class="availability-player-control"></label>
       <label>Time blocks<select id="resolution-select"><option value="60">1 hour</option><option value="30">30 minutes</option></select></label>
       <label>Edit style<select id="edit-mode-select"><option value="drag">Drag to select</option><option value="checkbox">Checkboxes</option></select></label>
       <button id="copy-previous" class="secondary-button">Copy Previous Week</button><button id="clear-availability" class="secondary-button">Clear</button><button id="save-availability" class="primary-button" disabled>Save Availability</button>
@@ -257,6 +322,7 @@ export function mountPersonalAvailabilityPanel(
   panel.querySelector("#next-week")?.addEventListener("click", () => void changeWeek(1));
   panel.querySelector("#copy-previous")?.addEventListener("click", () => void copyPreviousWeek());
   panel.querySelector("#clear-availability")?.addEventListener("click", () => {
+    if (currentPlayer?.editable === false) return;
     slots.clear();
     dirty = true;
     renderGrid();
