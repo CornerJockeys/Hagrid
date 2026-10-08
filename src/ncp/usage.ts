@@ -36,7 +36,9 @@ export async function getNcpUsageAdjustments(
   const result = await db.prepare(
     `SELECT division, mode, slots_json
      FROM ncp_records
-     WHERE LOWER(franchise_name) = LOWER(?) AND season_number = ?
+     WHERE LOWER(franchise_name) = LOWER(?)
+       AND season_number = ?
+       AND status = 'approved'
      ORDER BY id`,
   ).bind(franchiseName, seasonNumber).all<NcpRecordRow>();
 
