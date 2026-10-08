@@ -5,6 +5,7 @@ import {
   getLeagueSnapshotInfo,
   getLeagueTeamPlayers,
   getTeamRoleUsage,
+  getTeamScrimStats,
   resolveLeagueTeam,
   searchLeagueTeams,
   type LeaguePlayerRow,
@@ -26,9 +27,8 @@ import {CURRENT_MLE_SEASON} from "../season-policy";
 import {getFranchises, resolveFranchise} from "../sprocket/franchises";
 import {getFranchisePlayers} from "../sprocket/players";
 import {getFranchiseRoleUsagesForSeason} from "../sprocket/role-usages";
-import {getScoutingStatLines} from "../sprocket/scouting";
 import {getEligibilityEvents, getLeagueEligibilityRules} from "../sprocket/eligibility-data";
-import {leaguePlayerFromFranchise, leagueScrimFromSource, leagueUsageFromSource, latestSourceTimestamp, safeCommandError} from "./live-data";
+import {leaguePlayerFromFranchise, leagueUsageFromSource, latestSourceTimestamp, safeCommandError} from "./live-data";
 import type {DiscordInteraction, Env, ExecutionContextLike} from "../types";
 
 const DIVISIONS = new Set<TeamDivision>(["FL", "AL", "CL", "ML"]);
@@ -185,51 +185,103 @@ async function fetchAndRespond(
   includeScrims: boolean,
 ): Promise<void> {
   try {
-    const resolution = await resolveFranchise(env, requestedTeam);
-    const team = resolution.match;
-    if (!team) {
-      const hint = resolution.suggestions.length > 0
-        ? ` Try: ${resolution.suggestions.map(value => value.name).join(", ")}.`
-        : "";
-      await editOriginalInteraction(interaction, `I couldn't resolve that team.${hint}`);
-      return;
+    const [cachedTeam, snapshot] = await Promise.all([
+      resolveLeagueTeam(env.DB, requestedTeam),
+      getLeagueSnapshotInfo(env.DB),
+    ]);
+
+    let teamName = cachedTeam?.franchise_name ?? "";
+    let teamCode = cachedTeam?.franchise_code ?? null;
+
+    if (!teamName) {
+      const resolution = await resolveFranchise(env, requestedTeam);
+      if (!resolution.match) {
+        const hint = resolution.suggestions.length > 0
+          ? ` Try: ${resolution.suggestions.map(value => value.name).join(", ")}.`
+          : "";
+        await editOriginalInteraction(interaction, `I couldn't resolve that team.${hint}`);
+        return;
+      }
+      teamName = resolution.match.name;
+      teamCode = resolution.match.code;
     }
 
-    const [sourcePlayers, sourceUsages, sourceScrims, eligibilityEvents, eligibilityRules] = await Promise.all([
-      getFranchisePlayers(env, team.name),
-      getFranchiseRoleUsagesForSeason(env, team.name, CURRENT_MLE_SEASON),
-      includeScrims ? getScoutingStatLines(env) : Promise.resolve([]),
+    const canUseSnapshot = Boolean(snapshot && snapshot.player_count > 0);
+    let players: LeaguePlayerRow[];
+    let usages: LeagueUsageRow[];
+    let sourceAsOf: string | null;
+    let refreshedAt: string | null;
+    const scrimStats = new Map<string, LeagueScrimStatRow[]>();
+
+    if (canUseSnapshot) {
+      const [cachedPlayers, cachedUsages, cachedScrims] = await Promise.all([
+        getLeagueTeamPlayers(env.DB, teamName),
+        getTeamRoleUsage(env.DB, teamName, CURRENT_MLE_SEASON),
+        includeScrims ? getTeamScrimStats(env.DB, teamName) : Promise.resolve([]),
+      ]);
+      players = cachedPlayers;
+      usages = cachedUsages;
+      sourceAsOf = snapshot?.source_as_of ?? null;
+      refreshedAt = snapshot?.refreshed_at ?? null;
+
+      if (includeScrims) {
+        for (const stat of cachedScrims) {
+          const rows = scrimStats.get(stat.sprocket_player_id) ?? [];
+          rows.push(stat);
+          scrimStats.set(stat.sprocket_player_id, rows);
+        }
+      }
+    } else {
+      const [sourcePlayers, sourceUsages] = await Promise.all([
+        getFranchisePlayers(env, teamName),
+        getFranchiseRoleUsagesForSeason(env, teamName, CURRENT_MLE_SEASON),
+      ]);
+      players = sourcePlayers.map(leaguePlayerFromFranchise);
+      usages = sourceUsages.map(leagueUsageFromSource);
+      sourceAsOf = latestSourceTimestamp([
+        ...sourcePlayers.map(player => player.sourceAsOf),
+        ...sourceUsages.map(usage => usage.sourceAsOf),
+      ]);
+      refreshedAt = null;
+    }
+
+    if (players.length === 0) {
+      const sourcePlayers = await getFranchisePlayers(env, teamName);
+      players = sourcePlayers.map(leaguePlayerFromFranchise);
+      sourceAsOf = latestSourceTimestamp(sourcePlayers.map(player => player.sourceAsOf));
+      refreshedAt = null;
+    }
+
+    const [eligibilityEvents, eligibilityRules] = await Promise.all([
       getEligibilityEvents(env),
       getLeagueEligibilityRules(env),
     ]);
-    const players = sourcePlayers.map(leaguePlayerFromFranchise);
-    const usages = sourceUsages.map(leagueUsageFromSource);
-    const playerIds = new Set(players.map(player => player.sprocket_player_id));
-    const scrimStats = new Map<string, LeagueScrimStatRow[]>();
-    if (includeScrims) {
-      for (const stat of sourceScrims.filter(value => playerIds.has(value.sprocketPlayerId)).map(leagueScrimFromSource)) {
-        const rows = scrimStats.get(stat.sprocket_player_id) ?? [];
-        rows.push(stat);
-        scrimStats.set(stat.sprocket_player_id, rows);
-      }
+
+    const eventsByPlayer = new Map<string, typeof eligibilityEvents>();
+    for (const event of eligibilityEvents) {
+      const rows = eventsByPlayer.get(event.playerId) ?? [];
+      rows.push(event);
+      eventsByPlayer.set(event.playerId, rows);
     }
+
     const nextWeek = new Map<string, NextWeekProjection>();
     const today = easternCalendarDate();
-    for (const player of sourcePlayers) {
-      const playerDivision = teamDivision(player.skillGroup);
+    const currentWeek = currentLeagueWeekStart();
+    for (const player of players) {
+      const playerDivision = teamDivision(player.skill_group);
       if (!playerDivision) continue;
       const rule = eligibilityRules.find(value =>
         value.leagueCode.toLocaleUpperCase("en-US") === playerDivision,
       );
       if (!rule) continue;
       const decay = buildEligibilityDecay(
-        eligibilityEvents.filter(event => event.playerId === player.sprocketPlayerId),
+        eventsByPlayer.get(player.sprocket_player_id) ?? [],
         rule.requirement,
         today,
       );
-      const nextMonday = decay.find(point => point.isMonday && point.date > currentLeagueWeekStart());
+      const nextMonday = decay.find(point => point.isMonday && point.date > currentWeek);
       if (nextMonday) {
-        nextWeek.set(player.sprocketPlayerId, {
+        nextWeek.set(player.sprocket_player_id, {
           points: nextMonday.points,
           requirement: rule.requirement,
           eligible: nextMonday.eligible,
@@ -237,20 +289,15 @@ async function fetchAndRespond(
       }
     }
 
-    const sourceAsOf = latestSourceTimestamp([
-      ...sourcePlayers.map(player => player.sourceAsOf),
-      ...sourceUsages.map(usage => usage.sourceAsOf),
-    ]);
-
     const content = teamContent(
-      team.name,
-      team.code,
+      teamName,
+      teamCode,
       players,
       usages,
       division,
       usages.length,
       sourceAsOf,
-      null,
+      refreshedAt,
       scrimStats,
       includeScrims,
       nextWeek,
