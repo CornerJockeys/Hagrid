@@ -516,7 +516,7 @@ async function postUsageReminder(
   }
 
   const [players, usages] = await Promise.all([
-    getFranchisePlayers(env, config.franchise_name),
+    currentFranchisePlayers(env, config.franchise_name),
     currentFranchiseUsage(env, config.franchise_name),
   ]);
   const snapshot: UsageReminderSnapshot = {players, usages};
@@ -548,7 +548,7 @@ async function postEligibilityReminder(
   }
 
   const [players, events, rules] = await Promise.all([
-    getFranchisePlayers(env, config.franchise_name),
+    currentFranchisePlayers(env, config.franchise_name),
     getEligibilityEvents(env),
     getLeagueEligibilityRules(env),
   ]);
