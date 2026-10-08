@@ -242,11 +242,16 @@ export function mountEligibilityPanel(
 
     const statusClass = data.current_week_eligible ? "eligible" : "ineligible";
     const statusText = data.current_week_eligible ? "Eligible" : "Not eligible";
-    const mismatch = data.current_week_eligible !== data.source_week_eligible
+    const mismatch = data.detail_error === null &&
+      data.current_week_eligible !== data.source_week_eligible
       ? `<div class="eligibility-note warning">The raw point decay and Sprocket's current <strong>Eligible Through</strong> field do not agree for this week. Hagrid is showing the weekly locked decay calculation in the chart.</div>`
       : "";
-    const pointsMismatch = data.calculated_current_points !== data.player.current_scrim_points
+    const pointsMismatch = data.calculated_current_points !== null &&
+      data.calculated_current_points !== data.player.current_scrim_points
       ? `<div class="eligibility-note warning">The event ledger currently totals ${data.calculated_current_points} points for today while the player feed reports ${data.player.current_scrim_points}. The two publications may be between refreshes.</div>`
+      : "";
+    const detailWarning = data.detail_error
+      ? `<div class="eligibility-note warning">${escapeHtml(data.detail_error)}</div>`
       : "";
 
     output.innerHTML = `
