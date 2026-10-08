@@ -74,6 +74,8 @@ select, input[type="text"], input[type="search"], input[type="number"] {
 }
 select:focus, input:focus { border-color: #7b838f; }
 .toolbar .primary-button { margin-left: auto; }
+.availability-toolbar { align-items: flex-end; }
+.availability-toolbar > button { min-height: 36px; }
 .grid-help { gap: 7px; color: #bec3ca; font-size: 12px; margin: 4px 0 10px; }
 .grid-help .muted { color: #7e8590; margin-left: 8px; }
 .legend-swatch { width: 13px; height: 13px; border-radius: 3px; background: #7f91aa; border: 1px solid #aab6c6; }
