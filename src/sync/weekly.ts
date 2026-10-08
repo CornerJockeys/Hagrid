@@ -1,4 +1,4 @@
-import {getGuildConfig} from "../db";
+import {getCachedGuildConfig} from "../config-cache";
 import {CURRENT_MLE_SEASON} from "../season-policy";
 import {getFranchisePlayers, type FranchisePlayer} from "../sprocket/players";
 import {getFranchiseRoleUsagesForSeason, type RoleUsage} from "../sprocket/role-usages";
@@ -292,7 +292,7 @@ export async function runFranchiseSync(
   trigger: SyncTrigger,
   triggeredBy: string | null = null,
 ): Promise<SyncSummary> {
-  const config = await getGuildConfig(env.DB, guildId);
+  const config = await getCachedGuildConfig(env, guildId);
   if (!config) {
     throw new Error("No franchise is configured for this Discord server.");
   }
