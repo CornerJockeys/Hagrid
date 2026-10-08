@@ -174,7 +174,7 @@ function shell(): {loadPersonal: (() => Promise<void>) | null} {
           panel,
           api,
           setStatus,
-          Boolean(context?.access.staff),
+          Boolean(context?.access.captain_plus),
           context?.access.player_id ?? null,
         );
         eligibilityMounted = true;

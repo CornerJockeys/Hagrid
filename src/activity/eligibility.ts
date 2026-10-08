@@ -13,9 +13,10 @@ import {
   getEligibilityEvents,
   getLeagueEligibilityRules,
 } from "../sprocket/eligibility-data";
-import {getFranchisePlayers, type FranchisePlayer} from "../sprocket/players";
+import type {FranchisePlayer} from "../sprocket/players";
 import type {Env} from "../types";
 import {getActivityAccess} from "./access";
+import {getCurrentCompetitiveFranchiseRoster} from "./roster";
 import {authenticateActivityRequest, isAuthResponse} from "./auth";
 
 function rosterShape(player: FranchisePlayer): AvailabilityRosterPlayer {
@@ -64,13 +65,12 @@ export async function getActivityEligibility(request: Request, env: Env): Promis
   if (requested && !/^\d{1,20}$/.test(requested)) {
     return Response.json({error: "player_id must be a valid Sprocket player ID."}, {status: 400});
   }
-  if (requested && requested !== access.playerId && !access.staff) {
+  if (requested && requested !== access.playerId && !access.captainPlus) {
     return Response.json({error: "Players can only view their own eligibility tracker."}, {status: 403});
   }
 
-  const [players, events, rules] = await Promise.all([
-    getFranchisePlayers(env, config.franchise_name),
-    getEligibilityEvents(env),
+  const [players, rules] = await Promise.all([
+    getCurrentCompetitiveFranchiseRoster(env, auth.guildId),
     getLeagueEligibilityRules(env),
   ]);
 
@@ -83,7 +83,7 @@ export async function getActivityEligibility(request: Request, env: Env): Promis
     );
 
   let playerId = requested || access.playerId || "";
-  if (access.staff && !requested && !competitive.some(value => value.player.sprocketPlayerId === playerId)) {
+  if (access.captainPlus && !requested && !competitive.some(value => value.player.sprocketPlayerId === playerId)) {
     playerId = competitive[0]?.player.sprocketPlayerId ?? playerId;
   }
 
@@ -102,7 +102,7 @@ export async function getActivityEligibility(request: Request, env: Env): Promis
     return Response.json({error: "Hagrid could not find the eligibility requirement for this player's division."}, {status: 502});
   }
 
-  const playerEvents = events.filter(event => event.playerId === player.sprocketPlayerId);
+  const playerEvents = await getEligibilityEvents(env, player.sprocketPlayerId);
   const today = easternCalendarDate();
   const weekStart = currentLeagueWeekStart();
   const decay = buildEligibilityDecay(playerEvents, rule.requirement, today);
@@ -118,7 +118,7 @@ export async function getActivityEligibility(request: Request, env: Env): Promis
     calculated_current_points: todayPoint?.points ?? 0,
     event_count: playerEvents.length,
     decay,
-    selectable_players: access.staff
+    selectable_players: access.captainPlus
       ? competitive.map(value => ({
           sprocket_player_id: value.player.sprocketPlayerId,
           name: value.player.name,

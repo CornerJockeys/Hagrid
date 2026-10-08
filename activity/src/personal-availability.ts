@@ -62,6 +62,7 @@ export function mountPersonalAvailabilityPanel(
   windowConfig: AvailabilityWindow,
 ): {load: () => Promise<void>} {
   let weekStart = initialWeek;
+  let followsCurrentWeek = true;
   let resolution: Resolution = 60;
   let editMode: EditMode = "drag";
   let slots = new Map<string, SlotState>();
@@ -175,7 +176,8 @@ export function mountPersonalAvailabilityPanel(
 
   const load = async (): Promise<void> => {
     setStatus("Loading availability…");
-    const data = await api<AvailabilityResponse>(`/api/activity/availability?week=${encodeURIComponent(weekStart)}`);
+    const query = followsCurrentWeek ? "" : `?week=${encodeURIComponent(weekStart)}`;
+    const data = await api<AvailabilityResponse>(`/api/activity/availability${query}`);
     weekStart = data.week_start;
     slots = new Map(data.slots.map(slot => [slotKey(slot.day, slot.minute), slot.state]));
     dirty = false;
@@ -189,6 +191,7 @@ export function mountPersonalAvailabilityPanel(
   const changeWeek = async (amount: number): Promise<void> => {
     if (dirty && !window.confirm("Discard your unsaved availability changes?")) return;
     weekStart = shiftWeek(weekStart, amount);
+    followsCurrentWeek = false;
     try {
       await load();
     } catch (error) {
@@ -271,6 +274,11 @@ export function mountPersonalAvailabilityPanel(
   window.addEventListener("pointercancel", () => {
     dragging = false;
     lastPaintedKey = "";
+  });
+  window.addEventListener("focus", () => {
+    if (followsCurrentWeek && !dirty) {
+      void load().catch(error => setStatus(error instanceof Error ? error.message : String(error), "error"));
+    }
   });
 
   renderGrid();

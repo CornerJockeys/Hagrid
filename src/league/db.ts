@@ -231,6 +231,23 @@ export async function getTeamRoleUsage(
   return result.results;
 }
 
+export async function getTeamScrimStats(
+  db: D1Database,
+  franchiseName: string,
+): Promise<LeagueScrimStatRow[]> {
+  const result = await db.prepare(
+    `SELECT s.sprocket_player_id, s.mode, s.league, s.games, s.win_pct, s.score,
+            s.sprocket, s.dpi, s.opi, s.goals, s.assists, s.saves, s.shots, s.demos,
+            s.refreshed_at
+     FROM league_scrim_stats_current s
+     INNER JOIN league_players_current p
+       ON p.sprocket_player_id = s.sprocket_player_id
+     WHERE LOWER(p.franchise_name) = LOWER(?)
+     ORDER BY p.skill_group COLLATE NOCASE, p.slot COLLATE NOCASE, s.mode`,
+  ).bind(franchiseName).all<LeagueScrimStatRow>();
+  return result.results;
+}
+
 export async function getPlayerScrimStats(
   db: D1Database,
   sprocketPlayerId: string,
