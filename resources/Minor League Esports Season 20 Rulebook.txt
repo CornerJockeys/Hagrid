@@ -1,0 +1,1167 @@
+﻿Minor League Esports - Rocket League
+Minor League Esports
+League Operations Rulebook
+Rocket League
+Minor League Esports (hereby referred to as MLE) is a gaming community for non-professional players who want to compete in a fun, friendly, professional-style league, free of the toxicity common in regular online play. This rulebook defines the league structure by which MLE operates for players of Rocket League. For community conduct guidelines, please see the Community Handbook channel found on the MLE Discord server.
+League Operations reserves the right to make rulings on a case-by-case basis to protect the competitive integrity of the league.
+________________
+Use the Outline to the left for ease of navigation. All sections named here are linked in the Outline.
+Terms that are bolded and blue are linked to the Glossary for further definition.
+
+
+Table of Contents
+1. League Structure and Format   
+* Leagues
+* Seasons and Fixtures
+* Playoff Qualifications
+* Playoff Tiebreakers
+* Draft/Waivers Tiebreakers
+
+
+2. Salary
+* Player Salary
+* Team Salary
+
+
+3. Players
+* Eligibility
+* Free Agents
+* Active Roster
+* Inactive Roster
+* Rank Outs
+* Manual Rank Ups
+* Rank Downs
+
+
+4. Franchises
+* Managers
+* Rosters
+
+
+5. Transactions
+* General
+* Waivers
+* Trading
+	6. Series
+* General
+* Scheduling
+* Once Underway
+* NCP Claims
+* Proof of Results
+
+
+7. Playoffs
+* Playoff Specific Rules
+* Additional Rules
+
+
+8. Offseason
+* General
+* Draft
+
+
+9. LO Points
+* General
+
+
+10. Glossary
+* Deadlines
+* Terms
+
+
+11. Tables
+
+
+	1. League Structure and Format
+Leagues
+1. MLE operates multiple leagues of play, each for a different tier of skill. These leagues are independent of each other, connected only by the franchises to which their teams belong, and the structure by which they abide.
+   1. Due to player base restrictions, some leagues may have differences in structure compared to the standard. Those differences are explicitly stated as such when defined in this rule book.
+
+
+2. MLE leagues feature fixtures in two game modes: Doubles and Standard.
+
+
+3. MLE operates 5 leagues of play. This number is subject to change each offseason as demand changes. From lowest skill tier to highest skill tier, these leagues are named as follows
+   1. Foundation League (hereby referred to as FL)
+   2. Academy League (hereby referred to as AL)
+   3. Champion League (hereby referred to as CL)
+   4. Master League (hereby referred to as ML)
+   5. Premier League (hereby referred to as PL)
+
+
+4. Leagues operate with 32 or 16 teams based on the size of the player base at the end of the intent period each offseason.
+   1. 32 teams — these leagues split their teams into two conferences of 16 each. Each conference is then divided into 4 divisions of 4 teams each. Divisions within the same conference are paired together to create a super-division, super-divisions are made up of 2 divisions.
+      1. See Table 1.1 for a visual aid.
+   2. 16 teams — these leagues split their teams into two conferences of 8 each. Each conference is then divided into 2 divisions of 4 teams each.
+      1. Out of 32 teams, 16 franchises are assigned Foundation League and 16 franchises are assigned Premier League.
+         1. See Table 1.2 for a visual aid of league assignments. 
+Seasons and Fixtures
+5. Regular seasons are at least 10 weeks in length. Fixtures take place during these weeks, known as Match Weeks, with any additional bye weeks placed such that they best alleviate any major conflicts with holidays or significant events. Any rule referring generally to a “week” applies to a calendar week. Any rule referring to a period of time that references Match Weeks does not “count down” when it crosses through a bye week.
+
+
+6. 32-team and 16-team leagues each play 10 fixtures. Opponents are determined as follows.
+   1. 1 fixture versus each intra-super-divisional team (7 fixtures)
+   2. 1 additional fixture versus each intra-divisional team (3 fixtures for a total of 6 fixtures vs intra-divisional teams)
+Playoff Qualifications
+7. 32-team leagues each send 16 teams to the playoffs, 8 from each conference. Each conference sends the following teams.
+   1. The division winners
+   2. The 2 next best teams by record from each super-division set.
+   3. Teams from 1.7.1 are seeded 1-2 within their Super-Division, and the teams from 1.7.2 are seeded 3-4 within their Super-Division.
+   4. See Table 1.3 for a visual aid.
+
+
+8. 16-team leagues each send 8 teams to the playoffs. Each conference sends the following teams.
+   1. The division winners.
+   2. The 2 next best teams by record
+   3. Teams from 1.8.1 are seeded 1-2, and the teams from 1.8.2 are seeded 3-4.
+   4. See Table 1.4 for a visual aid.
+
+
+Playoff Tiebreakers 
+9. Teams are ranked by games won. Division standings are calculated first to determine division winners, followed by Super-Division standings. If at any point during the tie-breaking procedure a team is eliminated from the tie, the procedure is restarted from the top with only the remaining teams, until a single team remains. This procedure repeats until all team standings are decided. The full tie breaking procedure is as follows.
+If multiple teams from the same division are involved in a tie in the Super-Division standings with the other division, the highest ranked team from each division in the tie will be compared first. The team that loses the tie will then compare against the next highest team in the tie from the other division. This procedure repeats itself until all standings are decided
+
+
+   5. Series won percentage.
+   6. Head to head games won percentage, if only two teams are tied. In the event more than 2 teams are tied, the following is observed first: 
+      1. The head-to-head calculation will consider head to head between all combinations of teams, if any team wins all head to heads, they advance.
+      2. If any team loses all head-to-head combinations aforementioned, they will be eliminated from the tiebreaker. 
+      3. Both of these rules are to be observed at the same time.
+   7. Overall games won percentage.
+   8. Division games won percentage, if all tied teams share a division.
+   9. Goal differential.
+      1. If the tiebreaker determines a playoff berth, then instead of goal differential, a Best of Five is to be played instead.
+      2. If a Best of Five is required with more than two teams remaining in the tie, lots will be drawn to determine which teams play first, with the winner playing the remaining teams.
+   10. Goals for.
+
+
+Draft/Waivers Tiebreakers
+10. Teams are ranked by combined games won/lost with the best placing team being placed later in the draft/lottery/waivers. There is no evaluating division or conference standings first. If at any point during the tie-breaking procedure a team is eliminated from the tie, the procedure is restarted from the top with only the remaining teams, until a single team remains. This procedure repeats until all team standings are decided. The full tie breaking procedure is as follows.
+   1. Combined overall games won percentage.
+   2. Combined series won percentage.
+   3. Combined goal differential.
+   4. Combined goals for.
+   5. If teams are still tied after this point, we will look at just one mode. It will be evaluated based on the team’s best mode in the tie breaking stat.
+      1. Single mode overall game won percentage.
+      2. Single mode series won percentage.
+      3. Single mode goal differential.
+      4. Single mode goals for.
+2. Salary
+Player Salary
+1. Salary is the metric by which League Operations balances teams. Every player is assigned a salary, which is derived from their Elo.
+   1. Elo is a hidden value, which is calculated based on a player’s performance in MLE league play and eligibility scrims. At its most basic, Elo simulates Rocket League’s in-game MMR. A player’s Elo will increase when they win and decrease when they lose, with weighting proportional to your contribution.
+
+
+2. Salary will be representative of a player’s Elo data points during a rolling 2-week period, meaning that at any given time, a player’s salary represents their Elo data points from the past 2 weeks.
+
+
+3. League Operations reserves the right to manually adjust a player’s salary or league placement in situations where League Operations deems a player’s salary to be unfair for one reason or another. Such reasons may include, but are not limited to, the following.
+   1. Exceptional discrepancy between a player’s MMR and MLE salary.
+   2. Very few games played over the course of a competitive season.
+   3. Extreme or unexpected results in league play.
+   4. Deliberately not playing to ensure rank does not rise.
+   5. Deliberately losing to lower ranks.
+
+
+Team Salary
+4. All leagues have a salary cap, which teams may not exceed when making transactions with their active roster. Salary caps are adjusted each offseason to best suit the salary distribution found in each league.
+   1. See Table 1.5 for a list of current Salary Caps.
+
+
+5. Team Salary is calculated as the sum of the salaries of the five highest salaries on the roster. Any remaining players on the team beyond the highest five salaried players are not factored in the Team Salary calculation. 
+   1. If a team has fewer than 5 Active Roster players, their Team Salary shall be defined as the sum of the remaining rostered players’ salaries 
+   2. If any Active Roster slot has no player history and the slot is required for the Team Salary calculation, the remaining slots required for the Team Salary calculation are defined as the difference between the current Average Salary Cap and the sum of the currently rostered players, distributed evenly across any vacant slots.
+
+
+6. Salary Cap restrictions apply only when making changes to a team’s active roster.
+   1. No transactions may cause the Team Salary to exceed the Salary Cap.
+   2. If a situation exists where a team would be unable to sign a player in accordance with Salary Cap restrictions, then League Operations will assess the situation and provide the team with options to move forward. This assessment is made on a case-by-case basis. 
+3. Players
+Eligibility
+1. A player must satisfy all of the following rules simultaneously in order to maintain their eligible status. Eligible status is required for a number of mechanisms in this rulebook, each of which will explicitly state as such at their definition.
+   1. Players must not be a player for any team that falls under the qualifications for a professional team, defined as follows. This rule is subject to change as more information regarding RLCS Splits are made available. MLE League Operations reserves the right to review the Professional or Non Professional status if the players meet any of these conditions: 
+      1. Has accumulated 2 Points in any individual RLCS Split
+      2. Has earnings above $1000 from Psyonix-ran tournament play in the previous RLCS season.
+   2. Must have 30 or more scrim points on the Monday of the Match Week, or at any time before the beginning of the series.
+      1. Premier League players must have 15 or more scrim points to meet any eligibility requirements.
+2. Eligibility points are granted for complete, competitive Scrims. League Operations reserves the right to manually adjust a player's scrim points for technical or administrative reasons.
+   1. Valid competitive scrims must meet criteria listed below:
+      1. Gamemodes: 2v2, 3v3
+         1. Must be the correct number of players for the gamemode
+      2. Standard Arenas
+      3. No mutators
+      4. All players belong to the same league
+      5. Same players are present for every match
+      6. All matches are played
+   2. "LFS-style" scrims (Franchise vs. Franchise scrims normally organized via the LFS-Official channel in the MLE RL Operations server) may be submitted to Sprocket as a valid competitive scrim as long as they follow 3.2.1.1 through 3.2.1.6 above, 3.2.2.1, and 3.3.2 below. This scrim type may also be used for tryouts.
+      1. LFS scrims must be submitted with a minimum of 5 games played and will be worth 3 scrim points per completed scrim regardless of how many games above 5 are played.
+3. Single franchise scrims are not permitted. Competitive scrims may not include players from only the same franchise. In the event of an incidental one-franchise-only scrim, players must contact Sprocket to cancel.
+   1. Completing a single franchise competitive scrim will be considered deliberate misuse of the scrim system. 
+   2. LFS scrims must be between separate franchises. A single-franchise scrim between teammates is not a valid competitive scrim and cannot be submitted to Sprocket.
+
+
+Free Agents
+4. Any MLE community member may apply for Free Agent status.
+   1. All applicants must be ranked in Doubles and Standard.
+   2. All applicants must submit all trackers separately.
+   3. All applicants must show a clear history of rank progression.
+   4. New applicants must have completed a minimum of 250 combined ranked matches across Doubles and Standard from the most recent 6 seasons.
+   5. Returning applicants will be placed back into the league from which they left if it is within 6 months from when they left. If it has been more than 6 months, they will be placed using their MMR. 
+      1. Returning applicants must go through the FA Registration process. A returning applicant must be currently assigned as a former player. Non-playing staff returning to play are not considered returning applicants. 
+   6. Applicants who are processed by LO will receive Pending Free Agent status, denoted as PEND
+      1. Upon earning 30 or more scrim points, a player will be moved to Waivers, denoted as WW
+      2. During the pre-season, the player will be moved from Waivers to Free Agency prior to the draft lock.
+   7. Players who have established a pattern of leaving the league for any reason through a complete cycle of preseason, regular season, and post season may incur RFA status for the remainder of the season as a result of leaving the server. Players who continue to leave the league may see further disciplinary action, which may include removal from Minor League Esports.
+
+
+5. If accepted, new players are assigned to a league based on their peak MMR between Doubles and Standard. Other competitive playlists are not considered when assigning leagues. This placement is then fine-tuned via placement scrims, utilizing the MLE scrim bot.
+   1. See Table 1.7 for a breakdown of rank to league distribution.
+   2. Each offseason, League Operations reviews past data to determine the cutoff point for historical peak MMR data. Currently, League Operations utilizes peak MMRs from the previous year. 
+   3. While MMR data is not directly tied to salary, League Operations reserves the right to track peak MMR data once daily. This is done to track extreme outliers in order to check for discrepancy between a player’s MMR and MLE salary.
+
+
+Active Roster
+6. In order to be eligible for any series, a player must be slotted into the Active Roster of their team or have a valid transaction posted, as well as meet all eligibility requirements prior to the scheduled series time.
+      1. Players will be assigned to the first available active roster slot with remaining plays.
+
+
+7. Any Active Roster player who is removed from their slot must pass through Waivers.
+   1. Any player who is AGM+, and is moving from a Playing to a Non-Playing status, will not pass through waivers, and will instead remain on their franchise as Non-Playing (see 4.5 for more details on non-playing.)
+   2. Some mechanisms in this rulebook may force a player to bypass Waivers when removed from their slot. These instances are explicitly stated as such, at the time of definition.
+
+
+Inactive Roster
+8. Inactive Roster players maintain their status as members of a team, but are not eligible to play in series.
+
+
+9. Players on an Inactive Roster are eligible for transactions.
+
+
+10. Franchises are not allowed to designate players as Inactive Roster players. Rather, when an action would result in a player becoming an Inactive Roster player, it is specified explicitly in this rule book.
+Rank Outs
+11. Rank outs are determined by Elo. A player’s Elo increasing past the maximum threshold of a league will force a rank up. A player’s Elo decreasing under the minimum threshold will allow the player to choose to rank down.
+
+
+12. Rank outs will be processed on Mondays of each week, whenever roster lock is not in effect.
+
+
+13. Automated Rank outs will stop after rank outs of Match Week 10.
+   1. League Operations reserves the right to rank out any player, at any time, to uphold competitive integrity. This includes during roster lock periods and the postseason.
+Manual Rank Ups 
+14. Players may elect to rank up on their own. To do so, players must request a manual rank up from League Operations through the Staff Mailbox. Players must satisfy the following to qualify for a manual rank up.
+   1. Players must be at the top possible salary within their league.
+   2. Players must have at least 30 scrim points at time of request.
+   3. Players may only be granted a manual rank up within 24 hours of salaries updating.
+   4. Players who request and are granted a Manual Rank up are ineligible for playoffs in all leagues lower than the one they rank out to, unless they meet the criteria listed in 3.18.3, 3.18.3.1, and 3.18.3.2.
+   5. If a player is on a Team, the GM of that Franchise will be notified of the rank up.
+   6. PL players have additional considerations for when they can be ranked out. PL players can only be ranked out during the offseason, and therefore cannot be ranked out during the season. 
+
+
+15. Players who rank up are placed on the Inactive Roster of their franchise’s next-up league.
+
+
+Rank Downs
+16. When a player is eligible to rank down, they will be offered the choice by Sprocket to do so. When a player chooses not to rank down, their salary will not drop below the minimum salary of the League that they are in.
+   1. Manual rank down offers can only be accepted 24 hours after the offer is presented.
+   2. Should a player rank down, they are not eligible for a manual rank up for 6 months from the date of the rank down. Players are still eligible to rank up through the Elo system. 
+
+
+17. When a player's Elo data falls below a threshold determined by League Operations, they player will be force ranked down into the league below their current one. These players are not eligible for a manual rank up for 6 months from the date of the rank down. 
+
+
+18. Rostered players who rank down will pass through Waivers in the lower league. If unclaimed, the GM may request through the mailbox that the player goes to the Inactive Roster of their franchise.
+   1. Players in the AGM, GM, or FM position will not be placed on Waivers when ranking down. They will receive a minimum 2 week Restricted Free Agent status that lasts at least until Match Week 4.
+   2. Players who choose to rank down prior to Match Week 1 will not be placed on Waivers, and instead will go straight to the Inactive Roster of their franchise's next-down league, or Free Agency if that is not an option.
+   3. Players who rank down after draft lock will not be eligible to play in the playoffs for their new league, unless they complete the following before eligibility lock.
+      1. The player plays in at least 20 regular season games in their new league. If a game gets NCP’d for any reason, it will not count towards the 20 game requirement.
+      2. The player earns 30 scrim points in their new league.
+4. Franchises
+Managers
+1. Managers are responsible for ensuring their franchise is operating properly throughout each season. Defined in this section is a number of responsibilities each manager is expected to maintain. Ultimately, the way these responsibilities are delegated throughout a franchise is up to the Franchise Manager, however when contact is necessary, League Operations will reach out to the position under which the relative responsibility is listed here in this section.
+   1. In order to be eligible for franchise staff appointment of any kind, the appointee must have fewer than 3 points according to the MLE Moderation Team’s guidelines and fewer than 3 League Operations points.
+
+
+2. MLE Franchises are led by a Franchise Manager (hereby referred to as FM). FMs have a number of responsibilities in MLE, many of which do not relate directly to League Operations. In this rule book, only the League Operations aspect of the FM position will be covered.
+   1. FMs must appoint General Managers for each game in which their franchise participates.
+      1. Appointed General Managers must be approved by LO.
+   2. FMs must ensure their GMs are properly supported in running their game, whether that is by more appointments at other positions, supporting the GM themselves, or other means.
+   3. FMs must ensure that all members of their franchise are abiding by MLE league rules and conduct policies.
+   4. Players are encouraged to reach out to their FM before escalating to the MLE Mailbox, once other options have been exhausted. This is not a punishable rule, just provided as a general guideline for support within each franchise.
+
+
+3. While FMs are the head of any given franchise, General Managers (hereby referred to as GMs) will remain the primary point of contact between League Operations and a franchise.
+   1. GMs must ensure they are properly relaying information from League Operations to their players, and vice versa.
+   2. GMs must ensure their franchise’s series are scheduled by the Scheduling Deadline.
+   3. GMs must ensure their franchise’s series results are reported by the New Week Deadline.
+   4. GMs must ensure their franchise is fielding legal teams for their series throughout the season.
+   5. GMs must ensure they submit any reports for an NCP and lineups used for the NCP via the staff mailbox within 24 Hours after the New Week Deadline of the following week. Failing to do so means that LO will use the first available slots for uses.
+      1. A slot is available to be used if they satisfy all of the following.
+         1. A player is assigned to the slot.
+         2. The player in the slot is not suspended.
+         3. The slot has usages available in the corresponding mode.
+
+
+4. FMs and GMs may appoint additional support to their franchise, in the form of Assistant General Managers (hereby referred to as AGMs), and Captains.
+   1. AGMs and Captains may have responsibilities delegated to them as FMs and GMs see fit, and report directly to their FMs and GMs. League Operations will be in contact with GMs when contact is necessary.
+   2. Franchises may appoint up to 2 AGMs total.
+   3. Franchises may appoint up to 1 Captain per league in which the franchise participates (FL, AL, etc.). However, Captains are not officially tied to any specific league, and are instead captains within their franchise.
+   4. FMs will have access to their franchise’s official X (formerly Twitter) account. Additionally, FMs may appoint up to 2 other members of their franchise as Public Relations Support (hereby referred to as PRS). All PRS will also be given access to their franchise’s official X account.
+
+
+5. All Franchise Staff positions are eligible to be non-playing, and may be filled by either current franchise members or a player who is not already on the roster. Any player filling a position in this manner will remain non-playing for the entire season that they moved to Non-Playing for.
+   1. During the offseason, all franchise staff will be required to declare whether they plan on being Playing or Non-Playing for the upcoming season.
+      1. FMs may switch between playing and non-playing regardless of their previous season choice, but must still abide by the rule to remain non-playing for an entire season and cannot switch mid-season.
+   2. Any franchise staff who declares themselves as Non-Playing will remain Non-Playing for the rest of that season. 
+
+
+6. Players of a franchise may request a formal investigation into their franchise staff with the intent of removal. To initiate this process, players must submit a valid report to the mailbox. Once the report is received, FMO or GMO will assume responsibility for the investigation. Any individuals with a conflict of interest will be removed from the process before the investigation continues.
+Rosters
+7. Each team is allowed to sign a maximum number of players as Active Roster players. These players occupy slots on a roster labeled A, B, C, and so on. 
+   1. Active Rosters in AL, CL, and ML have 8 slots, labeled A to H.
+   2. Active Rosters in FL and PL have 7 slots, labeled A to G.
+   3. Not all roster slots must be filled.
+
+
+8. Each team is allowed to hold players on an Inactive Roster in certain circumstances. Inactive Roster players have no slot and are not eligible to play in a series, but maintain their status as members of a franchise.
+
+
+9. The slot a player occupies is determined by draft position. Drafted players take the earliest available slot.
+   1. In post-draft situations where a team has multiple roster slots open, new signings will be placed in the first slot available with play counts remaining.
+   2. Once a player occupies a slot, they cannot be moved to a different slot.
+
+
+10. Over the course of a regular season, each slot on each team’s Active Roster may participate in up to a certain amount of series per game mode, and overall. 
+   1. Each slot may play in up to 6 series in the doubles game mode.
+   2. Each slot may play in up to 8 series in the standard game mode.
+   3. Each slot may play in up to 12 series between both game modes combined.
+
+
+11. Franchises are expected to field a legal roster for each series. League Operations will not prevent them from playing an illegal roster, only reacting after the fact to award an NCP to the team that fields an illegal roster.
+5. Transactions
+General
+1. Transactions are the method by which AGM or higher (denoted as AGM+) may assemble and control their teams. Transactions generally fall under one or more of the following terms.
+   1. Sign — when a player is added to a team, they are signed to that team. 
+   2. Release — when a player is removed from a team, they are released from that team.
+   3. Move — when a player is on a team, but their status is changed, they are moved on that team.
+   4. Trade — when two teams exchange assets, the assets are traded between the teams.
+
+
+2. Players must attain Free Agent status to be eligible for any transaction.
+
+
+3. Transactions are official as of the time of submission, regardless of when they are processed.
+
+
+4. Players are only eligible to play for a single franchise per Match Week.
+
+
+5. Players drafted by a team may not be released until Match Week 1 of the season they are drafted.
+
+6. Players who wish to be released from their team must contact League Operations to do so, and will incur Restricted Free Agent status.
+
+7. Players must be eligible via Sprocket Scrims for all team initiated transactions that move them on to an active roster position.
+Waivers
+   8. Waivers are a transaction buffer, intended to provide a form of balance and parity to the league by giving lower-ranked teams the right of first refusal for incoming Free Agents and released players.
+
+
+   9. Teams are given a Priority Order for waiver claims according to criteria that differ based on the current point in the season. 
+   1. For all leagues, the following waiver claim order shall be
+   1. Match Week 4: Starts Inverse Combined Standings
+   2. Match Week 6: Starts Inverse Combined Standings
+   3. Match Week 8: Starts Inverse Combined Standings
+   2. Ties will be broken using the Draft/Waivers tiebreakers. Starting at rule 1.12.
+   3. If a team makes a successful waiver claim, they will be sent to the end of the Priority Order until the next time waivers are reset according to rule 5.8.1
+
+
+   10. Players must clear waivers to enter Free Agency after the draft.
+   1. This includes all first-time Free Agents, former players and inactive players re-applying for Free Agency, or anyone released from an active roster slot.
+   2. Players who are ineligible at the time of entering Waivers will instead be made Pending Free Agent and be required to become eligible before entering Waivers.
+
+
+   11. Waivers are processed in batches each Match Week. All players who enter waivers are queued for the next batch.
+   1. Waivers are not processed during bye weeks.
+   2. Batches are cut off every Tuesday at 7pm Eastern. Claims for players in that batch may be submitted from Tuesday at 7pm Eastern, to Thursday at 7pm Eastern.
+   3. After being claimed, players may come to League Operations to be removed from their team if they wish. Doing so will incur Restricted Free Agent status.
+
+
+   12. Waiver claims are processed each Thursday after claims have closed.
+   1. All claims are considered to be complete on Thursday at 7pm Eastern, regardless of when the claims are processed. A waiver claim is not considered posted until after LO has processed the claims 
+   2. Starting with the first team in Priority Order, each team attempts to sign their highest priority claim who has not been previously claimed. If this transaction is legal, it proceeds. Otherwise, it is skipped. If the claim is successful, the team then moves to the back of the Priority Order.
+   3. After Priority Order has been iterated through entirely and there are no more claims to process, all unclaimed players will enter Free Agency.
+   4. Restrictions upon waiver claims may be levied by League Operations dependent on the level of Free Agents available and the needs of active rosters in order to finish the season
+Trading
+   13. Franchises are permitted to trade their players and draft picks between each other, in accordance with a number of restrictions. Trades have different rules in the preseason and regular season.
+
+
+   14. Trading must be done in good faith and is in general bound to the following rules.
+   1. No franchise may send or receive an asset without also receiving or sending an asset in return.
+   2. A team that is over the Salary Cap may not receive a player in a trade, unless the team would end the trade at or under the Salary Cap.
+   3. Trades may not include “future considerations”.
+   4. Trades may not involve more than 3 franchises in a single transaction.
+   5. FL assets must be used in trades involving FL assets.
+   6. PL assets must be used in trades involving PL assets.
+
+
+   15. Preseason trading is bound to the following restrictions, as well as the restrictions listed in Rule 5.13.
+   1. Preseason trades may involve 3 types of transactions;
+   1. Player for Player
+   2. Player for Draft Pick(s)
+   3. Draft Pick(s) for Draft Pick(s)
+
+
+   16. Regular season trading is bound to the following restrictions, as well as the restrictions listed in Rule 5.13.
+   1. Regular season trades may not include draft picks.
+6. Series
+General
+   1. A series is defined as five complete Rocket League games against another team, in a specific game mode. Series are not “best of”, all five games must be completed regardless of outcome.
+
+
+   2. Series must be played in one session, all five games back-to-back. Teams may not play a series over the course of a day or several days.
+   1. In the event that League Operations is needed for advice or a ruling, players should make an effort to play additional games while awaiting a ruling from League Operations. If additional games are not possible, League Operations will make a decision based on the series replays given. 
+   2. A session shall be deemed to be continuous if each successive game is played within the time allotted for a server reset between them.
+
+
+   3. Each series has a designated Home and Away team. The Home team is responsible for ensuring the private lobby is created properly, as well as providing results to League Operations. Both teams are responsible for submitting and ratifying their results in a timely manner, before the start of the New Week Deadline of the upcoming week.
+   1. Series must be played on one of the Legal Arenas.
+   2. Players are required to join the correct team.
+   3. Players may not leave the field of play to swap kickoff positions.
+   4. Lobby settings must be default, with no mutators and no bots.
+   5. All series must be played on US East servers.
+   1. The server may be changed to US Central (or another region) only with the agreement of both teams. Any agreed change must be discussed and confirmed in the League Operations scheduling channels.
+   2. If a lobby is found to be on a server other than the one agreed upon or default, the game must still be played out and then reported to the mailbox. The GM of the offending team will receive a zero-point warning for the first offense.
+   6. Lobby details should include at least one unique identifier in the name or password.
+   1. Unique identifiers may include, but are not limited to: numbers, extra characters, or keywords.
+
+
+   4. Players are never permitted to utilize the admin functionalities granted to them when hosting a lobby.
+6.4.1. Match Admin Controls must always be disabled during series.
+
+
+   5. Series broadcast on any Official Broadcast may be subject to different or additional rules, as defined in the Broadcast Rule Book.
+Scheduling
+   6. All series must be scheduled by teams. Series may be rescheduled for a different time than the scheduled time, if both GMs agree to it. GMs are expected to be receptive to rescheduling if the other team requests.
+   1. GMs are provided commands which they must use to submit series times. Submissions made after the Scheduling Deadline will be ignored, unless the involved team contacted League Operations ahead of time
+   1. In cases where League Operations must make a ruling regarding a series, the scheduled time of said series will be what was submitted via the commands, regardless of when the series is actually played.
+   2. If rescheduled, a series must be played in the same Match Week as they were initially scheduled. Series must be played between Thursday and Sunday.
+   3. GMs are expected to schedule in good faith. If GMs are experiencing trouble finding a suitable time for a series, they are expected to contact League Operations as soon as possible.
+   1. If LO is needed for a scheduling conflict, they should be pinged within the appropriate scheduling channel. The GM of both teams will then be asked to provide a complete list of all availability for all players to the mailbox, preferably by a screenshot of the scheduling sheet or When2meet. Using these availability, LO looks over the schedules and teams determine that there is no common time that works, if there is a CLEAR team that has given more availability and tried to work with the other teams schedules more then that team MUST be given one of their times that they proposed. IDEALLY one that is the closest to working For the other team who had lesser availability 
+
+
+   7. League Operations will maintain a Discord server with the sole purpose of housing all scheduling discussion. GMs and AGMs are expected to remain joined to this server, and are allowed to bring in their team Captains to assist in scheduling their series.
+   1. The goal of this server is to give all franchises a very quick and easy way to contact League Operations while scheduling, since all involved franchise members and all of League Operations will be able to see the channel in which the scheduling takes place.
+
+
+   8. Players are expected to arrive on time to their series. If one team is late, the on-time team may allow their opponents extra time to arrive, but this is not required.
+   1. Either team may ping their opponent at the scheduled start time of the series. The team that sends the initial ping is the present team. If the initial ping is not responded to within 10 minutes, the present team will be awarded a one game NCP. If an additional 5 minutes passes, the present team will be awarded a full series NCP.
+   1. If the initial ping is sent before the scheduled start time, the 10 minute NCP timer starts at the scheduled start time of the series.
+   2. If the initial ping is sent on or after the scheduled start time, the 10 minute NCP timer starts at the time the initial ping was sent.
+   3. After the initial ping is responded to, the hosting team is expected to provide lobby info within 5 minutes of receiving a DM.
+   1. The DMing team is expected to be ready to receive lobby info when responding. Responding without being ready does not stop or reset the initial ping timer.
+   4. After the absent team responds to the initial ping and receives the lobby info, players are expected to join the lobby ready to play within 5 minutes upon receiving the lobby info.
+   5. If there is concern about a team being late enough to warrant an NCP, a NCP claim must be submitted per rule 6.14 and 6.15. If the NCP claim is successful, but all 5 games were played anyway, then game 5 will be considered an NCP in favor of the on time team
+
+
+   2. If no ping is sent by either team within 20 minutes of the start time, the series will be assumed to be rescheduled to a later date. 
+   1. If teams experience trouble finding a suitable time to reschedule a series prior to Sunday at 11:59PM ET, League Operations must be pinged within the appropriate scheduling channel. LO will investigate the reason for the initial scheduled series time not being met as well as both teams’ availability given for the re-scheduling of the series. LO may rule a 5 game NCP for one or both teams for the series per the findings of the investigation. 
+   3. All communication regarding scheduling must occur in the League Operations scheduling channel, including pinging League Operations for scheduling issues. If the scheduling channel is inaccessible for a specific individual, Staff Mailbox must be used to contact League Operations.
+Once Underway
+   9. Each team may have one spectator in a match during a series. The spectator must currently be on the franchise requesting the spectator’s presence. Series players have the final say over whether additional spectators are allowed. Any of the series starters may object to extra spectators, unless the series is on an official or verified affiliate broadcast.
+
+
+   10. Teams may request a server test prior to beginning a series that must be honored. The following procedures apply to server tests taking place upon a team’s first request.
+   1. All series players must have joined the initial server at least once. This request may not be used to stall for a late arrival.
+   2. To fulfill this request, the Home team must create the lobby using all standard MLE lobby settings, plus the “maximum one goal scored” mutator.
+   3. Players must be granted at least 1 minute of game-time to drive around and test the server before a goal is scored to end the test.
+   4. Each team may request one server test. After the first server test request, more may be requested. However, the other team may decline. If both teams agree to the test, repeat the procedures detailed in Rule 6.9.
+
+
+   11. Mid-series substitutions may occur, with restrictions. Once per series, a team may substitute out one of their players for another Active Roster player. The series will count as 1 series played for both players.
+
+
+   12. Mid-game substitutions are never allowed.
+   1. Games are defined as having started once the initial countdown starts.
+   2. Players are expected to remain joined to their teams for the duration of each game.
+   3. Illegal substitutions will count as 1 series played for both players, but may also result in an NCP and/or LO points.
+   4. MLE’s policy in the event of a disconnect, rage quit, etc. is to “play it out”. In the event that a player leaves their team for any reason, all other players are expected to continue to play to the best of their ability for the remainder of the match, regardless of the amount of time remaining or whether that player fails to return.
+   1. This rule is subject to override by rule 1.05.3 of the Broadcast Rulebook for matches taking place on the official stream.
+   5. Players who leave their team for any reason while the ball is in play may only rejoin before the ensuing kickoff after a goal is scored or when the game goes into overtime.
+   6. As needed, LO will review cases of mid-game joins and determine if there was a tangible effect on the play. The default will be to NCP the game if a player joins early, but this can be reversed if it is concluded beyond a reasonable doubt that play was not affected by the re-join. 
+
+
+   13. Once per series, between games, each team may request a server reset that must be honored. The following procedures apply to server resets taking place between games upon a team’s first request.
+   1. Server reset requests must be initiated by leaving the lobby.
+   2. The Home team, or broadcaster, then remakes the lobby and sends details to all other parties.
+   3. Teams must be ready to play again within 3 minutes of leaving the game the request is made in.
+   4. Players who intend on leaving the lobby for reasons that are not a server reset must inform the others in the lobby in-game, and must rejoin by the time the next game would naturally begin.
+   5. Server reset requests may not happen after a game has started, or before it ends.
+   6. After a team’s first server reset request, more may be requested. However, the other team may decline. If both teams agree to the reset, follow the procedures detailed in Rule 6.12.
+   7. Server resets to prevent replays from being broken (for example, when a player joins the wrong team before the first kickoff) can be initiated as many times as necessary in order to prevent replay corruption. These resets do not count towards a franchise’s requestable 6.12 reset and cannot be declined.
+   1. Countdown does not have to start in order for replays to become corrupted or for a lobby to be subject to this style of reset. Simply having a player join the wrong team is enough to trigger the necessary condition to require the reset. Either team may enforce that the reset is required after observing behavior that can break replays, but must communicate why they are leaving the lobby before doing so.
+   2. Cases of potential abuse - including intentionally triggering the conditions required to force a reset or having multiple resets in one series by one franchise - will be investigated for attempting to loophole the spirit of this exception and may result in LO points.
+
+
+   14. Players in game name must be reasonably distinct from that of other players. Players are not allowed to purposely disguise themselves as another player.
+   1. If requested, players must identify themselves as their official MLE name.
+   2. Players must use the same name for every game in their series.
+NCP Claims
+   15. If during the course of a scheduled match, a franchise has cause to believe that there should be a series or game NCP, they will need to "claim" the NCP as soon as reasonably possible. Claiming an NCP DOES NOT GUARANTEE that there will be an NCP, but rather establishes the intent to ask for an NCP despite continuing play to complete 5 games of the series. By claiming an NCP, an investigation by LO is started, and an NCP may be ruled NO MATTER THE RESULTS OF THE GAMES PLAYED AFTER AN NCP CLAIM IS SUBMITTED. For this reason, some NCP claims must be sent in before continuing play in certain scenarios (Seen in rule 6.16.)
+   1. Claiming an NCP is done via the Staff mailbox, and must list the league, teams, and reason for NCP. It does not need to have the exact verbiage of the rulebook. If a franchise needs to claim an NCP before continuing play, they must inform the opposing team and will have a maximum of 4 minutes to do so in addition to the normal 60 second timer between games, for a total of 5 minutes before play should resume.
+   16. NCP Claims that must be reported before play continues are listed below:
+   1. Tardiness Disputes: If a franchise believes their opponent is late to the match, the on time team must "claim" the NCP, establishing that they believe a team was late and the series should be NCP'ed. Teams should follow the procedures in rule 6.7 regarding timeliness to games. This rule is for when teams dispute whether a tardy team should receive an NCP.
+   2. Server issues and disputes: If the franchise believes there is something wrong with the server or a reason a lobby should/should not have been reset but was anyway, they must "claim" the NCP, establishing they protested the server and believe the games played on it should be NCP'ed.
+   17. Any NCP claims that are not listed above can be sent AFTER the conclusion of the series in a timely manner. Examples of a NCP claim that may be sent in AFTER the series has concluded, but not an exhaustive list are: 
+   1. Reporting that an ineligible/suspended player competed.
+   2. An illegal join after a player used the “change teams” option to spawn faster on the defensive end of the field occurred during a game in the match.
+   3. Team unable to field a roster.
+Proof Of Results
+   18. All series players are expected to save replay files.
+   1. If, for any reason, a team’s starters are unable to save and submit replays, their franchise must provide a spectator to sit in on the series and save replays.
+
+
+   19. Both teams are expected to submit replays by the New Week Deadline following the series.
+   1. Teams that fail to submit replays on time are subject to review by League Operations, as deemed necessary.
+   2. In situations where no replays are submitted for a game, both teams will incur a NCP.
+   3. In situations where replays are submitted for a game, but are submitted under the wrong game mode the GM will receive LO points.
+7. Playoffs
+Playoff Specific Rules
+   1. The playoffs impose some exceptions to the regular ruleset. Those exceptions are noted here. As such, if any rule previously written is contradicted by this section, this section takes priority.
+   1. Matches are to be scheduled as normal if not given a fixed schedule due to streamed matches. Refer to the Broadcast Rulebook for specific details regarding additional scheduling constraints and abilities.
+   2. Series become Best-Of, rather than full series.
+   1. See Table 1.3 for series lengths in 32-team leagues.
+   2. See Table 1.4 for series lengths in 16-team leagues.
+Additional Rules
+   2. The playoffs also impose a number of rules that do not necessarily contradict previous rules.
+   1. Eligibility is locked the week before Roster Lock, and salaries will be frozen at this time. In order to be eligible for the remainder of the season and playoffs, players must be eligible at the New Week Deadline. This is referred to as Eligibility Lock Deadline. 
+   2. Rosters are locked into place prior to the playoffs beginning. This Roster Lock will happen at the beginning of Match Week 9, and is known as the Roster Lock Deadline.
+   1. League Operations may allow roster moves in circumstances that are unpreventable by the GM, such as players being suspended or leaving the server. These moves will be reviewed on a case-by-case basis.
+   2. Teams who are not in the playoffs will not be considered for transactions.
+   3. Players must be eligible at the time of Roster Lock in order to remain eligible for the rest of the season. Players who are not eligible will be unable to play the remainder of the season including playoffs. 
+   3. Players are ineligible for the playoffs if they were, at any point in the current season, in a league higher than their current league.
+   1. Players are exempt from 7.2.3 if they meet the conditions of 3.18.3 
+   4. Players are ineligible for the playoffs if they did not participate in at least 15 regular season games for the franchise they intend to play for.
+   1. “Participate in” refers to individual games actually played. If a player subs mid-series, they only participate in as many games as they were on the field for, not all 5 games of the series. Similarly, NCPs do not count towards the 15 game requirement.
+   2. If a franchise adds a player to a slot that does not have enough slots to become playoff eligible, the GM may request to have LO move the player to an empty slot with enough play counts. If there is no empty slot this cannot be done and the player will not be able to get eligible for playoffs.
+   5. Teams that exceed slot usages where they cannot field a valid lineup of players will be ineligible for playoffs.
+   6. NCPs may have their games count toward eligibility only if they were not the one at fault.
+   1. It must be possible for a team to play a lineup via usages, even if that's not what actually happens. Fielding an ineligible player due to exceeding slot usage is not what disqualifies a team from playoffs; not having enough slot usages to complete the season with a valid roster through Match Week 10 is.
+
+
+8. Offseason
+General
+   1. The first step of each offseason is Intent Forms. This is used by League Operations to gather the intent of individuals in the community regarding the upcoming offseason.
+   1. Individuals who do not fill out an intent form are assumed to be inactive, and will be removed from Free Agency. League Operations will not chase down community members regarding the intent form. These individuals are welcome to reapply for Free Agency at a later date.
+Franchise Staff Signing
+   2. After the intent form all players on franchise rosters but the FM will be moved to Pending or Former Player, based on the intent form response.
+
+   3. League Operations will specify a timeframe with a deadline, assumed to be draft eligibility lock, where GM, AGM, and Captains can be signed to the roster prior to draft at no pick cost. 
+      1. Franchises that have already signed both a staff member (FM/GM/AGM+) and a Captain to a league (FL/AL/CL/ML) may sign an additional AGM+ to that same league at the cost of a 1st round pick in that league. 
+      1. If a team did not choose to sign a Captain to that league they may instead sign the extra AGM+ at no pick cost.
+      2. If a franchise chooses to spend this pick on signing a 3rd player to an active roster position within the same league it is no longer an asset available for trading.
+      3. A non-playing position on the inactive roster for a league does not count as the “3rd” signing and does not absorb the 1st round pick cost.
+      2. All signings to an active roster position will count toward the salary cap for the league they signed to.
+      2. Franchises have to sign 1 GM in total.
+      3. Franchises may sign up to 2 AGM in total.
+      4. Franchises may sign 1 Captain per league.
+
+
+      4. During pre-draft signings franchise are limited to the following quantity of signings at no cost:
+      1. PL will be limited to 1 AGM+, or 1 Captain at a draft reservation based on historical salary
+      1. Round 1 - 21 and 20.5 (limit 1 per franchise)
+      2. Round 2 - 20 and 19.5 (limit 1 per franchise)
+      3. Round 3 - 19 (limit 2 per franchise)
+      2. ML will be limited to 1 AGM+, and 1 Captain.
+      3. CL will be limited to 1 AGM+, and 1 Captain.
+      4. AL will be limited to 1 AGM+, and 1 Captain.
+      5. FL will be limited to 1 AGM+, and 1 Captain.
+
+
+      5. Offers would be sent via Transaction-request channel and need to be accepted by the players.
+
+
+      6. Franchise staff (FM/GM/AGM/Captain+) will be assumed to sign a fresh contract for the new season confirming their activity within the league for one season, which if broken will result in a 4-week RFA beginning after the first group of divisional matches during Match Week 4 lasting until Match Week 8.
+      1. Franchise staff may be non-playing.
+Draft 
+      7. Teams may fill some remaining vacant roster slots via a draft. There is a separate draft for each league. Teams select players from the Free Agent pool one at a time.
+      8. In the Foundation, Academy, Champion, and Master Leagues, the order in which teams select players is set by a lottery.
+      9. Every team will be added into the Draft Lottery. All Teams will have the same odds.
+8.11.1. PL draft follows a “Snake-Draft” process (1st-16th, 16th-1st, 1st-16th, 16th-1st).
+
+
+      10. Each draft consists of 3 rounds for FL/AL/CL/ML, and 4 rounds for PL, during which each team must pick once. 
+
+      11. Each draft is a live event. Each pick is given a set amount of time before the subsequent pick is allowed to be made. GMs are expected to attend each draft, to submit their picks in live time. GMs able to attend should see Rule 8.13, and GMs unable to attend should see Rule 8.14.
+
+
+         12. The following rules apply to GMs attending the draft.
+         1. GMs need to be prepared to provide their selections when prompted.
+         2. GMs must provide only a single selection when prompted.
+         3. GMs must remain aware of their Team Salary and the Salary Cap over the course of the draft. The official Rosters and Free Agents information will be updated in live time to assist with this.
+
+
+         13. The following rules apply to GMs unable to attend the draft.
+         1. GMs may appoint a draft representative among franchise staff within their franchise to make picks on the GMs behalf. Failure to make a pick selection or utilize all available picks is not the liability of League Operations and the GM will incur a LO points penalty for “Failure to use a draft pick”.
+         2. Free Agents will not be permitted to directly watch, or engage with the draft process in the main MLE discord server.
+         3. League Operations reserves the right to appoint draft representatives for the GM outside of 8.13.1 in extenuating circumstances.
+
+
+         14. If a player refuses to report or play for the team they are rostered to (whether through draft, waivers, trade, etc.) they must contact League Operations in order to be released from their roster, and gain Restricted Free Agent status. 
+         1. Players who do not contact their franchise prior to the new week deadline (Monday at noon) of Match 1 following the draft will be assumed to have failed to report and incur RFA status.
+         1. League Operations reserves the right to drop players for franchises within the week following draft with evidence of no intention from player to be an active player for the franchise, moderation reports, or competitive integrity investigations. 
+         2. In doing so, it will be annotated in the RFA document that the player received RFA status for “Failure to report to a franchise after being signed”.
+         3. Players who continuously choose to incur RFA status instead of reporting to their franchise may see further disciplinary action, which may include removal from Minor League Esports.
+
+
+         15. Transactions, salaries, player eligibility and Free Agency application processing are frozen for the duration of draft week. This is the Draft Lock Deadline. This lock applies to the week of the draft, and ends Wednesday at noon following the draft.
+         1. Rank outs are still tracked during this week. They will be processed the Monday after draft lock ends, at the normal time scheduled by League Operations.
+         2. Free Agents who do not meet the eligibility requirements at the time of the Draft Lock Deadline will receive Pending status until they are eligible after the draft.
+         3. Draft lock will end Wednesday, at a time to be announced by League Operations. This will be the beginning of the period where players who were not drafted and were eligible to be drafted, can be signed. 
+
+
+         16. All draft picks that are available to a team must be used, including draft picks that are received in a trade.
+9. LO Points
+General
+         1. LO Points are intended to represent cumulative infractions against this rulebook, in a manner similar to the Moderation team’s point system.
+
+
+         2. Any franchise staff that receives 3 or more LO points at any one time will be removed from their franchise position.
+
+
+         3. Any person that receives LO points will be suspended for the number of Match Weeks equal to the amount of total points accumulated in the current season.
+         1. League Operations may extend the suspension into the next season if the accumulation of 5 or more LO Points occurs close to or in the postseason.
+         2. Suspended players will remain on the Active Roster, but will be ineligible for play in MLE during their suspension. Players and their General Manager will be notified of their suspension. 
+         1. Suspensions will be announced to franchise staff with their associated ending date. 
+         2. When suspended, players are ineligible. Competing in an Official MLE match while suspended will result in an NCP and possible extension of suspension. 
+         3. It is considered the responsibility of the suspended player and the General Manager to ensure they do not play during their suspension. 
+         3. Franchises are free to choose to keep or release their suspended players.
+
+
+         4. If a Franchise Staff member receives LO points as a result of Franchise Staff infractions, they are not subject to suspension. Franchise Staff members are subject to possible removal from their staff roles as a result of such infractions. 
+
+
+         4. LO Points expire one at a time, every 30 days, unless a new point is earned. If a new LO Point is earned, then the 30 day timer resets. 
+
+
+         5. A listing of offenses and their corresponding LO Point values shall be kept outside of this rulebook and provided for all members of MLE.
+
+
+         6. The LO Points document can be found by clicking this link.
+
+
+10. Glossary
+Deadlines
+         1. New Week Deadline — the day and time that each new calendar week of a regular season begins.
+         1. MLE’s New Week Deadline is Monday, 12pm Eastern.
+         2. MLE Weeks begin on Monday, and end on Sunday.
+
+
+         2. Scheduling Deadline — the day and time by which non-default series times must be submitted.
+         1. MLE’s Scheduling Deadline is Wednesday, 11:59pm Eastern.
+
+
+         3. Draft Lock Deadline — the day and time at which the Free Agent pool, all salaries, and rosters are locked into place in preparation for the draft. Rank outs are still processed as normal.
+         1. MLE’s Draft Lock Deadline is Tuesday, 12pm Eastern, before the draft weekend.
+         2. Player eligibility is locked Monday, 12pm Eastern, before the draft weekend.
+
+
+         4. Roster Lock Deadline — the day and time at which voluntary transactions may no longer be requested.
+         1. MLE’s Roster Lock Deadline is the beginning of Match Week 9.
+
+
+Terms
+         5. Active Roster — the players who occupy their team’s roster slots and are eligible to play in their team’s series pending other eligibility requirements, and who are not Non-Playing or Inactive Roster players.
+
+
+         6. Asset — either a draft pick, or a player, belonging to a team.
+
+
+         7. Franchise — a group of teams playing in different leagues with the same name, logo and colors.
+
+
+         8. Free Agent — a member of the MLE community who has completed the Free Agent application process, and is therefore eligible to join a team’s roster.
+
+
+         9. Inactive Roster — unslotted players who are maintaining their status as members of a franchise, typically only players who have ranked out into a new league. Inactive roster players can be offered a roster spot by any franchise through Transaction-Requests as long as the franchise has cap space in that league, and the player meets eligibility requirements. Inactive Roster players do not need to pass through Waivers, and are essentially Free Agents.
+
+
+         10. Legal Arenas — Legal Arenas -- Any Standard Arena, as defined by having the same dimensions and boost layout of Arenas that can be chosen by selecting the Random(Standard) option in private matches
+         1. Any Snowy Variant of an Arena is not a pre-approved option for a map pick. 
+         1. Snowy Variants are allowed to be played on only if both teams agree to play on it.
+
+
+
+
+
+
+
+
+         11. League Operations — (LO) the team on MLE Staff responsible for enforcing this rulebook.
+        Head of RL Operations: DELTA
+         * RL Operations Director: Lack
+         * RL Operations Coordinators:
+         * Communications: Peyton 
+         * Competitive Integrity: Flump
+         * Competitive Integrity: Manatee
+         * NCPs: Pas818
+         * Processing: Vacant
+         * Waivers: AndyMcMuffin
+         * RL Operations Advisors:
+         * Adi
+         * Achilles
+         * Nim
+         * Kend0
+League Operations
+         * Competitive Integrity Coordinator: Flump
+         * Competitive Integrity Coordinator: Manatee
+         * Competitive Integrity Team Lead: uwuwMLEnjoyer
+         * Competitive Integrity Team Lead: EthsFox
+         * Competitive Integrity Team:
+         * Crazy
+         * MikeIsMyIke
+         * John McVegan
+         * QubeKnight
+         * Darkk
+         * Rolo 
+         * NCPs Coordinator: Pas818
+         * NCPs Team Lead: Vacant
+         * NCPs Team:
+         * Yz
+         * Monsterjamers
+         * Processing Coordinator: Vacant
+         * Processing Team Lead: Vacant
+         * Processing Team:
+         * Half Past White
+         * Lack 
+         * BattleBennyB 
+         * BigQ
+         * Aydxn
+         * Waivers Coordinator: AndyMcMuffin
+         * Waivers Team Lead: Onyx
+         * Waivers Team:
+         * Rikr
+         * Moose
+
+
+
+
+         12.  Non-Compete Penalty — (NCP) When a scheduled fixture is unable to be played in its entirety, all unplayed games are designated as NCPs. These games officially receive no statistics, and are not counted when calculating advanced stats like Sprocket Rating. On the website, these games will appear as 1-0 victories for the team who took the win, but this is only because it is required to make the website work properly.
+
+
+         13. Non-Playing — a status which may be held by certain positions within a franchise. Non-Playing members of a franchise are officially kept on the Inactive Roster of their league. Players holding the following positions are eligible for Non-Playing status: All Franchise Staff are eligible for Non-Playing Status.
+
+
+         14. Official Broadcast — broadcasts that take place on the MLE Twitch channels.
+
+
+         15. Offseason — the period of time during which MLE evaluates its structure and rules. Officially defined as beginning after championship week and ending once the following tasks are complete.
+         1. Intent Forms are processed.
+         2. The rulebook is released publicly.
+         3. The draft order has been set.
+
+
+         16. Preseason — the period of time between the offseason and the regular season, during which franchises are allowed to run tryouts in preparation for the regular season. Officially defined as beginning after the draft lottery, and ending at Match Week 1.
+
+
+         17. Regular Season — the period of time during which franchises are actively competing for a league championship. Officially defined as beginning Match Week 1, and ending after the week of the championship series’.
+
+
+         18. Restricted Free Agent — (RFA) a Free Agent who is prohibited from signing with a new team for a certain period of time, referred to as a “cooldown”. Upon RFA status ending, players will be entered into Waivers.
+         1. The RFA cooldown is 4 weeks. One week elapses after each New Week Deadline.
+         2. Players with an active RFA status will receive a scrim ban until the RFA status resolves.
+
+
+
+
+         19. Roster Lock — The time at which voluntary roster moves cannot be requested without League Operations approval.
+
+
+         20. Scrim Points — points that players must accumulate in order to maintain their eligible status. Scrim Points are accumulated by completing competitive scrims utilizing Sprocket to queue. These points expire 30 days after they are acquired.
+
+
+         21. Season — a complete cycle of the preseason, regular season, and offseason periods.
+
+
+         22. Slot — a specific spot on a team’s Active Roster, used for counting the number of series played in a season.
+
+
+         23. Starter — a player who played in a particular series.
+
+
+         24. Suspension — a punishment dealt by League Operations on a case-by-case basis.
+         1. Suspended players will remain on the Active Roster, but will be ineligible for play in MLE during their suspension. Players and their General Manager will be notified of their suspension. 
+
+
+         25. Teams — a roster of players competing in a single league under a franchise.
+
+
+         26. Waivers — a player transaction system which allows lower ranked teams the opportunity to sign players before higher ranked teams. Any player entering free agency after the draft must first clear waivers before becoming a Free Agent. Players remain on waivers for a set period of time, called the Waiver Window. During this time teams may claim the player for their active roster. After the Waiver Window has closed, the team highest in the Priority Order gets the player.
+         2. Waiver Window — the period of time during which waiver claims are accepted.
+         1. Waiver Window is each Match Week, Tuesday 7pm to Thursday 7pm.
+         3. Priority Order — the order in which teams are given priority over waiver claims. Teams are ordered in reverse standings order every two Match Weeks, and move to the end of the order upon a successful waiver claim.
+
+
+         27. Match Week — a week during the regular season in which series are scheduled and played.
+
+
+         28. Bye Week — a week during the regular season in which no series are scheduled or played, unless LO makes a specific exception.
+
+
+         29. Fixture — the entire collection of series between franchises on a given Match Week of the season. This is a broad term, and includes the multiple series played between the various teams of the two franchises. An example of a fixture would be: “Match Week 1, Spectre vs Comets”.
+
+
+         30. Series — an individual 5-game matchup between teams. This is a specific term, referring to the individual matchup between two teams, in a certain league, in a certain gamemode. An example of a series would be: “Match Week 1, ML 3s, Spectre vs Comets”.
+
+
+         31. Super-Division — A combination of 2 divisions within the same conference that contains franchises with the same 16 franchise league teams. Refer to Table 1.2 for a visual aid on Super-Division assignment.
+11. Tables
+Table 1.1: Conference and Division Splits
+Orange Conference
+	Blue Conference
+	Volcanic Division
+	Tropic Division
+	Arctic Division
+	Mystic Division
+	Demolition
+Dodgers
+Elite
+Flames
+	Ducks
+Hawks
+Pirates
+Sharks
+	Foxes
+Puffins
+Sabres
+Tyrants
+	Comets
+Eclipse
+Spectre
+Wizards
+	Forge Division
+	Sun Division
+	Storm Division
+	Sky Division
+	Express
+Knights
+Outlaws
+Spartans
+	Bears
+Bulls
+Pandas
+Rhinos
+	Blizzard
+Lightning
+Shadow
+Wolves
+	Aviators
+Hive
+Hurricanes
+Jets
+	
+
+Table 1.2: Foundation & Premier League Franchise Assignment 
+Foundation League Divisions
+	Premier League Divisions
+	West
+	East
+	Tropic
+Volcanic
+	Forge
+Sun
+	North
+	in South
+	Arctic
+Mystic
+	Sky
+Storm
+	
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+
+Table 1.3: 32-team League Playoff Format
+Conference Quarter-Finals
+Best of 7
+	Conference Semi-Finals
+Best of 7
+	Conference Finals
+Best of 7
+	League Championship
+Best of 7
+	East 3rd Runner-Up
+@
+West Champ
+	
+
+
+
+Winner of Game 1
+vs
+Winner of Game 2
+	
+
+
+
+
+
+
+
+
+
+Winner of Game 9
+
+
+vs
+
+
+Winner of Game 10
+	
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Orange Conference Champion
+
+
+
+
+vs
+
+
+
+
+Blue Conference Champion
+	West 2nd Runner-Up
+@
+East Runner-Up
+	West 3rd Runner-Up
+@
+East Champ
+	
+
+
+
+Winner of Game 3
+vs
+Winner of Game 4
+
+
+
+
+	East 2nd Runner-Up
+@
+West Runner-Up
+	South 3rd Runner-Up
+@
+North Champ
+	
+
+
+
+Winner of Game 5
+vs
+Winner of Game 6
+
+
+
+
+	
+
+
+
+
+
+
+
+
+
+Winner of Game 11
+
+
+vs
+
+
+Winner of Game 12
+	North 2nd Runner-Up
+@
+South Runner-Up
+	North 3rd Runner-Up
+@
+South Champ
+	
+
+
+
+Winner of Game 7
+vs
+Winner of Game 8
+
+
+
+
+	South 2nd Runner-Up
+@
+North Runner-Up
+	
+
+Table 1.4: 16-team League Playoff Format
+Conference Semi-Finals
+Best of 7
+	Conference Finals
+Best of 7
+	League Championship
+Best of 7
+	Seed 4
+@
+Seed 1
+	
+
+Worst Surviving Seed
+
+
+@
+
+
+Best Surviving Seed
+	
+
+
+
+
+
+Orange Conference Champion
+
+
+
+
+
+
+vs
+
+
+
+
+
+
+BlueConference Champion
+	Seed 3
+@
+Seed 2
+	Seed 4
+@
+Seed 1
+	
+
+Worst Surviving Seed
+
+
+@
+
+
+Best Surviving Seed
+	Seed 3
+@
+Seed 2
+	
+
+Table 1.6: League Salary Caps
+League
+	Salary Cap
+	Foundation
+	43.5
+	Academy
+	62.0
+	Champion
+	74.0
+	Master
+	86.5
+	Premier
+	98.0
+	
+
+Table 1.7: Rank to League Distribution
+ Salary
+	League Eligible for Play
+	11.0 and below
+	Foundation League
+	11.5 - 13.5
+	Academy League
+	14.0 - 16.0 
+	Champion League
+	16.5 - 18.5 
+	Master League
+	19.0 -21.0 
+	Premier League
+	
+
+Table 1.8: Scrim Points Value Ratings
+Scrim Type
+	Value
+	Competitive Round Robin
+These scrims feature all players playing 1 game with each combination of players in the lobby, akin to classic 4mans style lobbies.
+	3 points
+
+
+	Competitive Teams
+These scrims feature players joining teams that compete against each other in a series of 3 games.
+	3 points
+	Competitive LFS
+These scrims feature predetermined teams that compete against each other for a minimum of 5 games.
+	3 points
+	Casual
+These scrims are simple match making to find lobbies of other players who just want to play.
+	0 points

@@ -1,0 +1,169 @@
+﻿Minor League Esports
+Broadcast Rulebook
+Season 19
+
+
+The Minor League Esports broadcast production is an integral part of the MLE experience. This rulebook is to help set the guidelines of your interaction with production staff to ensure a smooth production experience. 
+* Rulebook
+1.01        Failure to adhere to any of the rules detailed in this document will result in disciplinary action consistent with the MLE Moderation and League Operations Guidelines.
+
+
+
+
+1.02        If a series is being broadcast on an official broadcast or an affiliate stream, players are expected to adhere to these rules to maintain the desired professional image of the league. Unless otherwise stated, failure to adhere to these rules will result in the parties receiving disciplinary action consistent with the MLE Moderation and League Operations Guidelines.
+1.02.1        Players are not allowed to include any form of self-promotion in their name.
+        (I.E. TTV, Kick, TikTok, etc;)
+1.02.2        Unsanctioned Third-person streams are not allowed. Player POV and authorized Team Streams are allowed.
+1.02.3.1        There are no restrictions on Player POV streams with the sole exception of rule 1.03.5.
+1.02.3        If a team is scheduled for broadcast, those teams should be available to play up to 30 minutes after/prior to their series start time, to account for variability in broadcast length. If this is not possible for any reason, teams are expected to inform Production Staff as soon as possible.
+        1.02.3.1             Match Officials will send the initial ping to both teams at least 15                              minutes prior to the start of a match to coordinate the exchange of                              lobby information.
+1.02.3.2        Once production has instructed a team to join a lobby for an official broadcast, teams have five minutes to join the server or they will incur a NCP. If after an additional five minutes the team has still not arrived, they will incur a full series NCP. These decisions cannot be made by someone belonging to a franchise involved in the series in question.
+1.02.4        MLE match officials will have the final say over whether or not certain car bodies or decals are allowed for a match that is being broadcast on either the main channel or as an affiliate series. However, it is the responsibility of the players to ensure their decal/colors do not conflict with the opposing team as to not distract from the competitive integrity of the match.
+1.02.4.1        If a player is having difficulty for whatever reason due to the car body or decal that someone else in their match is using, they may bring this up to their match official before the series has officially begun (e.g. during the pre-match test lobby). If players bring this up after the test lobby is over, it is up to the match official to compel the player to change that aspect of their car. This may be denied if such a change would be too disruptive to the flow of the series or broadcast.
+1.02.4.2        If a player feels a match official is using their authority unjustly, they must report it to staff via a mailbox ticket, along with any evidence or reasoning you might have for why you feel this way.
+1.02.5        Players are required to use their official MLE name for all broadcast appearances. Any player not using their official MLE name at the time of match start will not be allowed to take the field, and will require a substitute. If a substitute is not fielded within 5 minutes, that franchise will incur a game one NCP. If no substitute is available, that franchise will incur a full series NCP.
+        1.02.5.1      Exception will be given to console players as name changes require payment. Console players will be required to identify themselves with their MLE name prior to the start of the match.
+        1.02.5.2            If players are unable to use their MLE name for any reason, it must be reported to production via Mailbox when submitting lineups and will be handled on a case by case basis.
+
+
+
+
+1.03        Series that are not on an official broadcast or an affiliate stream may be broadcast by anyone in the MLE community. Permission to broadcast MLE series is contingent on the broadcaster and players’ compliance to the following rules.  
+1.03.1        The broadcast may not occur at the same time as an official broadcast.
+1.03.2        The broadcaster must be a player from either franchise that is playing in the series.
+1.03.3        The broadcaster must use official team names and colors in the lobby. 
+1.03.4        Use of any additional overlay features such as facecams, series scores, or logos is strictly prohibited. 
+1.03.5        Any use of MLE property, such as graphics, is strictly prohibited.
+1.03.6        Unofficial broadcasts may not bear the MLE name in any form, such as in the stream title. Franchise names are allowed.
+1.03.7        Casting over unofficial streams is strictly prohibited. Broadcasters are encouraged to play royalty-free music during gameplay, as long as the content of the music fits within the MLE community guidelines.
+
+
+
+
+1.04        In order to maintain a consistent amount of streamed content, there are certain restrictions in place between teams and production staff to help facilitate a smoother experience. All teams, players, and production staff are expected to adhere to the following rules.
+1.04.1        Teams can not, under any circumstances, decline appearing on an official broadcast.
+1.04.1.1        Should a team be unable to provide availability for an official broadcast time, they can attempt to trade their series time with another. This requires the team to reach out to Production via a mailbox ticket as soon as it is apparent they cannot make the designated time. The team must also coordinate the swap themselves, and all parties involved in the swap must submit a mailbox ticket agreeing to said swap. The swap must be finalized before the Thursday of the week the series is scheduled in order for it to take effect.
+1.04.2        Teams can only decline appearing on an affiliate broadcast if they notify production staff via a mailbox ticket within twelve hours of receiving the notification that the match will be streamed. Both teams must send a mailbox ticket for the request to be honored, however only one of the teams must send the ticket within the twelve hour time limit. The second team must send their ticket no later than one hour prior to the match’s scheduled start time.
+1.04.3        While the Production staff will make every effort to use the appropriate team color lineup (i.e.; Away/Home) the team colors used for official broadcasts are at the sole discretion of production staff to ensure proper visual quality of the stream. Teams will be notified in advance of the team colors they will be using for the streamed match.
+1.04.4        The team colors used for affiliate broadcasts will follow the same requirements as the main broadcast.
+1.04.5        In order to maintain competitive integrity during affiliate streams, the broadcasters are expected to be ready to begin the series at the scheduled start times. A broadcast delay does not warrant a delay of the game itself, and after five minutes teams shall play the game off stream. 
+1.04.5.1        This restriction does not apply to official broadcasts.
+1.04.6        Team spectators are strictly prohibited on all official and affiliate broadcasts.
+        1.04.6.1             If a team is fielding players on console platforms only, they may request for the match official to save replays for the series.
+1.04.7        In order to assist our production staff in providing the best quality broadcasts, the franchise Rocket League General Manager will provide the production staff a lineup of who is to appear on their scheduled stream match at least 12 hours prior to the match. Submissions will be made via Mailbox ticket, and will be confirmed by a member of the production staff.
+
+
+1.05        Once a series is underway, maintaining competitive integrity is a top concern. However, the production department reserves the right to intervene, to include the use of Match Admin permissions, in order to maintain the highest quality broadcast possible.
+1.05.1        Prior to the series on official and affiliate broadcasts, a test lobby is created to check the ping of the players involved. Each team may request a new server during the test lobby phase once. Any additional requests are approved at the sole discretion of production staff.
+1.05.2        Once per series, each team may request one server reset for any reason. Any additional server resets must be approved by production staff. The production staff reserves the right to reset the server at ANY time to maintain broadcast quality.
+1.05.3        Once a game is underway, players have the ability to request a pause due to issues that may affect the quality of the broadcast (examples can be found in 1.05.5). Additionally, the Match Official reserves the right to pause the match at their discretion to maintain broadcast quality. All pauses will default to resume at kickoff.
+1.05.3.1        This provision only applies to official broadcasts.
+1.05.3.2        If an affiliate or verified affiliate stream are having technical issues during a series, they are expected to resolve these without interrupting the run of play unless all players agree to wait.
+1.05.3.3        For any broadcast, should any individual present in the lobby accidentally join an incorrect team, the game is void and the server is to be reset immediately, regardless of time or score.
+1.05.3.4        If a player disconnects from their team during a match, that player MUST wait until either a goal is scored or an official pause is called to rejoin their team. Any player who joins while the ball is actively in play is subject to League Operations Rulebook 6.12. 
+1.05.3.5      If a player calls a pause during a match, a disqualification timer will start for the team who initiated the pause. The team will then have 5 minutes to resolve the issue at hand. If the issue is not resolved within 5 minutes, a one game NCP will be issued to the initiating team. If the issue is still not resolved within 10 minutes, a series NCP will be given to the initiating team.
+1.05.3.6      Regardless of the outcome of matches including the use of Match Admin perms, League Operations reserves the right to review ANY and ALL matches and pauses for validity. Additionally, League Operations reserves the right to overrule decisions made during streamed matches.
+1.05.4        Production reserves the right to delay the start of a game in a series in order to maintain quality. Players are expected to standby during this time.
+1.05.4.1        This provision only applies to official broadcasts.
+1.05.5     Examples of acceptable pauses:
+* Player Disconnect
+* Controller / Hardware disconnect
+* High ping / Player lagging
+* Any reason determined by Production
+             Examples of unacceptable pauses:
+* Bathroom breaks
+* Player missing kickoff/out of position
+* Player not ready(for reasons not listed above)
+* Any reason determined by Production
+1.05.5.1        If Production Staff or League Operations determines that a player or team abuses this system with intent to give an unfair advantage to their own team, disciplinary action will be taken.
+
+
+
+
+1.06        For any official broadcast (Main/Affiliate) the Match Official will follow the standard map rotation as set forth in 2.10. Any request for changes to the official map rotation will be submitted to the Production staff via Mail Box ticket at least 48 hours prior to the start time of their designated match. The Production Staff reserves the right to deny any request to maintain broadcast quality.
+
+
+
+
+1.07        For purposes pertaining to “Play of the Week” eligibility, streams need to ensure they meet the following quality expectations in order to qualify for POTW. All official broadcasts automatically qualify for POTW.
+1.07.1        The stream must be broadcasted by an affiliate.
+1.07.2        The stream must use all affiliate overlays and graphics provided by the broadcast team.
+1.07.3        The stream must use two casters, and the audio quality of those casters must be of clear quality with no echo, peaking or clipping, and static.
+1.07.4        The series must be streamed in at least 720p.
+1.07.5        Production reserves the right to disqualify any stream from POTW contention should the quality be deemed to be insufficient for any reason. 
+
+
+
+
+1.08        Team Streams will follow all of the same rules and regulations as the Main Stream. The team's Rocket League GM will be held accountable for any and all violations of the aforementioned rules.
+        1.08.1     In order to be eligible for team streams, Franchise Managers must submit an                                official request via Mail Box. 
+              1.08.2     Only authorized franchise broadcasters, who have completed orientation, are eligible to broadcast for Team Streams.        
+
+
+
+
+Terms
+
+
+2.01        Official Broadcast - Any broadcast that is occurring on mlesportsgg, mlesportsgg2 or mlesportsgg3
+
+
+2.02        Verified Affiliate Broadcast - Any broadcast that is being streamed by a Verified Affiliate Broadcaster.
+
+
+2.03        Affiliate Broadcast - Any broadcast that is being streamed by a non-verified broadcaster within the Affiliate team.
+
+
+2.04        Producer - The member of production staff in charge of quality as well as all final decisions made during an official broadcast (may also be the broadcaster).
+
+
+2.05        Broadcaster - Members of production staff who are actively streaming the game to a live-viewing platform (may also be the producer).
+
+
+2.06        Match Official - Members of production staff who are in charge of setting up lobbies for official broadcasts, getting teams staged and ready, and communicating decisions made by the Producer/Broadcaster to the players.
+
+
+2.07        Commentator/Caster - Members of production staff who provide live commentary during streamed matches.
+
+
+2.08        Stats Specialist - Members of production staff who are involved with reaching out to teams to collect lineup information, compile stats, and prepare information/storylines for the upcoming schedule matches.
+
+
+2.09        Production Legal Arenas - Any of the following arenas may be selected for any streamed MLE series, including: official, verified affiliate, and affiliate streams.
+2.09.1        DFH Stadium (Default, Day, Stormy, Anniversary)
+2.09.2        Mannfield (Default, Night, Stormy)
+2.09.3        Utopia Coliseum (Default, Dusk, Gilded)
+2.09.4        Wasteland (Default, Night)
+2.09.5        Neo Tokyo
+2.09.6        Aqua Dome
+2.09.7        Salty Shores (Night)
+2.09.8        Farmstead (Default)
+2.09.9        Forbidden Temple (Default, Day)
+2.09.10        Deadeye Canyon (Oasis)
+2.09.11        Rivals Arena
+2.09.12        Sovereign Heights
+2.09.13   Estadio Vida
+2.09.14   Parc De Paris
+
+
+2.10        Default Production Map Rotations
+2.10.1        Regular Season, Five Game Series
+        G1: DFH Stadium (Anniversary)
+        G2: Neo Tokyo
+        G3: Sovereign Heights
+        G4: Parc De Paris
+        G5: Mannfield Night
+2.10.2        Post Season, Best of Five Series
+        G1: DFH Stadium (Anniversary)
+        G2: Neo Tokyo
+        G3: Mannfield Day
+        G4: Deadeye Canyon (Oasis)
+        G5: Champions Field
+2.10.3        Post Season, Best of Seven Series
+        G1: DFH Stadium (Anniversary)
+        G2: Neo Tokyo
+        G3: Sovereign Heights
+        G4: Deadeye Canyon (Oasis)
+        G5: Mannfield (Night)
+        G6: Forbidden Temple
+        G7: Champions Field
