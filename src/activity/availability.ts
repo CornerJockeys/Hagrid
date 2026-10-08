@@ -10,8 +10,9 @@ import {
   isAuthResponse,
   type ActivityPrincipal,
 } from "./auth";
+import {currentEasternWeekStart, EASTERN_TIME_ZONE} from "./week";
 
-export const EASTERN_TIME_ZONE = "America/New_York";
+export {currentEasternWeekStart, EASTERN_TIME_ZONE};
 export const AVAILABILITY_START_MINUTE = 12 * 60;
 export const AVAILABILITY_END_MINUTE = 24 * 60;
 export const AVAILABILITY_RESOLUTION_MINUTES = 30;
@@ -31,34 +32,8 @@ function errorResponse(message: string, status = 400): Response {
   return Response.json({error: message}, {status});
 }
 
-function easternDateParts(now = new Date()): {year: number; month: number; day: number; weekday: string} {
-  const formatter = new Intl.DateTimeFormat("en-US", {
-    timeZone: EASTERN_TIME_ZONE,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    weekday: "short",
-  });
-  const values = new Map(formatter.formatToParts(now).map(part => [part.type, part.value]));
-  return {
-    year: Number(values.get("year")),
-    month: Number(values.get("month")),
-    day: Number(values.get("day")),
-    weekday: values.get("weekday") ?? "Mon",
-  };
-}
-
 function isoDate(date: Date): string {
   return date.toISOString().slice(0, 10);
-}
-
-export function currentEasternWeekStart(now = new Date()): string {
-  const parts = easternDateParts(now);
-  const weekdayIndex = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].indexOf(parts.weekday);
-  const date = new Date(Date.UTC(parts.year, parts.month - 1, parts.day));
-  const daysSinceMonday = (weekdayIndex + 6) % 7;
-  date.setUTCDate(date.getUTCDate() - daysSinceMonday);
-  return isoDate(date);
 }
 
 export function shiftAvailabilityWeek(weekStart: string, weeks: number): string {
