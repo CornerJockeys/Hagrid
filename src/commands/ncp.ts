@@ -173,26 +173,6 @@ function postedSummary(
     `Recorded by: <@${actorId}>`,
   ].join("\n");
 }
-function dummyPreview(division: TeamDivision, mode: string): string {
-  const slots = mode === "2s" ? "B, E" : "B, E, H";
-  return [
-    `**[DUMMY] NCP Preview — ${division} · ${mode}**`,
-    "",
-    "Match: **Match Week 4 — Wizards vs Example Opponent**",
-    `Slots charged: **${slots}**`,
-    "",
-    "**Usage effect**",
-    "Slot B: +1 series use",
-    "Slot E: +1 series use",
-    ...(mode === "3s" ? ["Slot H: +1 series use"] : []),
-    "",
-    "**Playoff eligibility effect**",
-    "Games from this NCP do **not** count toward the 15-game playoff requirement.",
-    "",
-    "_Dummy only — no NCP is saved and no usage is changed._",
-  ].join("\n");
-}
-
 export async function handleNcpDummyCommand(
   interaction: DiscordInteraction,
   env: Env,
