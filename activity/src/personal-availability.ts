@@ -73,6 +73,7 @@ export function mountPersonalAvailabilityPanel(
   windowConfig: AvailabilityWindow,
 ): {load: () => Promise<void>} {
   let weekStart = initialWeek;
+  let followsCurrentWeek = true;
   let selectedPlayerId = "";
   let currentPlayer: AvailabilityPlayer | null = null;
   let selectablePlayers: AvailabilityPlayer[] = [];
@@ -196,9 +197,12 @@ export function mountPersonalAvailabilityPanel(
 
   const load = async (): Promise<void> => {
     setStatus("Loading availability…");
-    const playerQuery = selectedPlayerId ? `&player_id=${encodeURIComponent(selectedPlayerId)}` : "";
+    const params = new URLSearchParams();
+    if (!followsCurrentWeek) params.set("week", weekStart);
+    if (selectedPlayerId) params.set("player_id", selectedPlayerId);
+    const query = params.toString();
     const data = await api<AvailabilityResponse>(
-      `/api/activity/availability?week=${encodeURIComponent(weekStart)}${playerQuery}`,
+      `/api/activity/availability${query ? `?${query}` : ""}`,
     );
     weekStart = data.week_start;
     currentPlayer = data.player;
@@ -251,6 +255,7 @@ export function mountPersonalAvailabilityPanel(
   const changeWeek = async (amount: number): Promise<void> => {
     if (dirty && !window.confirm("Discard your unsaved availability changes?")) return;
     weekStart = shiftWeek(weekStart, amount);
+    followsCurrentWeek = false;
     try {
       await load();
     } catch (error) {
@@ -337,6 +342,11 @@ export function mountPersonalAvailabilityPanel(
   window.addEventListener("pointercancel", () => {
     dragging = false;
     lastPaintedKey = "";
+  });
+  window.addEventListener("focus", () => {
+    if (followsCurrentWeek && !dirty) {
+      void load().catch(error => setStatus(error instanceof Error ? error.message : String(error), "error"));
+    }
   });
 
   renderGrid();
