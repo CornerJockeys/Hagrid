@@ -5,6 +5,7 @@ import {getScoutingStatLines} from "../sprocket/scouting";
 import {CURRENT_MLE_SEASON} from "../season-policy";
 import type {Env, ScheduledEventLike} from "../types";
 import {promoteLeagueSnapshotBulk} from "./bulk";
+import {leagueSnapshotFromSources, putCachedLeagueSnapshot} from "./cache";
 import type {RawScoutingLine} from "../scouting/calculate";
 import {teamDivision} from "./view";
 
@@ -234,6 +235,16 @@ export async function refreshLeagueSnapshot(env: Env, reason = "manual"): Promis
       `UPDATE league_snapshot_state SET checked_at = ?, source_as_of = ? WHERE singleton = 1`,
     ).bind(checkedAt, sourceAsOf).run();
     if (!checked.success) throw new Error("D1 rejected the league snapshot freshness update.");
+    await putCachedLeagueSnapshot(env, leagueSnapshotFromSources({
+      teams,
+      players,
+      usages,
+      scrimStats,
+      sourceHash,
+      sourceAsOf,
+      refreshedAt: state.refreshed_at,
+      checkedAt,
+    }));
     console.log(`League snapshot refresh (${reason}) found no source changes.`);
     return {
       changed: false,
@@ -258,6 +269,16 @@ export async function refreshLeagueSnapshot(env: Env, reason = "manual"): Promis
     sourceAsOf,
     now: checkedAt,
   });
+  await putCachedLeagueSnapshot(env, leagueSnapshotFromSources({
+    teams,
+    players,
+    usages,
+    scrimStats,
+    sourceHash,
+    sourceAsOf,
+    refreshedAt: checkedAt,
+    checkedAt,
+  }));
 
   console.log(
     `League snapshot refresh (${reason}) promoted ${teams.length} teams, ${players.length} players, ` +
