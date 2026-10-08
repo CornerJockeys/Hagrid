@@ -1,4 +1,3 @@
-import {getGuildConfig} from "../db";
 import {getCachedGuildConfig, setCachedGuildFranchise} from "../config-cache";
 import {discordMessage} from "../discord";
 import {DatasetFetchError} from "../sprocket/client";
