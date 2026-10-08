@@ -178,6 +178,24 @@ export async function getCurrentLeagueSnapshot(
   return snapshot;
 }
 
+export function searchSnapshotTeams(
+  snapshot: CachedLeagueSnapshot,
+  query: string,
+  limit = 25,
+): LeagueTeamRow[] {
+  const needle = normalize(query);
+  return snapshot.teams
+    .filter(team =>
+      !needle ||
+      normalize(team.franchise_name).includes(needle) ||
+      normalize(team.franchise_code).includes(needle),
+    )
+    .sort((left, right) =>
+      left.franchise_name.localeCompare(right.franchise_name, "en-US", {sensitivity: "base"}),
+    )
+    .slice(0, limit);
+}
+
 export function findSnapshotTeam(
   snapshot: CachedLeagueSnapshot,
   requested: string,
