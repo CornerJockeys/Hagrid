@@ -214,12 +214,55 @@ export function findSnapshotTeam(
   return partial.length === 1 ? partial[0] : null;
 }
 
+export function franchisePlayerFromSnapshotRow(
+  player: LeaguePlayerRow,
+): FranchisePlayer {
+  return {
+    sprocketPlayerId: player.sprocket_player_id,
+    memberId: player.member_id,
+    discordId: player.discord_id,
+    name: player.name,
+    salary: player.salary,
+    skillGroup: player.skill_group,
+    gameId: player.game_id,
+    gameTitle: player.game_title,
+    franchise: player.franchise_name,
+    staffPosition: player.staff_position,
+    slot: player.slot,
+    currentScrimPoints: player.current_scrim_points,
+    eligibleThrough: player.eligible_through,
+    sourceAsOf: player.source_as_of,
+  };
+}
+
+export function roleUsageFromSnapshotRow(
+  usage: LeagueUsageRow,
+): RoleUsage {
+  return {
+    doublesUses: usage.doubles_uses,
+    standardUses: usage.standard_uses,
+    totalUses: usage.total_uses,
+    seasonNumber: usage.season_number,
+    teamName: usage.team_name,
+    league: usage.league,
+    role: usage.role,
+    sourceAsOf: usage.source_as_of,
+  };
+}
+
 export function snapshotTeamPlayers(
   snapshot: CachedLeagueSnapshot,
   franchiseName: string,
 ): LeaguePlayerRow[] {
   const target = normalize(franchiseName);
   return snapshot.players.filter(player => normalize(player.franchise_name) === target);
+}
+
+export function snapshotFranchisePlayers(
+  snapshot: CachedLeagueSnapshot,
+  franchiseName: string,
+): FranchisePlayer[] {
+  return snapshotTeamPlayers(snapshot, franchiseName).map(franchisePlayerFromSnapshotRow);
 }
 
 export function snapshotTeamUsage(
@@ -232,6 +275,14 @@ export function snapshotTeamUsage(
     usage.season_number === seasonNumber &&
     normalize(usage.team_name) === target,
   );
+}
+
+export function snapshotFranchiseRoleUsages(
+  snapshot: CachedLeagueSnapshot,
+  franchiseName: string,
+  seasonNumber: number,
+): RoleUsage[] {
+  return snapshotTeamUsage(snapshot, franchiseName, seasonNumber).map(roleUsageFromSnapshotRow);
 }
 
 export function snapshotTeamScrimStats(
