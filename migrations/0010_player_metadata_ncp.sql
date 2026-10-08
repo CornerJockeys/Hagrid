@@ -17,6 +17,7 @@ CREATE TABLE IF NOT EXISTS ncp_records (
   interaction_id TEXT UNIQUE,
   guild_id TEXT NOT NULL,
   franchise_name TEXT NOT NULL,
+  season_number INTEGER NOT NULL,
   division TEXT NOT NULL,
   mode TEXT NOT NULL,
   match_id TEXT,
@@ -28,4 +29,4 @@ CREATE TABLE IF NOT EXISTS ncp_records (
 );
 
 CREATE INDEX IF NOT EXISTS idx_ncp_records_team
-  ON ncp_records (guild_id, franchise_name, division, created_at DESC);
+  ON ncp_records (guild_id, franchise_name, season_number, division, created_at DESC);
