@@ -61,7 +61,7 @@ The franchise sync imports the configured franchise's Rocket League roster, slot
 /test dump
 ```
 
-`/ncp` is restricted to AGM/GM/FM staff and now goes directly into the live submission flow. `/ncpdummy` is the separate AGM+ demo command; it previews division → mode → match/slot effects without changing production NCP/usage state. Live NCP submission remains deferred until the Season 20 matches/fixtures adapter is wired, because NCPs must preserve slot usage while excluding those games from playoff eligibility.
+`/ncp` is available to current franchise Captain+ staff. Captains are limited to their Discord-linked division; AGM/GM/FM staff can manage all configured-franchise divisions. A submission selects Doubles or Standard and exactly 2 or 3 current roster players respectively, then posts a **pending** request to the configured NCP thread. An AGM/GM/FM must approve or reject it there before it affects slot usage. Approved NCPs consume one series use for each selected slot while remaining excluded from playoff-eligibility games. `/ncpdummy` previews the same Captain+ flow without saving, posting, or changing usage. The future Season 20 matches/fixtures adapter will add the live match picker to this flow.
 
 `/test dump` safely simulates the weekly **Eligibility**, **Salary**, or **Usage** output (or all three) in the configured Season 20 threads. The tester chooses a Match Week label from 1–10; every dump title includes that Match Week number. Usage posts to thread `1555478962187018271`, Salary to `1555478919811964928`, and Eligibility to `1555478866716262420`. This simulates the real weekly Discord output while leaving scheduled state unchanged.
 
