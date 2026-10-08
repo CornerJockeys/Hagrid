@@ -10,6 +10,44 @@ export interface LeagueEligibilityRule {
   requirement: number;
 }
 
+interface EligibilityCachePayload<T> {
+  cachedAt: number;
+  values: T[];
+}
+
+const ELIGIBILITY_CACHE_TTL_MS = 5 * 60_000;
+const ELIGIBILITY_EVENTS_CACHE_KEY = "eligibility:events:v1";
+const ELIGIBILITY_RULES_CACHE_KEY = "eligibility:rules:v1";
+
+async function readEligibilityCache<T>(
+  env: Env,
+  key: string,
+): Promise<EligibilityCachePayload<T> | null> {
+  if (!env.HAGRID_CACHE) return null;
+  const raw = await env.HAGRID_CACHE.get(key, "text");
+  if (!raw) return null;
+  try {
+    const parsed = JSON.parse(raw) as EligibilityCachePayload<T>;
+    if (!Number.isFinite(parsed.cachedAt) || !Array.isArray(parsed.values)) return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+async function writeEligibilityCache<T>(
+  env: Env,
+  key: string,
+  values: T[],
+): Promise<void> {
+  if (!env.HAGRID_CACHE) return;
+  try {
+    await env.HAGRID_CACHE.put(key, JSON.stringify({cachedAt: Date.now(), values}));
+  } catch (error) {
+    console.warn("Could not update eligibility KV cache.", error);
+  }
+}
+
 function dateOnly(value: string | null): string | null {
   if (!value) return null;
   const match = value.trim().match(/^(\d{4}-\d{2}-\d{2})/);
@@ -36,10 +74,25 @@ export async function getEligibilityEvents(
   env: Env,
   playerId?: string,
 ): Promise<EligibilityEvent[]> {
-  const rows = await fetchCsvDataset(env, "eligibility_data");
-  const events = rows
-    .map(eventFromRow)
-    .filter((event): event is EligibilityEvent => event !== null);
+  const cached = await readEligibilityCache<EligibilityEvent>(env, ELIGIBILITY_EVENTS_CACHE_KEY);
+  let events: EligibilityEvent[];
+
+  if (cached && Date.now() - cached.cachedAt <= ELIGIBILITY_CACHE_TTL_MS) {
+    events = cached.values;
+  } else {
+    try {
+      const rows = await fetchCsvDataset(env, "eligibility_data");
+      events = rows
+        .map(eventFromRow)
+        .filter((event): event is EligibilityEvent => event !== null);
+      await writeEligibilityCache(env, ELIGIBILITY_EVENTS_CACHE_KEY, events);
+    } catch (error) {
+      if (!cached) throw error;
+      console.warn("Eligibility event source unavailable; using stale KV snapshot.", error);
+      events = cached.values;
+    }
+  }
+
   const filtered = playerId ? events.filter(event => event.playerId === playerId) : events;
   return filtered.sort((left, right) =>
     left.createdDate.localeCompare(right.createdDate) ||
@@ -48,8 +101,21 @@ export async function getEligibilityEvents(
 }
 
 export async function getLeagueEligibilityRules(env: Env): Promise<LeagueEligibilityRule[]> {
-  const rows = await fetchCsvDataset(env, "leagues");
-  return rows.map(leagueFromRow).filter((rule): rule is LeagueEligibilityRule => rule !== null);
+  const cached = await readEligibilityCache<LeagueEligibilityRule>(env, ELIGIBILITY_RULES_CACHE_KEY);
+  if (cached && Date.now() - cached.cachedAt <= ELIGIBILITY_CACHE_TTL_MS) {
+    return cached.values;
+  }
+
+  try {
+    const rows = await fetchCsvDataset(env, "leagues");
+    const rules = rows.map(leagueFromRow).filter((rule): rule is LeagueEligibilityRule => rule !== null);
+    await writeEligibilityCache(env, ELIGIBILITY_RULES_CACHE_KEY, rules);
+    return rules;
+  } catch (error) {
+    if (!cached) throw error;
+    console.warn("Eligibility rule source unavailable; using stale KV snapshot.", error);
+    return cached.values;
+  }
 }
 
 export async function getLeagueEligibilityRequirement(
