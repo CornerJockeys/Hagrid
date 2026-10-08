@@ -78,7 +78,7 @@
   border: 0;
   border-right: 1px solid #282d35;
   border-bottom: 1px solid #282d35;
-  background: color-mix(in srgb, #7288a4 calc(var(--availability-ratio) * 100%), #171a20);
+  background: hsl(calc(var(--availability-ratio) * 120) 62% 31%);
   color: #f0f2f5;
   display: grid;
   place-content: center;
@@ -86,6 +86,7 @@
   text-align: center;
   font-variant-numeric: tabular-nums;
 }
+.team-heat-cell.is-empty { background: #171a20; }
 .team-heat-cell:hover, .team-heat-cell:focus { outline: 1px solid #b2bac6; outline-offset: -2px; }
 .team-heat-cell strong { font-size: 12px; }
 .team-heat-cell small { color: #f0d998; font-size: 9px; }
