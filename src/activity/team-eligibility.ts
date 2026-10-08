@@ -3,7 +3,7 @@ import {
   isCompetitiveAvailabilityPlayer,
   type AvailabilityRosterPlayer,
 } from "../availability/team";
-import {getGuildConfig} from "../db";
+import {getCachedGuildConfig} from "../config-cache";
 import {buildEligibilityDecay, easternCalendarDate} from "../eligibility-decay";
 import {currentLeagueWeekStart, isEligibleForWeek} from "../eligibility";
 import {getEligibilityEvents, getLeagueEligibilityRules} from "../sprocket/eligibility-data";
@@ -43,7 +43,7 @@ export async function getTeamEligibility(request: Request, env: Env): Promise<Re
   const access = await requireCaptainPlusAccess(env, auth);
   if (isAccessResponse(access)) return access;
 
-  const config = await getGuildConfig(env.DB, auth.guildId);
+  const config = await getCachedGuildConfig(env, auth.guildId);
   if (!config) {
     return Response.json({error: "No franchise is configured for this Discord server."}, {status: 409});
   }
