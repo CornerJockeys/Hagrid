@@ -1,13 +1,18 @@
 import {getCachedGuildConfig} from "../config-cache";
 import {captainDivisions, hasAgmPlusRole, hasAnyStaffRole, hasCaptainRole} from "../discord-roles";
 import {discordMessage, discordUpdateMessage, sendDiscordChannelMessage} from "../discord";
+import {
+  getCurrentLeagueSnapshot,
+  snapshotFranchisePlayers,
+  snapshotFranchiseRoleUsages,
+} from "../league/cache";
 import {isCompetitiveSlot, slotLabel, teamDivision, type TeamDivision} from "../league/view";
 import {buildUsageAlerts} from "../reminders/usage-summary";
 import {easternDate, parseReminderDate} from "../reminders/logic";
 import {eligibilityNeedSteps, formatEligibilityNeed, formatShortDate, inferScrimPointAward} from "../reminders/eligibility-summary";
 import {getEligibilityEvents, getLeagueEligibilityRules} from "../sprocket/eligibility-data";
-import {getFranchisePlayers} from "../sprocket/players";
-import {getFranchiseRoleUsagesForSeason} from "../sprocket/role-usages";
+import {getFranchisePlayers, type FranchisePlayer} from "../sprocket/players";
+import {getFranchiseRoleUsagesForSeason, type RoleUsage} from "../sprocket/role-usages";
 import {CURRENT_MLE_SEASON} from "../season-policy";
 import type {DiscordInteraction, Env} from "../types";
 
@@ -16,14 +21,36 @@ const CADENCES = new Set(["normal", "daily", "once"]);
 const DIVISION_NAMES: Record<TeamDivision, string> = {FL: "Foundation League", AL: "Academy League", CL: "Champion League", ML: "Master League"};
 type ReminderScope = "player" | "division" | "team" | "usage-division" | "usage-team";
 type EligibilityReminderSnapshot = {
-  players: Awaited<ReturnType<typeof getFranchisePlayers>>;
+  players: FranchisePlayer[];
   events: Awaited<ReturnType<typeof getEligibilityEvents>>;
   rules: Awaited<ReturnType<typeof getLeagueEligibilityRules>>;
 };
 type UsageReminderSnapshot = {
-  players: Awaited<ReturnType<typeof getFranchisePlayers>>;
-  usages: Awaited<ReturnType<typeof getFranchiseRoleUsagesForSeason>>;
+  players: FranchisePlayer[];
+  usages: RoleUsage[];
 };
+
+async function currentFranchisePlayers(
+  env: Env,
+  franchiseName: string,
+): Promise<FranchisePlayer[]> {
+  const snapshot = await getCurrentLeagueSnapshot(env);
+  const cached = snapshot ? snapshotFranchisePlayers(snapshot, franchiseName) : [];
+  return cached.length > 0 ? cached : currentFranchisePlayers(env, franchiseName);
+}
+
+async function currentFranchiseUsage(
+  env: Env,
+  franchiseName: string,
+): Promise<RoleUsage[]> {
+  const snapshot = await getCurrentLeagueSnapshot(env);
+  const cached = snapshot
+    ? snapshotFranchiseRoleUsages(snapshot, franchiseName, CURRENT_MLE_SEASON)
+    : [];
+  return cached.length > 0
+    ? cached
+    : currentFranchiseUsage(env, franchiseName);
+}
 
 function invokerId(interaction: DiscordInteraction): string | null {
   return interaction.member?.user?.id ?? interaction.user?.id ?? null;
@@ -300,7 +327,7 @@ function modalInput(interaction: DiscordInteraction, customId: string): string |
 async function getConfiguredRoster(env: Env, guildId: string) {
   const config = await getCachedGuildConfig(env, guildId);
   if (!config) return {config: null, players: []};
-  const players = await getFranchisePlayers(env, config.franchise_name);
+  const players = await currentFranchisePlayers(env, config.franchise_name);
   return {config, players};
 }
 
@@ -339,7 +366,7 @@ async function buildDivisionEligibilityReminder(
 ): Promise<string> {
   const loaded = snapshot ?? await (async (): Promise<EligibilityReminderSnapshot> => {
     const [players, events, rules] = await Promise.all([
-      getFranchisePlayers(env, franchiseName),
+      currentFranchisePlayers(env, franchiseName),
       getEligibilityEvents(env),
       getLeagueEligibilityRules(env),
     ]);
@@ -412,7 +439,7 @@ async function buildDivisionEligibilityReminder(
 }
 
 function captainMentions(
-  players: Awaited<ReturnType<typeof getFranchisePlayers>>,
+  players: FranchisePlayer[],
   division: TeamDivision,
 ): string[] {
   return players
@@ -434,8 +461,8 @@ async function buildDivisionUsageReminder(
 ): Promise<string> {
   const loaded = snapshot ?? await (async (): Promise<UsageReminderSnapshot> => {
     const [players, usages] = await Promise.all([
-      getFranchisePlayers(env, franchiseName),
-      getFranchiseRoleUsagesForSeason(env, franchiseName, CURRENT_MLE_SEASON),
+      currentFranchisePlayers(env, franchiseName),
+      currentFranchiseUsage(env, franchiseName),
     ]);
     return {players, usages};
   })();
@@ -490,7 +517,7 @@ async function postUsageReminder(
 
   const [players, usages] = await Promise.all([
     getFranchisePlayers(env, config.franchise_name),
-    getFranchiseRoleUsagesForSeason(env, config.franchise_name, CURRENT_MLE_SEASON),
+    currentFranchiseUsage(env, config.franchise_name),
   ]);
   const snapshot: UsageReminderSnapshot = {players, usages};
   for (const key of DIVISIONS) {
