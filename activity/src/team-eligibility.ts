@@ -1,3 +1,4 @@
+import {playerBadges} from "./player-badges";
 export type TeamEligibilityApi = <T>(path: string, init?: RequestInit) => Promise<T>;
 export type TeamEligibilityStatus = (
   message: string,
@@ -19,6 +20,9 @@ interface TeamEligibilityPlayer {
   source_week_eligible: boolean;
   eligible_through: string | null;
   source_as_of: string | null;
+  joined_date: string | null;
+  seasons_played: number | null;
+  seasons: string[];
 }
 
 interface TeamEligibilityResponse {
@@ -120,7 +124,7 @@ export function mountTeamEligibilityPanel(
           <tbody>
             ${players.map(player => `
               <tr>
-                <td class="prospect-name"><strong>${escapeHtml(player.name)}</strong></td>
+                <td class="prospect-name"><strong>${escapeHtml(player.name)}</strong>${playerBadges(player)}</td>
                 <td>${escapeHtml(player.division ?? "—")}</td>
                 <td>${escapeHtml(player.slot ?? "—")}</td>
                 <td><span class="eligibility-status ${player.current_week_eligible ? "eligible" : "ineligible"}">${player.current_week_eligible ? "Eligible" : "Not eligible"}</span></td>
