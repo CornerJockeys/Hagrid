@@ -5,6 +5,7 @@ import type {DiscordInteraction, Env} from "../types";
 import {slotLabel, teamDivision, type TeamDivision} from "../league/view";
 import type {FranchisePlayer} from "../sprocket/players";
 import {getCurrentCompetitiveFranchiseRoster} from "../activity/roster";
+import {CURRENT_MLE_SEASON} from "../season-policy";
 
 const DIVISIONS: TeamDivision[] = ["FL", "AL", "CL", "ML"];
 const NCP_THREAD_ID = "1553513630333665461";
@@ -348,13 +349,14 @@ export async function handleNcpComponent(
     const slotsJson = JSON.stringify(selected.map(player => slotLabel(player.slot)));
     const write = await env.DB.prepare(
       `INSERT OR IGNORE INTO ncp_records (
-         interaction_id, guild_id, franchise_name, division, mode, players_json,
+         interaction_id, guild_id, franchise_name, season_number, division, mode, players_json,
          slots_json, created_by_discord_id
-       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     ).bind(
       interaction.id ?? null,
       interaction.guild_id,
       config.franchise_name,
+      CURRENT_MLE_SEASON,
       division,
       mode,
       playersJson,
