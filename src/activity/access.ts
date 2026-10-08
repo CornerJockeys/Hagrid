@@ -1,3 +1,5 @@
+import {getCachedGuildConfig} from "../config-cache";
+import {getCurrentLeagueSnapshot} from "../league/cache";
 import type {Env} from "../types";
 import type {ActivityPrincipal} from "./auth";
 
@@ -126,26 +128,49 @@ export async function getActivityAccess(
   env: Env,
   auth: ActivityPrincipal,
 ): Promise<ActivityAccess> {
-  const result = await env.DB.prepare(
-    `SELECT sprocket_player_id, name, skill_group, staff_position, slot
-     FROM franchise_players_current
-     WHERE guild_id = ?1 AND discord_id = ?2
-     UNION ALL
-     SELECT player.sprocket_player_id, player.name, player.skill_group,
-            player.staff_position, player.slot
-     FROM league_players_current player
-     INNER JOIN guild_config config
-       ON LOWER(config.franchise_name) = LOWER(player.franchise_name)
-     WHERE config.guild_id = ?1 AND player.discord_id = ?2`,
-  ).bind(auth.guildId, auth.userId).all<AccessRow>();
+  let rows: AccessRow[] = [];
+  const [config, snapshot] = await Promise.all([
+    getCachedGuildConfig(env, auth.guildId),
+    getCurrentLeagueSnapshot(env),
+  ]);
 
-  const cached = accessFromRosterRows(result.results);
+  if (config && snapshot) {
+    const franchise = config.franchise_name.trim().toLocaleLowerCase("en-US");
+    rows = snapshot.players
+      .filter(player =>
+        player.discord_id === auth.userId &&
+        player.franchise_name.trim().toLocaleLowerCase("en-US") === franchise,
+      )
+      .map(player => ({
+        sprocket_player_id: player.sprocket_player_id,
+        name: player.name,
+        skill_group: player.skill_group,
+        staff_position: player.staff_position,
+        slot: player.slot,
+      }));
+  } else {
+    const result = await env.DB.prepare(
+      `SELECT sprocket_player_id, name, skill_group, staff_position, slot
+       FROM franchise_players_current
+       WHERE guild_id = ?1 AND discord_id = ?2
+       UNION ALL
+       SELECT player.sprocket_player_id, player.name, player.skill_group,
+              player.staff_position, player.slot
+       FROM league_players_current player
+       INNER JOIN guild_config config
+         ON LOWER(config.franchise_name) = LOWER(player.franchise_name)
+       WHERE config.guild_id = ?1 AND player.discord_id = ?2`,
+    ).bind(auth.guildId, auth.userId).all<AccessRow>();
+    rows = result.results;
+  }
+
+  const cached = accessFromRosterRows(rows);
   const discordStaff = hasActivityStaffRole(auth.roleIds);
   const captainDivisions = activityCaptainDivisions(auth.roleIds);
   const discordDivision = captainDivisions.length === 1 ? captainDivisions[0] : null;
 
-  // Discord roles are authoritative for staff/captain permissions. Roster data
-  // is still used to resolve the user's player identity, slot, and division.
+  // Discord roles are authoritative for staff/captain permissions. Cached
+  // league identity is only used to resolve player/slot/division context.
   return {
     ...cached,
     staff: discordStaff,
