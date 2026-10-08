@@ -30,13 +30,16 @@ export async function getCurrentCompetitiveFranchiseRoster(
   const config = await getGuildConfig(env.DB, guildId);
   if (!config) return [];
 
+  const cached = (await getLeagueTeamPlayers(env.DB, config.franchise_name))
+    .map(fromCachedPlayer)
+    .filter(player => isCompetitiveSlot(player.slot));
+  if (cached.length > 0) return cached;
+
   try {
     return (await getFranchisePlayers(env, config.franchise_name))
       .filter(player => isCompetitiveSlot(player.slot));
   } catch (error) {
-    console.error("Live franchise roster lookup failed; using Hagrid snapshot.", error);
-    return (await getLeagueTeamPlayers(env.DB, config.franchise_name))
-      .map(fromCachedPlayer)
-      .filter(player => isCompetitiveSlot(player.slot));
+    console.error("Hagrid roster snapshot was empty and live roster lookup failed.", error);
+    return [];
   }
 }
