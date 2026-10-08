@@ -8,6 +8,7 @@ import {remainingUsage, slotLabel, teamDivision, type TeamDivision} from "../lea
 import {getFranchisePlayers} from "../sprocket/players";
 import {getFranchiseRoleUsagesForSeason} from "../sprocket/role-usages";
 import {CURRENT_MLE_SEASON} from "../season-policy";
+import {applyNcpToRoleUsage} from "../ncp/usage";
 import type {Env} from "../types";
 
 export type DumpKind = "eligibility" | "salary" | "usage";
@@ -78,9 +79,15 @@ export async function buildDumpMessages(
       lines.push("");
     }
   } else {
-    const usages = snapshot
+    const baseUsages = snapshot
       ? snapshotFranchiseRoleUsages(snapshot, franchise, CURRENT_MLE_SEASON)
       : await getFranchiseRoleUsagesForSeason(env, franchise, CURRENT_MLE_SEASON);
+    const usages = await applyNcpToRoleUsage(
+      env.DB,
+      franchise,
+      CURRENT_MLE_SEASON,
+      baseUsages,
+    );
     for (const division of DIVISIONS) {
       const roster = players.filter(player => teamDivision(player.skillGroup) === division);
       const bySlot = new Map(roster.map(player => [roleKey(player.slot), player]));
