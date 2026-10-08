@@ -156,6 +156,7 @@ export function mountTeamAvailabilityPanel(
   initialWeek: string,
 ): void {
   let weekStart = initialWeek;
+  let followsCurrentWeek = true;
   let resolution: Resolution = 60;
   let selectedDivision: TeamDivisionFilter = "all";
   let data: TeamAvailabilityResponse | null = null;
@@ -335,8 +336,10 @@ export function mountTeamAvailabilityPanel(
   const load = async (): Promise<void> => {
     try {
       setStatus("Loading team availability…");
+      const params = new URLSearchParams({division: selectedDivision});
+      if (!followsCurrentWeek) params.set("week", weekStart);
       data = await api<TeamAvailabilityResponse>(
-        `/api/activity/availability/team?week=${encodeURIComponent(weekStart)}&division=${encodeURIComponent(selectedDivision)}`,
+        `/api/activity/availability/team?${params.toString()}`,
       );
       weekStart = data.week_start;
       render();
@@ -347,10 +350,12 @@ export function mountTeamAvailabilityPanel(
   };
 
   panel.querySelector("#team-previous-week")?.addEventListener("click", () => {
+    followsCurrentWeek = false;
     weekStart = shiftWeek(weekStart, -1);
     void load();
   });
   panel.querySelector("#team-next-week")?.addEventListener("click", () => {
+    followsCurrentWeek = false;
     weekStart = shiftWeek(weekStart, 1);
     void load();
   });
@@ -371,6 +376,9 @@ export function mountTeamAvailabilityPanel(
   });
   window.addEventListener("keydown", event => {
     if (event.key === "Escape" && detailRoot.childElementCount > 0) closeDetail();
+  });
+  window.addEventListener("focus", () => {
+    if (followsCurrentWeek) void load();
   });
 
   syncDivisionButtons();
