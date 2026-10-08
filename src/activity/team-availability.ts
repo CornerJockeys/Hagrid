@@ -8,7 +8,7 @@ import {
 import type {Env} from "../types";
 import {getPlayerProfileMetadata} from "../player-meta";
 import {getCurrentCompetitiveFranchiseRoster} from "./roster";
-import {isAccessResponse, requireCaptainPlusAccess} from "./access";
+import {isAccessResponse, requireAgmPlusAccess} from "./access";
 import {
   AVAILABILITY_END_MINUTE,
   AVAILABILITY_RESOLUTION_MINUTES,
