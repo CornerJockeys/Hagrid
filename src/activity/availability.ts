@@ -1,4 +1,4 @@
-import {getGuildConfig} from "../db";
+import {getCachedGuildConfig} from "../config-cache";
 import type {Env} from "../types";
 import {
   getActivityAccess,
@@ -118,7 +118,7 @@ export async function getActivityContext(request: Request, env: Env): Promise<Re
   if (isAuthResponse(auth)) return auth;
 
   const [config, access] = await Promise.all([
-    getGuildConfig(env.DB, auth.guildId),
+    getCachedGuildConfig(env, auth.guildId),
     getActivityAccess(env, auth),
   ]);
   return Response.json({
