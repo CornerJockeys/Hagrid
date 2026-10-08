@@ -3,11 +3,12 @@ import {
   getCurrentLeagueSnapshot,
   snapshotTeamPlayers,
 } from "../league/cache";
+import type {LeaguePlayerRow} from "../league/db";
 import {isCompetitiveSlot} from "../league/view";
 import {getFranchisePlayers, type FranchisePlayer} from "../sprocket/players";
 import type {Env} from "../types";
 
-function fromCachedPlayer(player: Awaited<ReturnType<typeof getLeagueTeamPlayers>>[number]): FranchisePlayer {
+function fromCachedPlayer(player: LeaguePlayerRow): FranchisePlayer {
   return {
     sprocketPlayerId: player.sprocket_player_id,
     memberId: player.member_id,
