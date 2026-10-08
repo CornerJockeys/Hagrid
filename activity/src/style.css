@@ -296,3 +296,45 @@ select:focus, input:focus { border-color: #7b838f; }
   letter-spacing: .02em;
   white-space: nowrap;
 }
+
+.segmented-control { display: flex; gap: 5px; flex-wrap: wrap; }
+.segmented-control .secondary-button.active { background: #f2f3f5; color: #16181d; border-color: #f2f3f5; }
+.stats-table { min-width: 1350px; }
+.standings-section + .standings-section { margin-top: 12px; }
+.standings-table { min-width: 520px; }
+.standings-own-row td { background: #202830; }
+.notice-card {
+  margin: 10px 0 14px;
+  padding: 14px 16px;
+  border: 1px solid #343943;
+  border-radius: 10px;
+  background: #15191f;
+}
+.notice-card strong { display: block; margin-bottom: 5px; }
+.notice-card p { margin: 0; color: #aeb4bd; line-height: 1.45; }
+.notice-card.warning { border-color: #564a2d; background: #211d14; }
+.rulebook-toolbar label { min-width: min(520px, 100%); flex: 1 1 420px; }
+.rulebook-card {
+  border: 1px solid #292e37;
+  border-radius: 10px;
+  background: #14171c;
+  overflow: auto;
+  max-height: calc(100vh - 330px);
+  min-height: 360px;
+}
+.rulebook-full, .rulebook-result {
+  margin: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font: inherit;
+  line-height: 1.55;
+  color: #d7dbe0;
+}
+.rulebook-full { padding: 18px; }
+.rulebook-results { display: grid; gap: 10px; padding: 12px; }
+.rulebook-result {
+  padding: 12px;
+  border: 1px solid #292e37;
+  border-radius: 8px;
+  background: #191d23;
+}
