@@ -6,6 +6,7 @@ import {mountTeamAvailabilityPanel} from "./team-availability";
 import {mountTeamEligibilityPanel} from "./team-eligibility";
 import {mountStatsPanel} from "./stats";
 import {mountStandingsPanel} from "./standings";
+import {mountSchedulePanel} from "./schedule";
 import {mountRulebookPanel} from "./rulebook";
 import "./style.css";
 import "./eligibility.css";
@@ -20,6 +21,7 @@ interface ActivityContext {
     roster_member: boolean;
     staff: boolean;
     captain_plus: boolean;
+    agm_plus: boolean;
     player_id: string | null;
     player_name: string | null;
     division: string | null;
@@ -133,10 +135,11 @@ function shell(): {loadPersonal: (() => Promise<void>) | null} {
   }
 
   const extraPanels = [
-    context.access.captain_plus ? '<section id="team-eligibility-panel" class="panel hidden" data-panel="team-eligibility"></section>' : "",
-    context.access.captain_plus ? '<section id="team-availability-panel" class="panel hidden" data-panel="team-availability"></section>' : "",
-    '<section id="stats-panel" class="panel hidden" data-panel="stats"></section>',
+    context.access.agm_plus ? '<section id="team-eligibility-panel" class="panel hidden" data-panel="team-eligibility"></section>' : "",
+    context.access.agm_plus ? '<section id="team-availability-panel" class="panel hidden" data-panel="team-availability"></section>' : "",
     '<section id="standings-panel" class="panel hidden" data-panel="standings"></section>',
+    '<section id="schedule-panel" class="panel hidden" data-panel="schedule"></section>',
+    '<section id="stats-panel" class="panel hidden" data-panel="stats"></section>',
     context.access.staff ? '<section id="scouting-panel" class="panel hidden" data-panel="scouting"></section>' : "",
     context.access.captain_plus ? '<section id="league-rulebook-panel" class="panel hidden" data-panel="league-rulebook"></section>' : "",
     context.access.captain_plus ? '<section id="broadcast-rulebook-panel" class="panel hidden" data-panel="broadcast-rulebook"></section>' : "",
@@ -149,7 +152,7 @@ function shell(): {loadPersonal: (() => Promise<void>) | null} {
         <div class="user-chip"><span>${escapeHtml(context.display_name)}</span><small>${escapeHtml(accessLabel)}</small></div>
       </header>
       <nav class="tabs" aria-label="Hagrid tools">
-        <button class="tab active" data-tab="eligibility">Eligibility</button>${context.access.captain_plus ? `<button class="tab" data-tab="team-eligibility">Team Eligibility</button>` : ""}<button class="tab" data-tab="availability">Availability</button>${context.access.captain_plus ? `<button class="tab" data-tab="team-availability">Team Availability</button>` : ""}<button class="tab" data-tab="stats">Stats</button><button class="tab" data-tab="standings">Standings</button>${context.access.staff ? `<button class="tab" data-tab="scouting">Scouting</button>` : ""}${context.access.captain_plus ? `<button class="tab" data-tab="league-rulebook">League Rulebook</button><button class="tab" data-tab="broadcast-rulebook">Broadcast Rulebook</button>` : ""}
+        <button class="tab active" data-tab="eligibility">Eligibility</button>${context.access.agm_plus ? `<button class="tab" data-tab="team-eligibility">Team Eligibility</button>` : ""}<button class="tab" data-tab="availability">Availability</button>${context.access.agm_plus ? `<button class="tab" data-tab="team-availability">Team Availability</button>` : ""}<button class="tab" data-tab="standings">Standings</button><button class="tab" data-tab="schedule">Schedule</button><button class="tab" data-tab="stats">Stats</button>${context.access.staff ? `<button class="tab" data-tab="scouting">Scouting</button>` : ""}${context.access.captain_plus ? `<button class="tab" data-tab="league-rulebook">League Rulebook</button><button class="tab" data-tab="broadcast-rulebook">Broadcast Rulebook</button>` : ""}
       </nav>
       <main>
         <section id="eligibility-panel" class="panel" data-panel="eligibility"></section><section id="availability-panel" class="panel hidden" data-panel="availability"></section>${extraPanels}
@@ -174,6 +177,7 @@ function shell(): {loadPersonal: (() => Promise<void>) | null} {
   let teamAvailabilityMounted = false;
   let statsMounted = false;
   let standingsMounted = false;
+  let scheduleMounted = false;
   let scoutingMounted = false;
   let leagueRulebookMounted = false;
   let broadcastRulebookMounted = false;
@@ -196,14 +200,14 @@ function shell(): {loadPersonal: (() => Promise<void>) | null} {
       }
     }
 
-    if (context?.access.captain_plus && tab === "team-eligibility" && !teamEligibilityMounted) {
+    if (context?.access.agm_plus && tab === "team-eligibility" && !teamEligibilityMounted) {
       const panel = document.querySelector<HTMLElement>("#team-eligibility-panel");
       if (panel) {
         mountTeamEligibilityPanel(panel, api, setStatus);
         teamEligibilityMounted = true;
       }
     }
-    if (context?.access.captain_plus && tab === "team-availability" && !teamAvailabilityMounted) {
+    if (context?.access.agm_plus && tab === "team-availability" && !teamAvailabilityMounted) {
       const panel = document.querySelector<HTMLElement>("#team-availability-panel");
       if (panel) {
         mountTeamAvailabilityPanel(panel, api, setStatus, context.current_week_start);
@@ -217,6 +221,10 @@ function shell(): {loadPersonal: (() => Promise<void>) | null} {
     if (tab === "standings" && !standingsMounted) {
       const panel = document.querySelector<HTMLElement>("#standings-panel");
       if (panel) { mountStandingsPanel(panel, api, setStatus); standingsMounted = true; }
+    }
+    if (tab === "schedule" && !scheduleMounted) {
+      const panel = document.querySelector<HTMLElement>("#schedule-panel");
+      if (panel) { mountSchedulePanel(panel, setStatus); scheduleMounted = true; }
     }
     if (context?.access.staff && tab === "scouting" && !scoutingMounted) {
       const panel = document.querySelector<HTMLElement>("#scouting-panel");
