@@ -1,4 +1,5 @@
-import {getGuildConfig, setResolvedGuildFranchise} from "../db";
+import {getGuildConfig} from "../db";
+import {getCachedGuildConfig, setCachedGuildFranchise} from "../config-cache";
 import {discordMessage} from "../discord";
 import {DatasetFetchError} from "../sprocket/client";
 import {resolveFranchise, type SprocketFranchise} from "../sprocket/franchises";
@@ -54,7 +55,7 @@ export async function handleFranchiseCommand(
   }
 
   if (subcommand.name === "show") {
-    const config = await getGuildConfig(env.DB, guildId);
+    const config = await getCachedGuildConfig(env, guildId);
     if (!config) {
       return discordMessage("Hagrid does not have a franchise configured for this server yet.");
     }
@@ -112,7 +113,7 @@ export async function handleFranchiseCommand(
   }
 
   const match = resolution.match;
-  const previous = await getGuildConfig(env.DB, guildId);
+  const previous = await getCachedGuildConfig(env, guildId);
 
   if (
     previous?.franchise_name === match.name &&
@@ -121,8 +122,8 @@ export async function handleFranchiseCommand(
     return discordMessage(`Hagrid is already configured for **${formatFranchise(match)}**.`);
   }
 
-  const updated = await setResolvedGuildFranchise(
-    env.DB,
+  const updated = await setCachedGuildFranchise(
+    env,
     guildId,
     match.name,
     match.code,
