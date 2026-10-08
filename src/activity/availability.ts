@@ -172,7 +172,7 @@ function cachedPlayer(row: CachedAvailabilityPlayerRow): FranchisePlayer {
   };
 }
 
-async function availabilityRoster(env: Env, guildId: string): Promise<FranchisePlayer[]> {
+export async function getAvailabilityRoster(env: Env, guildId: string): Promise<FranchisePlayer[]> {
   const config = await getGuildConfig(env.DB, guildId);
   if (!config) return [];
 
@@ -236,7 +236,7 @@ export async function getMyAvailability(request: Request, env: Env): Promise<Res
   const weekStart = requestedAvailabilityWeek(request);
   if (weekStart instanceof Response) return weekStart;
 
-  const roster = await availabilityRoster(env, auth.guildId);
+  const roster = await getAvailabilityRoster(env, auth.guildId);
   const ownPlayer = roster.find(player => player.discordId === auth.userId) ?? null;
   const requestedPlayerId = new URL(request.url).searchParams.get("player_id")?.trim() ?? "";
   const selected = requestedPlayerId
