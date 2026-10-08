@@ -255,7 +255,7 @@ export function mountPersonalAvailabilityPanel(
   panel.innerHTML = `
     <div class="panel-heading"><div><div class="eyebrow">Eastern Time (ET)</div><h2>My Availability</h2><p>Noon to midnight, seven days a week. Drag across the grid or switch to checkbox editing.</p></div>
       <div class="week-picker"><button id="previous-week" class="icon-button" aria-label="Previous week">←</button><div><strong id="week-label">${formatWeek(weekStart)}</strong><span id="dirty-marker">Saved</span></div><button id="next-week" class="icon-button" aria-label="Next week">→</button></div></div>
-    <div class="toolbar">
+    <div class="toolbar availability-toolbar">
       <label>Time blocks<select id="resolution-select"><option value="60">1 hour</option><option value="30">30 minutes</option></select></label>
       <label>Edit style<select id="edit-mode-select"><option value="drag">Drag to select</option><option value="checkbox">Checkboxes</option></select></label>
       <button id="copy-previous" class="secondary-button">Copy Previous Week</button><button id="clear-availability" class="secondary-button">Clear</button><button id="save-availability" class="primary-button" disabled>Save Availability</button>
