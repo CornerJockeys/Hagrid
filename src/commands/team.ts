@@ -2,16 +2,19 @@ import {discordAutocomplete, discordDeferred, discordMessage, editOriginalIntera
 import {currentLeagueWeekStart, isEligibleForWeek} from "../eligibility";
 import {buildEligibilityDecay, easternCalendarDate} from "../eligibility-decay";
 import {
-  getLeagueSnapshotInfo,
-  getLeagueTeamPlayers,
-  getTeamRoleUsage,
-  getTeamScrimStats,
-  resolveLeagueTeam,
   searchLeagueTeams,
   type LeaguePlayerRow,
   type LeagueScrimStatRow,
   type LeagueUsageRow,
 } from "../league/db";
+import {
+  findSnapshotTeam,
+  getCurrentLeagueSnapshot,
+  searchSnapshotTeams,
+  snapshotTeamPlayers,
+  snapshotTeamScrimStats,
+  snapshotTeamUsage,
+} from "../league/cache";
 import {
   formatEasternTimestamp,
   formatSalary,
@@ -27,8 +30,15 @@ import {CURRENT_MLE_SEASON} from "../season-policy";
 import {getFranchises, resolveFranchise} from "../sprocket/franchises";
 import {getFranchisePlayers} from "../sprocket/players";
 import {getFranchiseRoleUsagesForSeason} from "../sprocket/role-usages";
+import {getScoutingStatLines} from "../sprocket/scouting";
 import {getEligibilityEvents, getLeagueEligibilityRules} from "../sprocket/eligibility-data";
-import {leaguePlayerFromFranchise, leagueUsageFromSource, latestSourceTimestamp, safeCommandError} from "./live-data";
+import {
+  leaguePlayerFromFranchise,
+  leagueScrimFromSource,
+  leagueUsageFromSource,
+  latestSourceTimestamp,
+  safeCommandError,
+} from "./live-data";
 import type {DiscordInteraction, Env, ExecutionContextLike} from "../types";
 
 const DIVISIONS = new Set<TeamDivision>(["FL", "AL", "CL", "ML"]);
@@ -185,10 +195,8 @@ async function fetchAndRespond(
   includeScrims: boolean,
 ): Promise<void> {
   try {
-    const [cachedTeam, snapshot] = await Promise.all([
-      resolveLeagueTeam(env.DB, requestedTeam),
-      getLeagueSnapshotInfo(env.DB),
-    ]);
+    const snapshot = await getCurrentLeagueSnapshot(env);
+    const cachedTeam = snapshot ? findSnapshotTeam(snapshot, requestedTeam) : null;
 
     let teamName = cachedTeam?.franchise_name ?? "";
     let teamCode = cachedTeam?.franchise_code ?? null;
@@ -206,35 +214,32 @@ async function fetchAndRespond(
       teamCode = resolution.match.code;
     }
 
-    const canUseSnapshot = Boolean(snapshot && snapshot.player_count > 0);
-    let players: LeaguePlayerRow[];
-    let usages: LeagueUsageRow[];
-    let sourceAsOf: string | null;
-    let refreshedAt: string | null;
+    let players: LeaguePlayerRow[] = [];
+    let usages: LeagueUsageRow[] = [];
+    let sourceAsOf: string | null = null;
+    let refreshedAt: string | null = null;
     const scrimStats = new Map<string, LeagueScrimStatRow[]>();
 
-    if (canUseSnapshot) {
-      const [cachedPlayers, cachedUsages, cachedScrims] = await Promise.all([
-        getLeagueTeamPlayers(env.DB, teamName),
-        getTeamRoleUsage(env.DB, teamName, CURRENT_MLE_SEASON),
-        includeScrims ? getTeamScrimStats(env.DB, teamName) : Promise.resolve([]),
-      ]);
-      players = cachedPlayers;
-      usages = cachedUsages;
-      sourceAsOf = snapshot?.source_as_of ?? null;
-      refreshedAt = snapshot?.refreshed_at ?? null;
+    if (snapshot) {
+      players = snapshotTeamPlayers(snapshot, teamName);
+      usages = snapshotTeamUsage(snapshot, teamName, CURRENT_MLE_SEASON);
+      sourceAsOf = snapshot.state.source_as_of;
+      refreshedAt = snapshot.state.refreshed_at;
 
       if (includeScrims) {
-        for (const stat of cachedScrims) {
+        for (const stat of snapshotTeamScrimStats(snapshot, teamName)) {
           const rows = scrimStats.get(stat.sprocket_player_id) ?? [];
           rows.push(stat);
           scrimStats.set(stat.sprocket_player_id, rows);
         }
       }
-    } else {
-      const [sourcePlayers, sourceUsages] = await Promise.all([
+    }
+
+    if (players.length === 0) {
+      const [sourcePlayers, sourceUsages, sourceScrims] = await Promise.all([
         getFranchisePlayers(env, teamName),
         getFranchiseRoleUsagesForSeason(env, teamName, CURRENT_MLE_SEASON),
+        includeScrims ? getScoutingStatLines(env) : Promise.resolve([]),
       ]);
       players = sourcePlayers.map(leaguePlayerFromFranchise);
       usages = sourceUsages.map(leagueUsageFromSource);
@@ -243,13 +248,17 @@ async function fetchAndRespond(
         ...sourceUsages.map(usage => usage.sourceAsOf),
       ]);
       refreshedAt = null;
-    }
 
-    if (players.length === 0) {
-      const sourcePlayers = await getFranchisePlayers(env, teamName);
-      players = sourcePlayers.map(leaguePlayerFromFranchise);
-      sourceAsOf = latestSourceTimestamp(sourcePlayers.map(player => player.sourceAsOf));
-      refreshedAt = null;
+      if (includeScrims) {
+        const ids = new Set(players.map(player => player.sprocket_player_id));
+        for (const stat of sourceScrims
+          .filter(value => ids.has(value.sprocketPlayerId))
+          .map(leagueScrimFromSource)) {
+          const rows = scrimStats.get(stat.sprocket_player_id) ?? [];
+          rows.push(stat);
+          scrimStats.set(stat.sprocket_player_id, rows);
+        }
+      }
     }
 
     const [eligibilityEvents, eligibilityRules] = await Promise.all([
@@ -326,7 +335,11 @@ export async function handleTeamAutocomplete(
   const query = typeof focused?.value === "string" ? focused.value : "";
 
   try {
-    let teams = await searchLeagueTeams(env.DB, query, 25);
+    const snapshot = await getCurrentLeagueSnapshot(env);
+    let teams = snapshot ? searchSnapshotTeams(snapshot, query, 25) : [];
+    if (teams.length === 0) {
+      teams = await searchLeagueTeams(env.DB, query, 25);
+    }
     if (teams.length === 0) {
       const live = await getFranchises(env);
       const needle = query.trim().toLocaleLowerCase("en-US");
