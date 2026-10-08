@@ -24,6 +24,47 @@ export interface ActivityPrincipal {
 function jsonError(message: string, status: number): Response {
   return Response.json({error: message}, {status});
 }
+interface PrincipalCacheEntry {
+  principal: ActivityPrincipal;
+  expiresAt: number;
+  staleUntil: number;
+}
+
+const PRINCIPAL_CACHE_TTL_MS = 60_000;
+const PRINCIPAL_CACHE_STALE_MS = 10 * 60_000;
+const principalCache = new Map<string, PrincipalCacheEntry>();
+
+function principalCacheKey(guildId: string, accessToken: string): string {
+  return `${guildId}:${accessToken}`;
+}
+
+function cachedPrincipal(
+  key: string,
+  allowStale = false,
+): ActivityPrincipal | null {
+  const entry = principalCache.get(key);
+  if (!entry) return null;
+  const now = Date.now();
+  if (entry.expiresAt > now || (allowStale && entry.staleUntil > now)) {
+    return entry.principal;
+  }
+  principalCache.delete(key);
+  return null;
+}
+
+function savePrincipal(key: string, principal: ActivityPrincipal): void {
+  const now = Date.now();
+  principalCache.set(key, {
+    principal,
+    expiresAt: now + PRINCIPAL_CACHE_TTL_MS,
+    staleUntil: now + PRINCIPAL_CACHE_STALE_MS,
+  });
+  if (principalCache.size > 200) {
+    const oldest = principalCache.keys().next().value as string | undefined;
+    if (oldest) principalCache.delete(oldest);
+  }
+}
+
 
 export async function exchangeActivityCode(request: Request, env: Env): Promise<Response> {
   if (!env.DISCORD_APPLICATION_ID || !env.DISCORD_CLIENT_SECRET) {
@@ -77,13 +118,33 @@ export async function authenticateActivityRequest(request: Request, env: Env): P
     return jsonError("Activity authentication is required.", 401);
   }
 
+  const cacheKey = principalCacheKey(guildId, accessToken);
+  const fresh = cachedPrincipal(cacheKey);
+  if (fresh) return fresh;
+
   const headers = {Authorization: `Bearer ${accessToken}`};
-  const [userResponse, memberResponse] = await Promise.all([
-    fetch(`${DISCORD_API_BASE}/users/@me`, {headers}),
-    fetch(`${DISCORD_API_BASE}/users/@me/guilds/${guildId}/member`, {headers}),
-  ]);
+  let userResponse: Response;
+  let memberResponse: Response;
+  try {
+    [userResponse, memberResponse] = await Promise.all([
+      fetch(`${DISCORD_API_BASE}/users/@me`, {headers}),
+      fetch(`${DISCORD_API_BASE}/users/@me/guilds/${guildId}/member`, {headers}),
+    ]);
+  } catch (error) {
+    const stale = cachedPrincipal(cacheKey, true);
+    if (stale) {
+      console.warn("Discord Activity verification fetch failed; using recent cached principal.", error);
+      return stale;
+    }
+    throw error;
+  }
 
   if (!userResponse.ok) {
+    const stale = cachedPrincipal(cacheKey, true);
+    if (stale && (userResponse.status === 429 || userResponse.status >= 500)) {
+      console.warn("Discord Activity user verification was temporarily unavailable; using recent cached principal.", userResponse.status);
+      return stale;
+    }
     console.error("Discord Activity user verification failed", userResponse.status);
     return jsonError("Discord could not verify this Activity session.", 401);
   }
@@ -111,6 +172,14 @@ export async function authenticateActivityRequest(request: Request, env: Env): P
       {headers: {Authorization: `Bot ${env.DISCORD_BOT_TOKEN}`}},
     );
     if (!botMemberResponse.ok) {
+      const stale = cachedPrincipal(cacheKey, true);
+      if (stale && (
+        memberResponse.status === 429 || memberResponse.status >= 500 ||
+        botMemberResponse.status === 429 || botMemberResponse.status >= 500
+      )) {
+        console.warn("Discord Activity member verification was temporarily unavailable; using recent cached principal.");
+        return stale;
+      }
       console.error(
         "Discord Activity member verification failed",
         memberResponse.status,
@@ -122,7 +191,7 @@ export async function authenticateActivityRequest(request: Request, env: Env): P
     member = await botMemberResponse.json() as DiscordGuildMember;
   }
 
-  return {
+  const principal: ActivityPrincipal = {
     guildId,
     userId: user.id,
     username: user.username,
@@ -132,6 +201,8 @@ export async function authenticateActivityRequest(request: Request, env: Env): P
       ? member.roles.filter((roleId): roleId is string => typeof roleId === "string")
       : [],
   };
+  savePrincipal(cacheKey, principal);
+  return principal;
 }
 
 export function isAuthResponse(value: ActivityPrincipal | Response): value is Response {
