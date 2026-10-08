@@ -299,8 +299,8 @@ export function mountTeamAvailabilityPanel(
         const rosterCount = data.players.length;
         const ratio = rosterCount > 0 ? available / rosterCount : 0;
         const title = `${dayNames[day]} ${formatTime(minute)}: ${available}/${rosterCount} available${preferred > 0 ? `, ${preferred} preferred` : ""}`;
-        parts.push(`<button class="team-heat-cell" data-day="${day}" data-minute="${minute}" style="--availability-ratio:${ratio.toFixed(3)}" title="${escapeHtml(title)}">
-          <strong>${available}/${rosterCount}</strong>${preferred > 0 ? `<small>★ ${preferred}</small>` : ""}
+        parts.push(`<button class="team-heat-cell ${available === 0 ? "is-empty" : ""}" data-day="${day}" data-minute="${minute}" style="--availability-ratio:${ratio.toFixed(3)}" title="${escapeHtml(title)}">
+          <strong>${available === 0 ? "" : available}</strong>${preferred > 0 ? `<small>★ ${preferred}</small>` : ""}
         </button>`);
       }
     }
