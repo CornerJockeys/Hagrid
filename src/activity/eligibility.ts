@@ -69,9 +69,8 @@ export async function getActivityEligibility(request: Request, env: Env): Promis
     return Response.json({error: "Players can only view their own eligibility tracker."}, {status: 403});
   }
 
-  const [players, events, rules] = await Promise.all([
+  const [players, rules] = await Promise.all([
     getCurrentCompetitiveFranchiseRoster(env, auth.guildId),
-    getEligibilityEvents(env, requested || access.playerId || undefined),
     getLeagueEligibilityRules(env),
   ]);
 
@@ -103,7 +102,7 @@ export async function getActivityEligibility(request: Request, env: Env): Promis
     return Response.json({error: "Hagrid could not find the eligibility requirement for this player's division."}, {status: 502});
   }
 
-  const playerEvents = events.filter(event => event.playerId === player.sprocketPlayerId);
+  const playerEvents = await getEligibilityEvents(env, player.sprocketPlayerId);
   const today = easternCalendarDate();
   const weekStart = currentLeagueWeekStart();
   const decay = buildEligibilityDecay(playerEvents, rule.requirement, today);
