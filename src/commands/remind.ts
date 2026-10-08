@@ -1,4 +1,4 @@
-import {getGuildConfig} from "../db";
+import {getCachedGuildConfig} from "../config-cache";
 import {captainDivisions, hasAgmPlusRole, hasAnyStaffRole, hasCaptainRole} from "../discord-roles";
 import {discordMessage, discordUpdateMessage, sendDiscordChannelMessage} from "../discord";
 import {isCompetitiveSlot, slotLabel, teamDivision, type TeamDivision} from "../league/view";
@@ -298,7 +298,7 @@ function modalInput(interaction: DiscordInteraction, customId: string): string |
 }
 
 async function getConfiguredRoster(env: Env, guildId: string) {
-  const config = await getGuildConfig(env.DB, guildId);
+  const config = await getCachedGuildConfig(env, guildId);
   if (!config) return {config: null, players: []};
   const players = await getFranchisePlayers(env, config.franchise_name);
   return {config, players};
@@ -478,7 +478,7 @@ async function postUsageReminder(
   if (!interaction.guild_id || !interaction.channel_id) {
     return discordMessage("Usage reminders can only be posted inside a Discord server channel.");
   }
-  const config = await getGuildConfig(env.DB, interaction.guild_id);
+  const config = await getCachedGuildConfig(env, interaction.guild_id);
   if (!config) return discordMessage("No franchise is configured for this Discord server.");
 
   if (scope === "division") {
@@ -510,7 +510,7 @@ async function postEligibilityReminder(
   if (!interaction.guild_id || !interaction.channel_id) {
     return discordMessage("Eligibility reminders can only be posted inside a Discord server channel.");
   }
-  const config = await getGuildConfig(env.DB, interaction.guild_id);
+  const config = await getCachedGuildConfig(env, interaction.guild_id);
   if (!config) return discordMessage("No franchise is configured for this Discord server.");
 
   if (scope === "division") {
