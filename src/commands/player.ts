@@ -1,6 +1,12 @@
 import {discordAutocomplete, discordDeferred, discordMessage, editOriginalInteraction} from "../discord";
 import {currentLeagueWeekStart, eligibilityCalendarDate, isEligibleForWeek} from "../eligibility";
 import {searchLeaguePlayers, type LeaguePlayerRow, type LeagueScrimStatRow} from "../league/db";
+import {
+  getCurrentLeagueSnapshot,
+  searchSnapshotPlayers,
+  snapshotTeamUsage,
+  type CachedLeagueSnapshot,
+} from "../league/cache";
 import {getCachedScoutingSnapshot} from "../scouting/cache";
 import {
   formatEasternTimestamp,
@@ -96,10 +102,44 @@ function normalizeLookup(value: string): string {
   return value.trim().replace(/\s+/g, " ").toLocaleLowerCase("en-US");
 }
 
-async function livePlayerRows(env: Env): Promise<{players: LeaguePlayerRow[]; rosteredIds: Set<string>}> {
+async function currentPlayerRows(
+  env: Env,
+): Promise<{
+  players: LeaguePlayerRow[];
+  rosteredIds: Set<string>;
+  leagueSnapshot: CachedLeagueSnapshot | null;
+  scoutingSnapshot: Awaited<ReturnType<typeof getCachedScoutingSnapshot>>;
+}> {
+  const [leagueSnapshot, scoutingSnapshot] = await Promise.all([
+    getCurrentLeagueSnapshot(env),
+    getCachedScoutingSnapshot(env),
+  ]);
+
+  if (leagueSnapshot) {
+    const rows = new Map<string, LeaguePlayerRow>(
+      leagueSnapshot.players.map(player => [player.sprocket_player_id, player]),
+    );
+    const rosteredIds = new Set(leagueSnapshot.players.map(player => player.sprocket_player_id));
+
+    for (const prospect of scoutingSnapshot?.identities ?? []) {
+      if (!rows.has(prospect.sprocketPlayerId)) {
+        rows.set(prospect.sprocketPlayerId, leaguePlayerFromProspect(prospect));
+      }
+    }
+
+    return {
+      players: [...rows.values()],
+      rosteredIds,
+      leagueSnapshot,
+      scoutingSnapshot,
+    };
+  }
+
   const [rostered, prospects] = await Promise.all([
     getRocketLeaguePlayers(env),
-    getProspectIdentities(env),
+    scoutingSnapshot
+      ? Promise.resolve(scoutingSnapshot.identities)
+      : getProspectIdentities(env),
   ]);
   const rows = new Map<string, LeaguePlayerRow>();
   const rosteredIds = new Set<string>();
@@ -114,7 +154,12 @@ async function livePlayerRows(env: Env): Promise<{players: LeaguePlayerRow[]; ro
     }
   }
 
-  return {players: [...rows.values()], rosteredIds};
+  return {
+    players: [...rows.values()],
+    rosteredIds,
+    leagueSnapshot: null,
+    scoutingSnapshot,
+  };
 }
 
 function resolvePlayerRows(
@@ -146,8 +191,8 @@ async function fetchAndRespond(
   mode: Mode,
 ): Promise<void> {
   try {
-    const live = await livePlayerRows(env);
-    const resolved = resolvePlayerRows(live.players, requestedPlayer);
+    const current = await currentPlayerRows(env);
+    const resolved = resolvePlayerRows(current.players, requestedPlayer);
     const player = resolved.player;
     if (!player) {
       const hint = resolved.suggestions.length > 0
@@ -157,20 +202,21 @@ async function fetchAndRespond(
       return;
     }
 
-    const rostered = live.rosteredIds.has(player.sprocket_player_id);
+    const rostered = current.rosteredIds.has(player.sprocket_player_id);
     const weekStart = currentLeagueWeekStart();
     const lines = profileLines(player, weekStart, rostered);
 
     if (rostered && player.slot && teamDivision(player.skill_group)) {
-      const sourceUsages = await getFranchiseRoleUsagesForSeason(
-        env,
-        player.franchise_name,
-        CURRENT_MLE_SEASON,
-      );
-      if (sourceUsages.length === 0) {
+      const usages = current.leagueSnapshot
+        ? snapshotTeamUsage(current.leagueSnapshot, player.franchise_name, CURRENT_MLE_SEASON)
+        : (await getFranchiseRoleUsagesForSeason(
+            env,
+            player.franchise_name,
+            CURRENT_MLE_SEASON,
+          )).map(leagueUsageFromSource);
+      if (usages.length === 0) {
         lines.push(`Usage: awaiting S${CURRENT_MLE_SEASON} data.`);
       } else {
-        const usages = sourceUsages.map(leagueUsageFromSource);
         const usage = usageForPlayer(player, usages);
         if (usage) {
           const division = teamDivision(player.skill_group)!;
@@ -191,10 +237,19 @@ async function fetchAndRespond(
         `Awaiting the S${CURRENT_MLE_SEASON} official player game-stat dataset. Older-season game data is intentionally not used.`,
       );
     } else {
-      const sourceStats = await getScoutingStatLines(env);
-      const scrimStats = sourceStats
-        .filter(stat => stat.sprocketPlayerId === player.sprocket_player_id)
-        .map(leagueScrimFromSource);
+      let scrimStats: LeagueScrimStatRow[] = [];
+      if (rostered && current.leagueSnapshot) {
+        scrimStats = current.leagueSnapshot.scrimStats
+          .filter(stat => stat.sprocket_player_id === player.sprocket_player_id);
+      } else if (current.scoutingSnapshot) {
+        scrimStats = current.scoutingSnapshot.records
+          .filter(stat => stat.sprocketPlayerId === player.sprocket_player_id)
+          .map(leagueScrimFromSource);
+      } else {
+        scrimStats = (await getScoutingStatLines(env))
+          .filter(stat => stat.sprocketPlayerId === player.sprocket_player_id)
+          .map(leagueScrimFromSource);
+      }
       const selected = scrimStats.filter(stat => mode === "Both" || stat.mode === mode);
 
       lines.push(`**S${CURRENT_MLE_SEASON} Scrim Stats · ${SCRIM_STATS_START_DATE}+**`);
@@ -212,7 +267,11 @@ async function fetchAndRespond(
     if (player.source_as_of) {
       lines.push(`Profile source as of ${formatEasternTimestamp(player.source_as_of)}.`);
     }
-    lines.push("Performance data loaded directly from the current Sprocket publication.");
+    lines.push(
+      current.leagueSnapshot || current.scoutingSnapshot
+        ? "Performance data loaded from Hagrid's current cached league/scouting snapshot."
+        : "Performance data loaded directly from the current Sprocket publication.",
+    );
 
     await editOriginalInteraction(interaction, lines.join("\n").slice(0, 1950));
   } catch (error) {
@@ -241,10 +300,13 @@ export async function handlePlayerAutocomplete(
     // Autocomplete has Discord's short interaction deadline. Keep this path
     // entirely inside D1; live Sprocket fetches happen only after the command
     // has already been deferred.
-    const [storedPlayers, cached] = await Promise.all([
-      searchLeaguePlayers(env.DB, query, 25),
+    const [leagueSnapshot, cached] = await Promise.all([
+      getCurrentLeagueSnapshot(env),
       getCachedScoutingSnapshot(env),
     ]);
+    const storedPlayers = leagueSnapshot
+      ? searchSnapshotPlayers(leagueSnapshot, query, 25)
+      : await searchLeaguePlayers(env.DB, query, 25);
 
     let players = storedPlayers;
     if (cached) {

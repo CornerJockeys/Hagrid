@@ -117,6 +117,47 @@ export async function getLeagueSnapshotInfo(db: D1Database): Promise<LeagueSnaps
   ).first<LeagueSnapshotInfo>();
 }
 
+export async function getAllLeagueTeams(db: D1Database): Promise<LeagueTeamRow[]> {
+  const result = await db.prepare(
+    `SELECT franchise_name, franchise_code, conference, super_division, division, refreshed_at
+     FROM league_teams_current
+     ORDER BY franchise_name COLLATE NOCASE`,
+  ).all<LeagueTeamRow>();
+  return result.results;
+}
+
+export async function getAllLeaguePlayers(db: D1Database): Promise<LeaguePlayerRow[]> {
+  const result = await db.prepare(
+    `SELECT sprocket_player_id, member_id, discord_id, name, salary, skill_group, game_id,
+            game_title, franchise_name, staff_position, slot, current_scrim_points,
+            eligible_through, source_as_of, refreshed_at
+     FROM league_players_current
+     ORDER BY franchise_name COLLATE NOCASE, skill_group COLLATE NOCASE,
+              slot COLLATE NOCASE, name COLLATE NOCASE`,
+  ).all<LeaguePlayerRow>();
+  return result.results;
+}
+
+export async function getAllLeagueUsage(db: D1Database): Promise<LeagueUsageRow[]> {
+  const result = await db.prepare(
+    `SELECT team_name, season_number, league, role, doubles_uses, standard_uses,
+            total_uses, source_as_of, refreshed_at
+     FROM league_role_usage_current
+     ORDER BY team_name COLLATE NOCASE, league COLLATE NOCASE, role COLLATE NOCASE`,
+  ).all<LeagueUsageRow>();
+  return result.results;
+}
+
+export async function getAllLeagueScrimStats(db: D1Database): Promise<LeagueScrimStatRow[]> {
+  const result = await db.prepare(
+    `SELECT sprocket_player_id, mode, league, games, win_pct, score, sprocket, dpi, opi,
+            goals, assists, saves, shots, demos, refreshed_at
+     FROM league_scrim_stats_current
+     ORDER BY sprocket_player_id, mode`,
+  ).all<LeagueScrimStatRow>();
+  return result.results;
+}
+
 export async function searchLeagueTeams(
   db: D1Database,
   query: string,

@@ -1,4 +1,9 @@
 import {isEligibleForWeek, currentLeagueWeekStart} from "../eligibility";
+import {
+  getCurrentLeagueSnapshot,
+  snapshotFranchisePlayers,
+  snapshotFranchiseRoleUsages,
+} from "../league/cache";
 import {remainingUsage, slotLabel, teamDivision, type TeamDivision} from "../league/view";
 import {getFranchisePlayers} from "../sprocket/players";
 import {getFranchiseRoleUsagesForSeason} from "../sprocket/role-usages";
@@ -33,7 +38,10 @@ export async function buildDumpMessages(
   kind: DumpKind,
   matchWeek: number,
 ): Promise<string[]> {
-  const players = (await getFranchisePlayers(env, franchise))
+  const snapshot = await getCurrentLeagueSnapshot(env);
+  const players = (snapshot
+    ? snapshotFranchisePlayers(snapshot, franchise)
+    : await getFranchisePlayers(env, franchise))
     .filter(competitive)
     .sort((a, b) => {
       const ad = teamDivision(a.skillGroup) ?? "FL";
@@ -70,7 +78,9 @@ export async function buildDumpMessages(
       lines.push("");
     }
   } else {
-    const usages = await getFranchiseRoleUsagesForSeason(env, franchise, CURRENT_MLE_SEASON);
+    const usages = snapshot
+      ? snapshotFranchiseRoleUsages(snapshot, franchise, CURRENT_MLE_SEASON)
+      : await getFranchiseRoleUsagesForSeason(env, franchise, CURRENT_MLE_SEASON);
     for (const division of DIVISIONS) {
       const roster = players.filter(player => teamDivision(player.skillGroup) === division);
       const bySlot = new Map(roster.map(player => [roleKey(player.slot), player]));

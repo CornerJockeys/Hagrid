@@ -1,4 +1,4 @@
-import {getGuildConfig} from "../db";
+import {getCachedGuildConfig} from "../config-cache";
 import {
   buildEligibilityDecay,
   easternCalendarDate,
@@ -56,7 +56,7 @@ export async function getActivityEligibility(request: Request, env: Env): Promis
     );
   }
 
-  const config = await getGuildConfig(env.DB, auth.guildId);
+  const config = await getCachedGuildConfig(env, auth.guildId);
   if (!config) {
     return Response.json({error: "No franchise is configured for this Discord server."}, {status: 409});
   }

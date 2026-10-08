@@ -1,4 +1,4 @@
-import {getGuildConfig} from "../db";
+import {getCachedGuildConfig} from "../config-cache";
 import {discordMessage, discordUpdateMessage, sendDiscordThreadMessage} from "../discord";
 import {dumpThreadId} from "../dumps/config";
 import {buildDumpMessages, type DumpKind} from "../dumps/format";
@@ -65,7 +65,7 @@ async function runDump(
     return discordMessage("Dump tests can only run inside a Discord server channel.");
   }
 
-  const config = await getGuildConfig(env.DB, interaction.guild_id);
+  const config = await getCachedGuildConfig(env, interaction.guild_id);
   if (!config) return discordMessage("No franchise is configured for this Discord server.");
 
   const kinds: DumpKind[] = kind === "all"

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import {accessFromRosterRow, accessFromRosterRows} from "../src/activity/access.ts";
+import {accessFromRosterRow, accessFromRosterRows} from "../src/activity/access-core.ts";
 import {currentEasternWeekStart} from "../src/activity/week.ts";
 import {
   aggregateTeamAvailability,

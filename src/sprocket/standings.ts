@@ -16,6 +16,39 @@ export interface StandingRow {
   sourceAsOf: string | null;
 }
 
+interface CachedStandings {
+  cachedAt: number;
+  rows: StandingRow[];
+}
+
+const STANDINGS_CACHE_KEY = "standings:current:v1";
+const STANDINGS_CACHE_TTL_MS = 15 * 60_000;
+
+async function readStandingsCache(env: Env): Promise<CachedStandings | null> {
+  if (!env.HAGRID_CACHE) return null;
+  try {
+    const raw = await env.HAGRID_CACHE.get(STANDINGS_CACHE_KEY, "text");
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as CachedStandings;
+    return Number.isFinite(parsed.cachedAt) && Array.isArray(parsed.rows) ? parsed : null;
+  } catch (error) {
+    console.error("Failed to read standings KV cache.", error);
+    return null;
+  }
+}
+
+async function writeStandingsCache(env: Env, rows: StandingRow[]): Promise<void> {
+  if (!env.HAGRID_CACHE) return;
+  try {
+    await env.HAGRID_CACHE.put(
+      STANDINGS_CACHE_KEY,
+      JSON.stringify({cachedAt: Date.now(), rows}),
+    );
+  } catch (error) {
+    console.error("Failed to update standings KV cache.", error);
+  }
+}
+
 function fromRow(row: CsvRecord): StandingRow | null {
   const ranking = integerField(row, "ranking", "Ranking");
   const name = field(row, "name", "Name");
@@ -49,8 +82,22 @@ export function seasonNumber(season: string): number | null {
 }
 
 export async function getStandings(env: Env): Promise<StandingRow[]> {
-  const rows = await fetchCsvDataset(env, "standings");
-  return rows.map(fromRow).filter((row): row is StandingRow => row !== null);
+  const cached = await readStandingsCache(env);
+  if (cached && Date.now() - cached.cachedAt <= STANDINGS_CACHE_TTL_MS) {
+    return cached.rows;
+  }
+
+  try {
+    const rows = (await fetchCsvDataset(env, "standings"))
+      .map(fromRow)
+      .filter((row): row is StandingRow => row !== null);
+    await writeStandingsCache(env, rows);
+    return rows;
+  } catch (error) {
+    if (!cached) throw error;
+    console.warn("Standings source unavailable; using stale KV snapshot.", error);
+    return cached.rows;
+  }
 }
 
 export async function getSeasonStandings(env: Env, targetSeason: number): Promise<StandingRow[]> {

@@ -1,4 +1,4 @@
-import {getGuildConfig} from "../db";
+import {getCachedGuildConfig} from "../config-cache";
 import {discordDeferred, discordMessage, editOriginalInteraction} from "../discord";
 import {CURRENT_MLE_SEASON} from "../season-policy";
 import {DatasetFetchError} from "../sprocket/client";
@@ -179,7 +179,7 @@ export async function handleStandingsCommand(
     return discordMessage("Standings can only be used inside a Discord server.");
   }
 
-  const config = await getGuildConfig(env.DB, guildId);
+  const config = await getCachedGuildConfig(env, guildId);
   if (!config) {
     return discordMessage("Set Hagrid's franchise with `/franchise set` before using standings.");
   }
