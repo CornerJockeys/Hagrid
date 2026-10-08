@@ -22,6 +22,13 @@ function hasActivityStaffRole(roleIds: readonly string[]): boolean {
   return Object.values(ACTIVITY_STAFF_ROLE_IDS).some(roleId => roles.has(roleId));
 }
 
+function hasActivityAgmPlusRole(roleIds: readonly string[]): boolean {
+  const roles = new Set(roleIds);
+  return roles.has(ACTIVITY_STAFF_ROLE_IDS.FM) ||
+    roles.has(ACTIVITY_STAFF_ROLE_IDS.GM) ||
+    roles.has(ACTIVITY_STAFF_ROLE_IDS.AGM);
+}
+
 function activityCaptainDivisions(roleIds: readonly string[]): Array<"FL" | "AL" | "CL" | "ML"> {
   const roles = new Set(roleIds);
   if (!roles.has(ACTIVITY_STAFF_ROLE_IDS.RL_CAPTAIN)) return [];
@@ -93,6 +100,7 @@ export async function getActivityAccess(
 
   const cached = accessFromRosterRows(rows);
   const discordStaff = hasActivityStaffRole(auth.roleIds);
+  const discordAgmPlus = hasActivityAgmPlusRole(auth.roleIds);
   const captainDivisions = activityCaptainDivisions(auth.roleIds);
   const discordDivision = captainDivisions.length === 1 ? captainDivisions[0] : null;
 
@@ -102,6 +110,7 @@ export async function getActivityAccess(
     ...cached,
     staff: discordStaff,
     captainPlus: discordStaff,
+    agmPlus: discordAgmPlus,
     division: cached.division ?? discordDivision,
     staffPosition: discordStaffLabel(auth.roleIds),
   };
@@ -129,6 +138,21 @@ export async function requireCaptainPlusAccess(
   if (!access.captainPlus) {
     return Response.json(
       {error: "This Activity view is limited to current franchise Captain/AGM/GM/FM staff."},
+      {status: 403},
+    );
+  }
+  return access;
+}
+
+
+export async function requireAgmPlusAccess(
+  env: Env,
+  auth: ActivityPrincipal,
+): Promise<ActivityAccess | Response> {
+  const access = await getActivityAccess(env, auth);
+  if (!access.agmPlus) {
+    return Response.json(
+      {error: "This Activity view is limited to current franchise AGM/GM/FM staff."},
       {status: 403},
     );
   }
