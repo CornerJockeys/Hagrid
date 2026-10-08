@@ -1,3 +1,4 @@
+import {playerBadges} from "./player-badges";
 export type TeamAvailabilityApi = <T>(path: string, init?: RequestInit) => Promise<T>;
 export type TeamAvailabilityStatus = (
   message: string,
@@ -26,6 +27,9 @@ interface TeamPlayer {
   linked: boolean;
   updatedAt: string | null;
   slots: AvailabilitySlot[];
+  joined_date: string | null;
+  seasons_played: number | null;
+  seasons: string[];
 }
 
 interface TeamAvailabilityResponse {
@@ -267,7 +271,7 @@ export function mountTeamAvailabilityPanel(
     const status = !player.linked ? "Discord account not linked" : player.submitted ? `Submitted ${formatTimestamp(player.updatedAt)}` : "Missing submission";
     detailRoot.innerHTML = detailModal(
       player.name,
-      `<div class="player-detail-meta">
+      `${playerBadges(player)}<div class="player-detail-meta">
         <span>${escapeHtml(player.division ?? "No division")}</span><span>${escapeHtml(player.slot ?? "No slot")}</span><span>${escapeHtml(status)}</span>
       </div><div class="player-week-detail">${days}</div>`,
     );
@@ -331,7 +335,7 @@ export function mountTeamAvailabilityPanel(
       : `<div class="prospect-meta"><span>Roster submissions</span><span>${submitted}/${data.players.length} submitted</span></div>
         <div class="prospect-table-scroll team-roster-scroll"><table class="prospect-table team-roster-table"><thead><tr><th>Player</th><th>Division</th><th>Slot</th><th>Status</th><th>Updated</th></tr></thead><tbody>
         ${data.players.map(player => `<tr class="prospect-row team-player-row" tabindex="0" data-player-id="${escapeHtml(player.sprocketPlayerId)}">
-          <td class="prospect-name"><strong>${escapeHtml(player.name)}</strong></td><td>${escapeHtml(player.division ?? "—")}</td><td>${escapeHtml(player.slot ?? "—")}</td>
+          <td class="prospect-name"><strong>${escapeHtml(player.name)}</strong>${playerBadges(player)}</td><td>${escapeHtml(player.division ?? "—")}</td><td>${escapeHtml(player.slot ?? "—")}</td>
           <td>${!player.linked ? '<span class="status-pill status-pend">Unlinked</span>' : player.submitted ? '<span class="status-pill status-fa">Submitted</span>' : '<span class="status-pill status-pend">Missing</span>'}</td>
           <td>${escapeHtml(formatTimestamp(player.updatedAt))}</td></tr>`).join("")}
         </tbody></table></div>`;
