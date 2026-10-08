@@ -36,7 +36,7 @@ async function currentFranchisePlayers(
 ): Promise<FranchisePlayer[]> {
   const snapshot = await getCurrentLeagueSnapshot(env);
   const cached = snapshot ? snapshotFranchisePlayers(snapshot, franchiseName) : [];
-  return cached.length > 0 ? cached : currentFranchisePlayers(env, franchiseName);
+  return cached.length > 0 ? cached : getFranchisePlayers(env, franchiseName);
 }
 
 async function currentFranchiseUsage(
@@ -49,7 +49,7 @@ async function currentFranchiseUsage(
     : [];
   return cached.length > 0
     ? cached
-    : currentFranchiseUsage(env, franchiseName);
+    : getFranchiseRoleUsagesForSeason(env, franchiseName, CURRENT_MLE_SEASON);
 }
 
 function invokerId(interaction: DiscordInteraction): string | null {
