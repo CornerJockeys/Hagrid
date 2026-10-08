@@ -194,10 +194,10 @@ function playerReview(
   const lines = [
     `**${dummy ? "[DUMMY] " : ""}NCP Review — ${franchise} · ${division} · ${mode}**`,
     "",
-    "**Players charged**",
+    dummy ? "**Players charged (demo)**" : "**Players requested**",
     ...players.map(player => `Slot ${slotLabel(player.slot)} — **${player.name}**`),
     "",
-    "**Usage effect**",
+    dummy ? "**Usage effect (demo)**" : "**Usage effect if approved**",
     ...players.map(player => `Slot ${slotLabel(player.slot)}: +1 series use`),
     "",
     "**Playoff eligibility effect**",
@@ -374,7 +374,7 @@ export async function handleNcpCommand(
   }
 
   return discordMessage(
-    "**Submit NCP**\nChoose a division. Captain submissions require AGM+ approval in the NCP thread.",
+    "**Submit NCP**\nChoose a division. Every NCP submission requires AGM+ approval in the NCP thread.",
     true,
     divisionComponents(userId, false, divisions),
   );
