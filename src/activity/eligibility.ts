@@ -69,10 +69,7 @@ export async function getActivityEligibility(request: Request, env: Env): Promis
     return Response.json({error: "Players can only view their own eligibility tracker."}, {status: 403});
   }
 
-  const [players, rules] = await Promise.all([
-    getCurrentCompetitiveFranchiseRoster(env, auth.guildId),
-    getLeagueEligibilityRules(env),
-  ]);
+  const players = await getCurrentCompetitiveFranchiseRoster(env, auth.guildId);
 
   const competitive = players
     .map(player => ({player, roster: rosterShape(player)}))
@@ -83,8 +80,14 @@ export async function getActivityEligibility(request: Request, env: Env): Promis
     );
 
   let playerId = requested || access.playerId || "";
-  if (access.captainPlus && !requested && !competitive.some(value => value.player.sprocketPlayerId === playerId)) {
-    playerId = competitive[0]?.player.sprocketPlayerId ?? playerId;
+  const requestedIsCompetitive = requested
+    ? competitive.some(value => value.player.sprocketPlayerId === requested)
+    : false;
+  if (
+    access.captainPlus &&
+    (!requested || (requested === access.playerId && !requestedIsCompetitive))
+  ) {
+    playerId = competitive[0]?.player.sprocketPlayerId ?? "";
   }
 
   const player = players.find(value => value.sprocketPlayerId === playerId);
@@ -93,31 +96,50 @@ export async function getActivityEligibility(request: Request, env: Env): Promis
   }
 
   const division = divisionCode(player.skillGroup);
-  const rule = rules.find(value =>
-    division
-      ? value.leagueCode.toLocaleUpperCase("en-US") === division
-      : value.leagueName.localeCompare(player.skillGroup ?? "", "en-US", {sensitivity: "base"}) === 0,
-  );
-  if (!rule) {
-    return Response.json({error: "Hagrid could not find the eligibility requirement for this player's division."}, {status: 502});
-  }
-
-  const playerEvents = await getEligibilityEvents(env, player.sprocketPlayerId);
   const today = easternCalendarDate();
   const weekStart = currentLeagueWeekStart();
-  const decay = buildEligibilityDecay(playerEvents, rule.requirement, today);
-  const todayPoint = decay.find(point => point.isToday) ?? null;
+  const sourceWeekEligible = isEligibleForWeek(player.eligibleThrough, weekStart);
+
+  let requirement: number | null = null;
+  let playerEvents: Awaited<ReturnType<typeof getEligibilityEvents>> = [];
+  let decay: ReturnType<typeof buildEligibilityDecay> = [];
+  let calculatedCurrentPoints: number | null = null;
+  let currentWeekEligible = sourceWeekEligible;
+  let detailError: string | null = null;
+
+  try {
+    const rules = await getLeagueEligibilityRules(env);
+    const rule = rules.find(value =>
+      division
+        ? value.leagueCode.toLocaleUpperCase("en-US") === division
+        : value.leagueName.localeCompare(player.skillGroup ?? "", "en-US", {sensitivity: "base"}) === 0,
+    );
+    if (!rule) {
+      detailError = "Eligibility requirement data is temporarily unavailable for this division.";
+    } else {
+      requirement = rule.requirement;
+      playerEvents = await getEligibilityEvents(env, player.sprocketPlayerId);
+      decay = buildEligibilityDecay(playerEvents, rule.requirement, today);
+      const todayPoint = decay.find(point => point.isToday) ?? null;
+      calculatedCurrentPoints = todayPoint?.points ?? null;
+      currentWeekEligible = todayPoint?.eligible ?? sourceWeekEligible;
+    }
+  } catch (error) {
+    console.error("Eligibility detail source failed; returning player-feed fallback.", error);
+    detailError = "Detailed eligibility history is temporarily unavailable. Current Sprocket status is shown instead.";
+  }
 
   return Response.json({
     player: playerSummary(player),
-    requirement: rule.requirement,
+    requirement,
     today,
     week_start: weekStart,
-    current_week_eligible: todayPoint?.eligible ?? false,
-    source_week_eligible: isEligibleForWeek(player.eligibleThrough, weekStart),
-    calculated_current_points: todayPoint?.points ?? 0,
+    current_week_eligible: currentWeekEligible,
+    source_week_eligible: sourceWeekEligible,
+    calculated_current_points: calculatedCurrentPoints,
     event_count: playerEvents.length,
     decay,
+    detail_error: detailError,
     selectable_players: access.captainPlus
       ? competitive.map(value => ({
           sprocket_player_id: value.player.sprocketPlayerId,
