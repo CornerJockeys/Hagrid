@@ -34,15 +34,16 @@ interface SelectablePlayer {
 
 interface EligibilityResponse {
   player: EligibilityPlayer;
-  requirement: number;
+  requirement: number | null;
   today: string;
   week_start: string;
   current_week_eligible: boolean;
   source_week_eligible: boolean;
-  calculated_current_points: number;
+  calculated_current_points: number | null;
   event_count: number;
   decay: EligibilityDecayPoint[];
   selectable_players: SelectablePlayer[];
+  detail_error: string | null;
 }
 
 function escapeHtml(value: string): string {
@@ -107,7 +108,7 @@ function salary(value: number | null): string {
 
 function chartSvg(data: EligibilityResponse): string {
   const points = data.decay;
-  if (points.length < 2) {
+  if (data.requirement === null || points.length < 2) {
     return `<div class="eligibility-empty">Not enough eligibility history is available to draw the decay chart.</div>`;
   }
 
@@ -117,17 +118,18 @@ function chartSvg(data: EligibilityResponse): string {
   const plotWidth = width - margin.left - margin.right;
   const plotHeight = height - margin.top - margin.bottom;
   const maxPoints = Math.max(...points.map(point => point.points), data.player.current_scrim_points);
-  const yMax = Math.max(100, data.requirement + 20, Math.ceil((maxPoints + 20) / 10) * 10);
+  const requirement = data.requirement;
+  const yMax = Math.max(100, requirement + 20, Math.ceil((maxPoints + 20) / 10) * 10);
   const x = (index: number): number =>
     margin.left + (index / Math.max(1, points.length - 1)) * plotWidth;
   const y = (value: number): number =>
     margin.top + ((yMax - Math.max(0, value)) / yMax) * plotHeight;
-  const thresholdY = y(data.requirement);
+  const thresholdY = y(requirement);
   const bottom = margin.top + plotHeight;
 
   const yTicks = [...new Set([
     0,
-    data.requirement,
+    requirement,
     Math.round(yMax / 2 / 10) * 10,
     yMax,
   ])].sort((a, b) => a - b);
@@ -173,7 +175,7 @@ function chartSvg(data: EligibilityResponse): string {
         ${mondayLines}
         ${todayLine}
         <line x1="${margin.left}" y1="${thresholdY}" x2="${width - margin.right}" y2="${thresholdY}" class="eligibility-threshold-line" />
-        <text x="${width - margin.right - 6}" y="${thresholdY - 8}" text-anchor="end" class="eligibility-threshold-label">Eligibility ${data.requirement}</text>
+        <text x="${width - margin.right - 6}" y="${thresholdY - 8}" text-anchor="end" class="eligibility-threshold-label">Eligibility ${requirement}</text>
         <text x="${width - margin.right - 8}" y="${margin.top + 18}" text-anchor="end" class="eligibility-zone-label eligible-label">Eligible</text>
         <text x="${width - margin.right - 8}" y="${bottom - 10}" text-anchor="end" class="eligibility-zone-label ineligible-label">Ineligible</text>
         ${edges}
@@ -197,7 +199,7 @@ export function mountEligibilityPanel(
   isStaff: boolean,
   ownPlayerId: string | null,
 ): void {
-  let selectedPlayerId = ownPlayerId ?? "";
+  let selectedPlayerId = isStaff ? "" : ownPlayerId ?? "";
   let data: EligibilityResponse | null = null;
 
   panel.innerHTML = `
@@ -257,11 +259,11 @@ export function mountEligibilityPanel(
       </div>
       <div class="eligibility-summary">
         <div><span>Current points</span><strong>${data.player.current_scrim_points}</strong></div>
-        <div><span>Requirement</span><strong>${data.requirement}</strong></div>
+        <div><span>Requirement</span><strong>${data.requirement ?? "—"}</strong></div>
         <div><span>Eligible through</span><strong>${escapeHtml(formatDate(data.player.eligible_through))}</strong></div>
         <div><span>Salary</span><strong>${escapeHtml(salary(data.player.salary))}</strong></div>
       </div>
-      ${mismatch}${pointsMismatch}
+      ${detailWarning}${mismatch}${pointsMismatch}
       <div class="eligibility-chart-card">
         <div class="eligibility-chart-title"><div><strong>Scrim Point Decay</strong><span>${data.event_count} eligibility event${data.event_count === 1 ? "" : "s"} in the source ledger</span></div>
           <div class="eligibility-legend"><span><i class="legend-line eligible"></i>Eligible week</span><span><i class="legend-line ineligible"></i>Ineligible week</span></div>
