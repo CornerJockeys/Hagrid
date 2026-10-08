@@ -11,7 +11,7 @@ import type {FranchisePlayer} from "../sprocket/players";
 import type {Env} from "../types";
 import {getPlayerProfileMetadata} from "../player-meta";
 import {authenticateActivityRequest, isAuthResponse} from "./auth";
-import {isAccessResponse, requireCaptainPlusAccess} from "./access";
+import {isAccessResponse, requireAgmPlusAccess} from "./access";
 import {getCurrentCompetitiveFranchiseRoster} from "./roster";
 
 type DivisionFilter = "all" | "FL" | "AL" | "CL" | "ML";
