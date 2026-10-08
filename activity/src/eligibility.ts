@@ -1,3 +1,4 @@
+import {playerBadges} from "./player-badges";
 export type EligibilityApi = <T>(path: string, init?: RequestInit) => Promise<T>;
 export type EligibilityStatus = (
   message: string,
@@ -23,6 +24,9 @@ interface EligibilityPlayer {
   current_scrim_points: number;
   eligible_through: string | null;
   source_as_of: string | null;
+  joined_date: string | null;
+  seasons_played: number | null;
+  seasons: string[];
 }
 
 interface SelectablePlayer {
@@ -258,7 +262,7 @@ export function mountEligibilityPanel(
       <div class="eligibility-player-heading">
         <div>
           <div class="eyebrow">${escapeHtml([data.player.division, data.player.slot].filter(Boolean).join(" · ") || "Roster")}</div>
-          <h3>${escapeHtml(data.player.name)}</h3>
+          <h3>${escapeHtml(data.player.name)} ${playerBadges(data.player)}</h3>
         </div>
         <span class="eligibility-status ${statusClass}">${statusText} this week</span>
       </div>
