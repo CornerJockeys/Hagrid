@@ -42,7 +42,7 @@ export async function getTeamEligibility(request: Request, env: Env): Promise<Re
   const auth = await authenticateActivityRequest(request, env);
   if (isAuthResponse(auth)) return auth;
 
-  const access = await requireCaptainPlusAccess(env, auth);
+  const access = await requireAgmPlusAccess(env, auth);
   if (isAccessResponse(access)) return access;
 
   const config = await getCachedGuildConfig(env, auth.guildId);
