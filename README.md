@@ -67,6 +67,23 @@ The franchise sync imports the configured franchise's Rocket League roster, slot
 
 The regular `/remind` command keeps its zero-option guided entry point. Reminder demos use the separate `/reminddummy` command, which opens the list of Player, Division, Team, Usage Division, and Usage Team previews. Each demo shows the example Discord output we expect from that reminder type without saving or pinging anyone.
 
+
+### Season 20 matches / fixtures dependency
+
+Hagrid should treat the Season 20 match data as one shared adapter rather than wiring each feature directly to a CSV. The adapter should cover `matches` plus the schedule/fixture and match-group publications when those S20 sources are available.
+
+The same data family is required for several features:
+
+- **Playoff eligibility:** count the individual regular-season games a player actually participated in toward the 15-game requirement, including mid-series substitutions and the NCP exception rules.
+- **Standings:** derive or validate current results and provide the match context needed for standings/tiebreak views.
+- **Official match stats:** power the Activity Stats page with league-match performance instead of the current scrim-stat fallback once S20 player/game rows are published.
+- **Schedule Activity tab:** show the league-wide S20 schedule after Standings, with no division selector. Until the schedule/fixtures source exists, the tab intentionally shows a not-yet-available notice.
+- **NCP workflow:** attach a manual NCP to the actual S20 match selected by staff before the slot/player confirmation and AGM+ approval steps.
+- **Match Week resolution:** map dates and fixtures to real Match Weeks (including byes) so scheduled eligibility/usage/salary dumps and selected-week previews are tied to the actual season calendar rather than a label alone.
+- **Usage and participation reconciliation:** where the source exposes lineups/substitutions, cross-check slot usage and player game counts against actual played matches.
+
+The Activity tab order is **Eligibility → Team Eligibility (AGM+) → Availability → Team Availability (AGM+) → Standings → Schedule → Stats → Scouting → League Rulebook → Broadcast Rulebook**.
+
 ### Standings
 
 ```text
