@@ -108,12 +108,12 @@ const commands = [
   },
   {
     name: "ncp",
-    description: "Submit a franchise NCP (AGM+ only).",
+    description: "Submit a franchise NCP for AGM+ approval (Captain+).",
     type: 1,
   },
   {
     name: "ncpdummy",
-    description: "Preview the NCP workflow without saving anything (AGM+ only).",
+    description: "Preview the NCP workflow without saving anything (Captain+).",
     type: 1,
   },
   {
