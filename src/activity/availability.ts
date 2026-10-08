@@ -1,4 +1,6 @@
 import {getGuildConfig} from "../db";
+import {isCompetitiveSlot, teamDivision} from "../league/view";
+import {getFranchisePlayers, type FranchisePlayer} from "../sprocket/players";
 import type {Env} from "../types";
 import {
   getActivityAccess,
@@ -116,16 +118,18 @@ export function parseAvailabilitySlots(value: unknown): AvailabilitySlot[] | nul
 
 async function readAvailability(
   env: Env,
-  auth: ActivityPrincipal,
+  guildId: string,
+  discordUserId: string | null,
   weekStart: string,
 ): Promise<AvailabilitySlot[]> {
+  if (!discordUserId) return [];
   const row = await env.DB
     .prepare(
       `SELECT slots_json
        FROM availability_submissions
        WHERE guild_id = ? AND week_start = ? AND discord_user_id = ?`,
     )
-    .bind(auth.guildId, weekStart, auth.userId)
+    .bind(guildId, weekStart, discordUserId)
     .first<AvailabilityRow>();
 
   if (!row) return [];
@@ -133,8 +137,58 @@ async function readAvailability(
   try {
     return parseAvailabilitySlots(JSON.parse(row.slots_json)) ?? [];
   } catch {
-    console.error("Invalid stored availability JSON", auth.guildId, weekStart, auth.userId);
+    console.error("Invalid stored availability JSON", guildId, weekStart, discordUserId);
     return [];
+  }
+}
+
+interface CachedAvailabilityPlayerRow {
+  sprocket_player_id: string;
+  discord_id: string | null;
+  name: string;
+  salary: number | null;
+  skill_group: string | null;
+  franchise_name: string;
+  staff_position: string | null;
+  slot: string | null;
+}
+
+function cachedPlayer(row: CachedAvailabilityPlayerRow): FranchisePlayer {
+  return {
+    sprocketPlayerId: row.sprocket_player_id,
+    memberId: null,
+    discordId: row.discord_id,
+    name: row.name,
+    salary: row.salary,
+    skillGroup: row.skill_group,
+    gameId: null,
+    gameTitle: "Rocket League",
+    franchise: row.franchise_name,
+    staffPosition: row.staff_position,
+    slot: row.slot,
+    currentScrimPoints: 0,
+    eligibleThrough: null,
+    sourceAsOf: null,
+  };
+}
+
+async function availabilityRoster(env: Env, guildId: string): Promise<FranchisePlayer[]> {
+  const config = await getGuildConfig(env.DB, guildId);
+  if (!config) return [];
+
+  try {
+    return (await getFranchisePlayers(env, config.franchise_name))
+      .filter(player => isCompetitiveSlot(player.slot));
+  } catch (error) {
+    console.error("Live availability roster lookup failed; using cached roster.", error);
+    const result = await env.DB.prepare(
+      `SELECT sprocket_player_id, discord_id, name, salary, skill_group, franchise_name,
+              staff_position, slot
+       FROM league_players_current
+       WHERE LOWER(franchise_name) = LOWER(?)
+       ORDER BY skill_group, slot, name COLLATE NOCASE`,
+    ).bind(config.franchise_name).all<CachedAvailabilityPlayerRow>();
+    return result.results.map(cachedPlayer).filter(player => isCompetitiveSlot(player.slot));
   }
 }
 
@@ -177,16 +231,53 @@ export async function getActivityContext(request: Request, env: Env): Promise<Re
 export async function getMyAvailability(request: Request, env: Env): Promise<Response> {
   const auth = await principal(request, env);
   if (isAuthResponse(auth)) return auth;
-  const access = await requireRosterAccess(env, auth);
-  if (isAccessResponse(access)) return access;
+  const access = await getActivityAccess(env, auth);
 
   const weekStart = requestedAvailabilityWeek(request);
   if (weekStart instanceof Response) return weekStart;
 
-  const slots = await readAvailability(env, auth, weekStart);
+  const roster = await availabilityRoster(env, auth.guildId);
+  const ownPlayer = roster.find(player => player.discordId === auth.userId) ?? null;
+  const requestedPlayerId = new URL(request.url).searchParams.get("player_id")?.trim() ?? "";
+  const selected = requestedPlayerId
+    ? roster.find(player => player.sprocketPlayerId === requestedPlayerId) ?? null
+    : ownPlayer ?? (access.captainPlus ? roster[0] ?? null : null);
+
+  if (!selected) {
+    return Response.json(
+      {error: "Hagrid could not find that player on the current competitive franchise roster."},
+      {status: 404},
+    );
+  }
+
+  const viewingOwn = selected.discordId === auth.userId;
+  if (!viewingOwn && !access.captainPlus) {
+    return Response.json(
+      {error: "Only current franchise Captain/AGM/GM/FM staff can view another player's availability."},
+      {status: 403},
+    );
+  }
+
+  const slots = await readAvailability(env, auth.guildId, selected.discordId, weekStart);
   return Response.json({
     week_start: weekStart,
     previous_week_start: shiftAvailabilityWeek(weekStart, -1),
+    player: {
+      sprocket_player_id: selected.sprocketPlayerId,
+      name: selected.name,
+      division: teamDivision(selected.skillGroup),
+      slot: selected.slot,
+      discord_linked: Boolean(selected.discordId),
+      editable: viewingOwn,
+    },
+    selectable_players: access.captainPlus
+      ? roster.map(player => ({
+          sprocket_player_id: player.sprocketPlayerId,
+          name: player.name,
+          division: teamDivision(player.skillGroup),
+          slot: player.slot,
+        }))
+      : [],
     slots,
   });
 }
