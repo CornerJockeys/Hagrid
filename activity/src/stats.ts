@@ -1,5 +1,3 @@
-import {playerBadges} from "./player-badges";
-
 export type StatsApi = <T>(path: string, init?: RequestInit) => Promise<T>;
 export type StatsStatus = (message: string, kind?: "normal" | "success" | "error") => void;
 
@@ -105,7 +103,7 @@ export function mountStatsPanel(panel: HTMLElement, api: StatsApi, setStatus: St
       const lines = player.stats.length > 0 ? player.stats : [null];
       return lines.map((stat, index) => `
         <tr>
-          <td class="prospect-name"><strong>${index === 0 ? escapeHtml(player.name) : ""}</strong>${index === 0 ? playerBadges(player) : ""}</td>
+          <td class="prospect-name"><strong>${index === 0 ? escapeHtml(player.name) : ""}</strong></td>
           <td>${index === 0 ? escapeHtml(player.division) : ""}</td>
           <td>${index === 0 ? escapeHtml(player.slot) : ""}</td>
           <td class="numeric">${index === 0 ? escapeHtml(salary(player.salary)) : ""}</td>
