@@ -129,7 +129,7 @@ export async function sendDiscordChannelMessage(
       Authorization: `Bot ${env.DISCORD_BOT_TOKEN}`,
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({content, components, allowed_mentions: {parse: ["users"]}}),
+    body: JSON.stringify({content, allowed_mentions: {parse: ["users"]}}),
   });
   if (!response.ok) {
     const body = await response.text();
@@ -150,7 +150,7 @@ async function postDiscordMessage(
       Authorization: `Bot ${env.DISCORD_BOT_TOKEN}`,
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({content, allowed_mentions: {parse: ["users"]}}),
+    body: JSON.stringify({content, components, allowed_mentions: {parse: ["users"]}}),
   });
 }
 
