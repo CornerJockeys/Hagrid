@@ -7,10 +7,11 @@ import {getCachedGuildConfig} from "../config-cache";
 import {buildEligibilityDecay, easternCalendarDate} from "../eligibility-decay";
 import {currentLeagueWeekStart, isEligibleForWeek} from "../eligibility";
 import {getEligibilityEvents, getLeagueEligibilityRules} from "../sprocket/eligibility-data";
-import {getFranchisePlayers, type FranchisePlayer} from "../sprocket/players";
+import type {FranchisePlayer} from "../sprocket/players";
 import type {Env} from "../types";
 import {authenticateActivityRequest, isAuthResponse} from "./auth";
 import {isAccessResponse, requireCaptainPlusAccess} from "./access";
+import {getCurrentCompetitiveFranchiseRoster} from "./roster";
 
 type DivisionFilter = "all" | "FL" | "AL" | "CL" | "ML";
 
@@ -54,7 +55,7 @@ export async function getTeamEligibility(request: Request, env: Env): Promise<Re
   }
 
   const [players, events, rules] = await Promise.all([
-    getFranchisePlayers(env, config.franchise_name),
+    getCurrentCompetitiveFranchiseRoster(env, auth.guildId),
     getEligibilityEvents(env),
     getLeagueEligibilityRules(env),
   ]);
