@@ -232,6 +232,7 @@ export function franchisePlayerFromSnapshotRow(
     currentScrimPoints: player.current_scrim_points,
     eligibleThrough: player.eligible_through,
     sourceAsOf: player.source_as_of,
+    joinedDate: null,
   };
 }
 
