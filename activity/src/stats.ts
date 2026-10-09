@@ -65,13 +65,18 @@ function modeLabel(mode: string): string {
 
 export function mountStatsPanel(panel: HTMLElement, api: StatsApi, setStatus: StatsStatus): void {
   let division: Division = "all";
+  let source: "matches" | "scrims" = "matches";
   let data: StatsResponse | null = null;
   let serial = 0;
 
   panel.innerHTML = `
-    <div class="panel-heading"><div><div class="eyebrow">Current franchise · Scrim performance</div><h2>Stats</h2>
-      <p>Compare current roster performance by division using Hagrid\'s cached MLE scrim-stat snapshot.</p></div></div>
+    <div class="panel-heading"><div><div class="eyebrow">Current franchise · Performance</div><h2>Stats</h2>
+      <p>Match stats are the primary view. Switch to Scrims to see Hagrid's current cached scrim performance.</p></div></div>
     <div class="toolbar stats-toolbar">
+      <div class="segmented-control" id="stats-source">
+        <button class="secondary-button active" data-stats-source="matches">Matches</button>
+        <button class="secondary-button" data-stats-source="scrims">Scrims</button>
+      </div>
       <div class="segmented-control" id="stats-divisions">
         <button class="secondary-button active" data-stats-division="all">All</button>
         <button class="secondary-button" data-stats-division="FL">FL</button>
@@ -81,19 +86,45 @@ export function mountStatsPanel(panel: HTMLElement, api: StatsApi, setStatus: St
       </div>
       <button id="stats-refresh" class="secondary-button">Refresh</button>
     </div>
-    <div id="stats-content" class="table-card"><div class="table-empty"><strong>Loading team stats…</strong></div></div>`;
+    <div id="stats-content" class="table-card"></div>`;
 
   const output = panel.querySelector<HTMLElement>("#stats-content");
   if (!output) return;
 
   const syncButtons = (): void => {
-    panel.querySelectorAll<HTMLButtonElement>("[data-stats-division]").forEach(button => {
+    panel.querySelectorAll<HTMLButtonElement>("[data-stats-source]").forEach(button => {
+    button.addEventListener("click", () => {
+      const value = button.dataset.statsSource;
+      if (value !== "matches" && value !== "scrims") return;
+      if (value === source) return;
+      source = value;
+      syncButtons();
+      if (source === "matches") {
+        render();
+        setStatus("Match stats will populate when the S20 player match-stat source is available.");
+      } else {
+        void load();
+      }
+    });
+  });
+
+  panel.querySelectorAll<HTMLButtonElement>("[data-stats-division]").forEach(button => {
       button.classList.toggle("active", button.dataset.statsDivision === division);
+    });
+    panel.querySelectorAll<HTMLButtonElement>("[data-stats-source]").forEach(button => {
+      button.classList.toggle("active", button.dataset.statsSource === source);
     });
   };
 
   const render = (): void => {
-    if (!data) return;
+    if (source === "matches") {
+      output.innerHTML = `<div class="notice-card warning"><strong>Match stats are not available yet</strong><p>This will be Hagrid's default stats view once the Season 20 per-game/player match-stat source is available. Use <strong>Scrims</strong> above for current scrim performance.</p></div>`;
+      return;
+    }
+    if (!data) {
+      output.innerHTML = `<div class="table-empty"><strong>Loading scrim stats…</strong></div>`;
+      return;
+    }
     if (data.rows.length === 0) {
       output.innerHTML = `<div class="table-empty"><strong>No current roster stats matched this division.</strong><span>Stats appear after MLE publishes usable scrim data for rostered players.</span></div>`;
       return;
@@ -131,14 +162,19 @@ export function mountStatsPanel(panel: HTMLElement, api: StatsApi, setStatus: St
   };
 
   const load = async (): Promise<void> => {
+    if (source === "matches") {
+      render();
+      setStatus("Match stats will populate when the S20 player match-stat source is available.");
+      return;
+    }
     const request = ++serial;
     try {
-      setStatus("Loading team stats…");
+      setStatus("Loading scrim stats…");
       const next = await api<StatsResponse>(`/api/activity/stats?division=${encodeURIComponent(division)}`);
       if (request !== serial) return;
       data = next;
       render();
-      setStatus(`Loaded ${next.rows.length} ${division === "all" ? "team" : division} roster stat profile${next.rows.length === 1 ? "" : "s"}.`, "success");
+      setStatus(`Loaded ${next.rows.length} ${division === "all" ? "team" : division} scrim stat profile${next.rows.length === 1 ? "" : "s"}.`, "success");
     } catch (error) {
       if (request !== serial) return;
       const message = error instanceof Error ? error.message : String(error);
@@ -159,5 +195,6 @@ export function mountStatsPanel(panel: HTMLElement, api: StatsApi, setStatus: St
   });
   panel.querySelector("#stats-refresh")?.addEventListener("click", () => void load());
   syncButtons();
-  void load();
+  render();
+  setStatus("Match stats will populate when the S20 player match-stat source is available.");
 }
