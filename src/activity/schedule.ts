@@ -27,10 +27,28 @@ export async function getActivitySchedule(request: Request, env: Env): Promise<R
   }
 
   const today = easternCalendarDate();
+  const franchise = config.franchise_name;
+  const franchiseSchedule = S20_SCHEDULE_WEEKS.map(week => {
+    const matchup = week.matchups.find(value =>
+      value.away.toLocaleLowerCase("en-US") === franchise.toLocaleLowerCase("en-US") ||
+      value.home.toLocaleLowerCase("en-US") === franchise.toLocaleLowerCase("en-US"),
+    ) ?? null;
+    return {
+      matchWeek: week.matchWeek,
+      label: week.label,
+      startDate: week.startDate,
+      endDate: week.endDate,
+      kind: week.kind,
+      homeChoosesMap: week.homeChoosesMap,
+      matchup,
+    };
+  });
+
   return Response.json({
-    franchise: config.franchise_name,
+    franchise,
     today,
     default_match_week: defaultMatchWeek(today),
+    franchise_schedule: franchiseSchedule,
     weeks: S20_SCHEDULE_WEEKS,
     byes: S20_SCHEDULE_BYES,
   });
