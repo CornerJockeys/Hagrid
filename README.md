@@ -68,19 +68,25 @@ The franchise sync imports the configured franchise's Rocket League roster, slot
 The regular `/remind` command keeps its zero-option guided entry point. Reminder demos use the separate `/reminddummy` command, which opens the list of Player, Division, Team, Usage Division, and Usage Team previews. Each demo shows the example Discord output we expect from that reminder type without saving or pinging anyone.
 
 
-### Season 20 matches / fixtures dependency
+### Season 20 schedule and match-data dependencies
 
-Hagrid should treat the Season 20 match data as one shared adapter rather than wiring each feature directly to a CSV. The adapter should cover `matches` plus the schedule/fixture and match-group publications when those S20 sources are available.
+The official Season 20 schedule supplied to Hagrid is stored directly in the repo and drives the Activity **Schedule** tab. It contains all 10 Match Weeks, date windows, Division/Conference labels, home/away assignments, holiday bye periods, and the "Home Team Chooses Map" rule. Because this schedule is now a maintained local source, Hagrid does **not** need a live fixtures pull just to render the Schedule tab or resolve the basic Match Week calendar.
 
-The same data family is required for several features:
+Sprocket's public schedule publications have distinct jobs:
 
-- **Playoff eligibility:** count the individual regular-season games a player actually participated in toward the 15-game requirement, including mid-series substitutions and the NCP exception rules.
-- **Standings:** derive or validate current results and provide the match context needed for standings/tiebreak views.
-- **Official match stats:** power the Activity Stats page with league-match performance instead of the current scrim-stat fallback once S20 player/game rows are published.
-- **Schedule Activity tab:** show the league-wide S20 schedule after Standings, with no division selector. Until the schedule/fixtures source exists, the tab intentionally shows a not-yet-available notice.
-- **NCP workflow:** attach a manual NCP to the actual S20 match selected by staff before the slot/player confirmation and AGM+ approval steps.
-- **Match Week resolution:** map dates and fixtures to real Match Weeks (including byes) so scheduled eligibility/usage/salary dumps and selected-week previews are tied to the actual season calendar rather than a label alone.
-- **Usage and participation reconciliation:** where the source exposes lineups/substitutions, cross-check slot usage and player game counts against actual played matches.
+- **fixtures** are the franchise-vs-franchise pairings. Each row has a `fixture_id`, `match_group_id`, home franchise, and away franchise.
+- **match_groups** are the week containers. They provide the group ID, start/end dates, the week title, and the parent season/group.
+- **matches** are the league + game-mode series underneath a fixture. They carry `match_id`, fixture/group IDs, scheduling window, scheduled time, home/away, league, game mode, series wins, and winner. They do **not** provide per-player game statistics.
+- **player match stats / round participation** are therefore still required separately for individual game counts and official player performance.
+
+The remaining shared match-data work should be built around the features that actually need it:
+
+- **Playoff eligibility:** count the individual regular-season games a player actually participated in toward the 15-game requirement, including mid-series substitutions and the NCP exception rules. This requires player/game participation, not merely the `matches` table.
+- **Official match stats:** the Activity Stats tab opens on Match stats by default, with a Scrims toggle. The Match view remains unavailable until the S20 per-game/player stat source exists.
+- **NCP match picker:** use the real S20 match identity when available so an approved manual NCP can be attached to the exact league/game-mode series. The locally stored schedule can supply week/opponent/home-away context in the meantime.
+- **Standings validation/result context:** Hagrid can continue using the published standings table for display; `matches` can later provide result-level validation and drill-down.
+- **Usage and participation reconciliation:** where player/game participation is available, cross-check published slot usage against who actually played.
+- **Weekly automation:** the locally stored schedule now provides the real Match Week/date calendar (including byes), so dump/checkpoint timing no longer needs to wait on live fixtures.
 
 The Activity tab order is **Eligibility → Team Eligibility (AGM+) → Availability → Team Availability (AGM+) → Standings → Schedule → Stats → Scouting → League Rulebook → Broadcast Rulebook**.
 
@@ -126,7 +132,7 @@ The Activity is the richer UI layer for features that do not fit cleanly into Di
 The Activity verifies the Discord user and server, then links that Discord ID to the current franchise roster imported by Hagrid.
 
 - **Current roster members** can use `My Availability` and their per-player `Eligibility` tracker.
-- **Current franchise staff and captains** can additionally use `Team Availability` and the `Scouting`.
+- **AGM/GM/FM staff** can additionally use Team Eligibility and Team Availability; Captain+ permissions remain available for player-level staff workflows such as NCP submission and rulebook access, while staff roles control Scouting.
 - Users who are in the Discord server but cannot be matched to the current franchise roster receive a clear roster-link error instead of being allowed to write availability under an untrusted identity.
 
 Staff status is derived from the current franchise data (`Franchise Staff Position`), with a captain-slot fallback for compatibility. Staff-only panels are lazy-loaded so opening Hagrid solely to submit availability does not trigger unnecessary team/HCPB requests.
@@ -162,7 +168,7 @@ The Activity includes a player-specific scrim eligibility view based on Sprocket
 
 ### Team Eligibility
 
-Captain/AGM/GM/FM users have a **Team Eligibility** Activity view between the personal Eligibility and Availability tabs. It provides an all-roster or FL/AL/CL/ML overview with current-week eligibility, scrim points, requirement, Eligible Through, salary, and source-mismatch counts.
+AGM/GM/FM users have a **Team Eligibility** Activity view between the personal Eligibility and Availability tabs. It provides an all-roster or FL/AL/CL/ML overview with current-week eligibility, scrim points, requirement, Eligible Through, salary, and source-mismatch counts.
 
 ### Team Availability
 
