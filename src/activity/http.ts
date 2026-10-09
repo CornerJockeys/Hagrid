@@ -11,6 +11,7 @@ import {getTeamEligibility} from "./team-eligibility";
 import {getTeamAvailability} from "./team-availability";
 import {getActivityStats} from "./stats";
 import {getActivityStandings} from "./standings";
+import {getActivitySchedule} from "./schedule";
 import {getActivityRulebook} from "./rulebook";
 
 function methodNotAllowed(): Response {
@@ -60,6 +61,12 @@ export async function handleActivityApi(request: Request, env: Env): Promise<Res
   if (url.pathname === "/api/activity/stats") {
     return request.method === "GET"
       ? getActivityStats(request, env)
+      : methodNotAllowed();
+  }
+
+  if (url.pathname === "/api/activity/schedule") {
+    return request.method === "GET"
+      ? getActivitySchedule(request, env)
       : methodNotAllowed();
   }
 
