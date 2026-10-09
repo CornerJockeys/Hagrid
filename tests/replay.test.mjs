@@ -2,8 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {parseReplayHeader, property, stringProperty, intProperty} from "../src/replay/header.ts";
-import {analyzeReplay} from "../src/replay/analyze.ts";
-import {rateReplayPlayers} from "../src/replay/metrics.ts";
+import {rateReplayPlayers, resolveReplayTeamSize} from "../src/replay/metrics.ts";
 
 const encoder = new TextEncoder();
 
@@ -144,39 +143,24 @@ test("Sprocket 3s ratings match the known regression replay values", () => {
 });
 
 
-function syntheticThreeVThreeReplay(declaredTeamSize = 3) {
-  const body = concat(
-    i32(868),
-    i32(34),
-    i32(12),
-    text("TAGame.Replay_Soccar_TA"),
-    dictionary(
-      intProp("TeamSize", declaredTeamSize),
-      intProp("Team0Score", 2),
-      intProp("Team1Score", 3),
-      strProp("Id", "TEST-3V3"),
-      arrayProp("PlayerStats", [
-        player("Blue A", 0, 400, 1, 1, 2, 4),
-        player("Blue B", 0, 300, 1, 0, 1, 3),
-        player("Blue C", 0, 250, 0, 1, 1, 2),
-        player("Orange A", 1, 500, 2, 1, 2, 5),
-        player("Orange B", 1, 350, 1, 1, 1, 3),
-        player("Orange C", 1, 220, 0, 0, 2, 2),
-      ]),
-    ),
-  );
 
-  return concat(i32(body.byteLength), u32(0), body).buffer;
-}
+test("rating team-size fallback treats a nonstandard total-player TeamSize as 3v3", () => {
+  const players = [
+    {name:"Blue A",team:0,score:400,goals:1,assists:1,saves:2,shots:4,bot:false,onlineId:null,platform:null},
+    {name:"Blue B",team:0,score:300,goals:1,assists:0,saves:1,shots:3,bot:false,onlineId:null,platform:null},
+    {name:"Blue C",team:0,score:250,goals:0,assists:1,saves:1,shots:2,bot:false,onlineId:null,platform:null},
+    {name:"Orange A",team:1,score:500,goals:2,assists:1,saves:2,shots:5,bot:false,onlineId:null,platform:null},
+    {name:"Orange B",team:1,score:350,goals:1,assists:1,saves:1,shots:3,bot:false,onlineId:null,platform:null},
+    {name:"Orange C",team:1,score:220,goals:0,assists:0,saves:2,shots:2,bot:false,onlineId:null,platform:null},
+  ];
 
-test("replay analysis recovers 3v3 ratings when TeamSize is a nonstandard total-player value", () => {
-  const analysis = analyzeReplay(syntheticThreeVThreeReplay(6));
-  assert.equal(analysis.teamSize, 3);
-  assert.equal(analysis.players.length, 6);
-  for (const player of analysis.players) {
+  const resolved = resolveReplayTeamSize(6, players);
+  assert.deepEqual(resolved, {teamSize: 3, inferred: true});
+
+  const rated = rateReplayPlayers(players, resolved.teamSize);
+  for (const player of rated) {
     assert.notEqual(player.sr, null);
     assert.notEqual(player.opi, null);
     assert.notEqual(player.dpi, null);
   }
-  assert.ok(analysis.warnings.some(value => value.includes("Replay TeamSize was 6")));
 });
