@@ -338,3 +338,7 @@ select:focus, input:focus { border-color: #7b838f; }
   border-radius: 8px;
   background: #191d23;
 }
+
+.schedule-table { min-width: 520px; }
+.schedule-table .schedule-at { width: 42px; text-align: center; color: #79818d; }
+.schedule-byes { display: flex; gap: 6px; flex-wrap: wrap; padding: 10px 12px 12px; border-top: 1px solid #292e37; }
