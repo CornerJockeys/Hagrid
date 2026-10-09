@@ -95,14 +95,25 @@ export function analyzeReplay(buffer: ArrayBuffer): ReplayAnalysis {
     warnings.push(`${ignoredRows} PlayerStats row(s) without a normal Team 0/1 assignment were ignored.`);
   }
 
-  let teamSize = intProperty(header.properties, "TeamSize") ?? 0;
-  if (teamSize <= 0) {
-    teamSize = inferredTeamSize(players);
-    warnings.push(`TeamSize was missing; inferred ${teamSize} from PlayerStats.`);
-  }
-
   const team0Count = players.filter(player => player.team === 0).length;
   const team1Count = players.filter(player => player.team === 1).length;
+  const inferredSize = inferredTeamSize(players);
+  const declaredTeamSize = intProperty(header.properties, "TeamSize") ?? 0;
+  let teamSize = declaredTeamSize;
+
+  if (declaredTeamSize <= 0) {
+    teamSize = inferredSize;
+    warnings.push(`TeamSize was missing; inferred ${teamSize} from PlayerStats.`);
+  } else if (declaredTeamSize > 3 && inferredSize >= 1 && inferredSize <= 3) {
+    // Some newer/private-lobby replays can expose a TeamSize value that does
+    // not represent the per-side competitive size. PlayerStats is a safer
+    // fallback for deciding which Sprocket 1s/2s/3s constants to use.
+    teamSize = inferredSize;
+    warnings.push(
+      `Replay TeamSize was ${declaredTeamSize}; inferred ${teamSize}v${teamSize} from PlayerStats for SR/OPI/DPI.`,
+    );
+  }
+
   if (team0Count !== team1Count || team0Count !== teamSize || team1Count !== teamSize) {
     warnings.push(
       `PlayerStats contains ${team0Count} Team 0 and ${team1Count} Team 1 player(s) for TeamSize ${teamSize}. ` +
