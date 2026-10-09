@@ -69,7 +69,7 @@ export function mountSchedulePanel(
         <p>Your franchise schedule opens first. Use Full Schedule to browse every league matchup by Match Week.</p></div>
       <button id="schedule-view-toggle" class="secondary-button">Full Schedule</button>
     </div>
-    <div id="schedule-full-toolbar" class="toolbar schedule-toolbar hidden">
+    <div id="schedule-full-toolbar" class="toolbar schedule-toolbar" style="display:none">
       <label>Match Week<select id="schedule-week"></select></label>
       <button id="schedule-refresh" class="secondary-button">Refresh</button>
     </div>
@@ -91,7 +91,7 @@ export function mountSchedulePanel(
             <td class="numeric">${week.matchWeek}</td>
             <td>${escapeHtml(week.label)}</td>
             <td>${escapeHtml(week.kind)}</td>
-            <td colspan="3">No scheduled matchup found</td>
+            <td colspan="2">No scheduled matchup found</td>
           </tr>`;
       }
 
@@ -102,7 +102,6 @@ export function mountSchedulePanel(
           <td>${escapeHtml(week.kind)}</td>
           <td><strong>${escapeHtml(opponent(data!.franchise, week.matchup))}</strong></td>
           <td>${location(data!.franchise, week.matchup)}</td>
-          <td>${week.homeChoosesMap ? "Home team" : "—"}</td>
         </tr>`;
     }).join("");
 
@@ -113,7 +112,7 @@ export function mountSchedulePanel(
       </div>
       <div class="prospect-table-scroll">
         <table class="prospect-table schedule-table franchise-schedule-table">
-          <thead><tr><th>Match</th><th>Dates</th><th>Type</th><th>Opponent</th><th>Site</th><th>Map Choice</th></tr></thead>
+          <thead><tr><th>Match</th><th>Dates</th><th>Type</th><th>Opponent</th><th>Site</th></tr></thead>
           <tbody>${rows}</tbody>
         </table>
       </div>`;
@@ -155,7 +154,7 @@ export function mountSchedulePanel(
 
   const render = (): void => {
     if (!data) return;
-    fullToolbar.classList.toggle("hidden", !fullSchedule);
+    fullToolbar.style.display = fullSchedule ? "flex" : "none";
     toggle.textContent = fullSchedule ? "Our Schedule" : "Full Schedule";
     if (fullSchedule) renderFullSchedule();
     else renderFranchiseSchedule();
