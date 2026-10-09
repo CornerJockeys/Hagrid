@@ -17,6 +17,7 @@ import {
   usageForPlayer,
 } from "../league/view";
 import {CURRENT_MLE_SEASON, SCRIM_STATS_START_DATE} from "../season-policy";
+import {applyNcpToLeagueUsage} from "../ncp/usage";
 import {getRocketLeaguePlayers} from "../sprocket/players";
 import {getProspectIdentities, getScoutingStatLines} from "../sprocket/scouting";
 import {getFranchiseRoleUsagesForSeason} from "../sprocket/role-usages";
@@ -207,13 +208,19 @@ async function fetchAndRespond(
     const lines = profileLines(player, weekStart, rostered);
 
     if (rostered && player.slot && teamDivision(player.skill_group)) {
-      const usages = current.leagueSnapshot
+      const baseUsages = current.leagueSnapshot
         ? snapshotTeamUsage(current.leagueSnapshot, player.franchise_name, CURRENT_MLE_SEASON)
         : (await getFranchiseRoleUsagesForSeason(
             env,
             player.franchise_name,
             CURRENT_MLE_SEASON,
           )).map(leagueUsageFromSource);
+      const usages = await applyNcpToLeagueUsage(
+        env.DB,
+        player.franchise_name,
+        CURRENT_MLE_SEASON,
+        baseUsages,
+      );
       if (usages.length === 0) {
         lines.push(`Usage: awaiting S${CURRENT_MLE_SEASON} data.`);
       } else {

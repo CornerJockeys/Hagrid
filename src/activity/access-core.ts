@@ -10,6 +10,7 @@ export interface ActivityAccess {
   rosterMember: boolean;
   staff: boolean;
   captainPlus: boolean;
+  agmPlus: boolean;
   playerId: string | null;
   playerName: string | null;
   division: string | null;
@@ -49,6 +50,7 @@ export function accessFromRosterRows(rows: AccessRow[]): ActivityAccess {
       rosterMember: false,
       staff: false,
       captainPlus: false,
+      agmPlus: false,
       playerId: null,
       playerName: null,
       division: null,
@@ -71,6 +73,13 @@ export function accessFromRosterRows(rows: AccessRow[]): ActivityAccess {
     captainPlus: rows.some(row =>
       textSuggestsCaptainPlus(row.staff_position) || textSuggestsCaptainPlus(row.slot),
     ),
+    agmPlus: rows.some(row => {
+      const value = (row.staff_position ?? row.slot ?? "").trim().toLocaleLowerCase("en-US");
+      return value === "agm" || value === "gm" || value === "fm" ||
+        value.includes("assistant general manager") ||
+        value.includes("general manager") ||
+        value.includes("franchise manager");
+    }),
     playerId: preferred.sprocket_player_id,
     playerName: preferred.name,
     division: preferred.skill_group?.trim() || null,

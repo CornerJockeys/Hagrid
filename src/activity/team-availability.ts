@@ -6,8 +6,9 @@ import {
   type DivisionCode,
 } from "../availability/team";
 import type {Env} from "../types";
+import {getPlayerProfileMetadata} from "../player-meta";
 import {getCurrentCompetitiveFranchiseRoster} from "./roster";
-import {isAccessResponse, requireCaptainPlusAccess} from "./access";
+import {isAccessResponse, requireAgmPlusAccess} from "./access";
 import {
   AVAILABILITY_END_MINUTE,
   AVAILABILITY_RESOLUTION_MINUTES,
@@ -52,7 +53,7 @@ function submission(row: SubmissionRow): AvailabilitySubmission | null {
 export async function getTeamAvailability(request: Request, env: Env): Promise<Response> {
   const auth = await authenticateActivityRequest(request, env);
   if (isAuthResponse(auth)) return auth;
-  const access = await requireCaptainPlusAccess(env, auth);
+  const access = await requireAgmPlusAccess(env, auth);
   if (isAccessResponse(access)) return access;
 
   const weekStart = requestedAvailabilityWeek(request);
@@ -90,6 +91,16 @@ export async function getTeamAvailability(request: Request, env: Env): Promise<R
     AVAILABILITY_RESOLUTION_MINUTES,
     division,
   );
+  const metadata = await getPlayerProfileMetadata(
+    env.DB,
+    summary.players.map(player => player.sprocketPlayerId),
+  );
+  const withMetadata = (player: typeof summary.players[number]) => ({
+    ...player,
+    joined_date: metadata.get(player.sprocketPlayerId)?.joinedDate ?? null,
+    seasons_played: metadata.get(player.sprocketPlayerId)?.seasonsPlayed ?? null,
+    seasons: metadata.get(player.sprocketPlayerId)?.seasons ?? [],
+  });
 
   return Response.json({
     week_start: weekStart,
@@ -100,5 +111,7 @@ export async function getTeamAvailability(request: Request, env: Env): Promise<R
       base_resolution_minutes: AVAILABILITY_RESOLUTION_MINUTES,
     },
     ...summary,
+    players: summary.players.map(withMetadata),
+    missing: summary.missing.map(withMetadata),
   });
 }

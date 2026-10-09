@@ -141,6 +141,7 @@ async function postDiscordMessage(
   env: Env,
   channelId: string,
   content: string,
+  components: unknown[] = [],
 ): Promise<Response> {
   if (!env.DISCORD_BOT_TOKEN) throw new Error("DISCORD_BOT_TOKEN is not configured.");
   return fetch(`https://discord.com/api/v10/channels/${channelId}/messages`, {
@@ -149,7 +150,7 @@ async function postDiscordMessage(
       Authorization: `Bot ${env.DISCORD_BOT_TOKEN}`,
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({content, allowed_mentions: {parse: ["users"]}}),
+    body: JSON.stringify({content, components, allowed_mentions: {parse: ["users"]}}),
   });
 }
 
@@ -157,8 +158,9 @@ export async function sendDiscordThreadMessage(
   env: Env,
   threadId: string,
   content: string,
+  components: unknown[] = [],
 ): Promise<void> {
-  let response = await postDiscordMessage(env, threadId, content);
+  let response = await postDiscordMessage(env, threadId, content, components);
   if (response.ok) return;
 
   const firstBody = await response.text();
@@ -180,7 +182,7 @@ export async function sendDiscordThreadMessage(
     );
 
     if (join.ok || join.status === 204) {
-      response = await postDiscordMessage(env, threadId, content);
+      response = await postDiscordMessage(env, threadId, content, components);
       if (response.ok) return;
       const retryBody = await response.text();
       throw new Error(

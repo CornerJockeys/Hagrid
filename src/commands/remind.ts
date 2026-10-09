@@ -14,6 +14,7 @@ import {getEligibilityEvents, getLeagueEligibilityRules} from "../sprocket/eligi
 import {getFranchisePlayers, type FranchisePlayer} from "../sprocket/players";
 import {getFranchiseRoleUsagesForSeason, type RoleUsage} from "../sprocket/role-usages";
 import {CURRENT_MLE_SEASON} from "../season-policy";
+import {applyNcpToRoleUsage} from "../ncp/usage";
 import type {DiscordInteraction, Env} from "../types";
 
 const DIVISIONS: TeamDivision[] = ["FL", "AL", "CL", "ML"];
@@ -47,9 +48,10 @@ async function currentFranchiseUsage(
   const cached = snapshot
     ? snapshotFranchiseRoleUsages(snapshot, franchiseName, CURRENT_MLE_SEASON)
     : [];
-  return cached.length > 0
+  const base = cached.length > 0
     ? cached
-    : getFranchiseRoleUsagesForSeason(env, franchiseName, CURRENT_MLE_SEASON);
+    : await getFranchiseRoleUsagesForSeason(env, franchiseName, CURRENT_MLE_SEASON);
+  return applyNcpToRoleUsage(env.DB, franchiseName, CURRENT_MLE_SEASON, base);
 }
 
 function invokerId(interaction: DiscordInteraction): string | null {

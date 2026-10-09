@@ -61,11 +61,28 @@ The franchise sync imports the configured franchise's Rocket League roster, slot
 /test dump
 ```
 
-`/ncp` is restricted to AGM/GM/FM staff and now goes directly into the live submission flow. `/ncpdummy` is the separate AGM+ demo command; it previews division → mode → match/slot effects without changing production NCP/usage state. Live NCP submission remains deferred until the Season 20 matches/fixtures adapter is wired, because NCPs must preserve slot usage while excluding those games from playoff eligibility.
+`/ncp` is available to current franchise Captain+ staff. Captains are limited to their Discord-linked division; AGM/GM/FM staff can manage all configured-franchise divisions. A submission selects Doubles or Standard and exactly 2 or 3 current roster players respectively, then posts a **pending** request to the configured NCP thread. An AGM/GM/FM must approve or reject it there before it affects slot usage. Approved NCPs consume one series use for each selected slot while remaining excluded from playoff-eligibility games. `/ncpdummy` previews the same Captain+ flow without saving, posting, or changing usage. The future Season 20 matches/fixtures adapter will add the live match picker to this flow.
 
 `/test dump` safely simulates the weekly **Eligibility**, **Salary**, or **Usage** output (or all three) in the configured Season 20 threads. The tester chooses a Match Week label from 1–10; every dump title includes that Match Week number. Usage posts to thread `1555478962187018271`, Salary to `1555478919811964928`, and Eligibility to `1555478866716262420`. This simulates the real weekly Discord output while leaving scheduled state unchanged.
 
 The regular `/remind` command keeps its zero-option guided entry point. Reminder demos use the separate `/reminddummy` command, which opens the list of Player, Division, Team, Usage Division, and Usage Team previews. Each demo shows the example Discord output we expect from that reminder type without saving or pinging anyone.
+
+
+### Season 20 matches / fixtures dependency
+
+Hagrid should treat the Season 20 match data as one shared adapter rather than wiring each feature directly to a CSV. The adapter should cover `matches` plus the schedule/fixture and match-group publications when those S20 sources are available.
+
+The same data family is required for several features:
+
+- **Playoff eligibility:** count the individual regular-season games a player actually participated in toward the 15-game requirement, including mid-series substitutions and the NCP exception rules.
+- **Standings:** derive or validate current results and provide the match context needed for standings/tiebreak views.
+- **Official match stats:** power the Activity Stats page with league-match performance instead of the current scrim-stat fallback once S20 player/game rows are published.
+- **Schedule Activity tab:** show the league-wide S20 schedule after Standings, with no division selector. Until the schedule/fixtures source exists, the tab intentionally shows a not-yet-available notice.
+- **NCP workflow:** attach a manual NCP to the actual S20 match selected by staff before the slot/player confirmation and AGM+ approval steps.
+- **Match Week resolution:** map dates and fixtures to real Match Weeks (including byes) so scheduled eligibility/usage/salary dumps and selected-week previews are tied to the actual season calendar rather than a label alone.
+- **Usage and participation reconciliation:** where the source exposes lineups/substitutions, cross-check slot usage and player game counts against actual played matches.
+
+The Activity tab order is **Eligibility → Team Eligibility (AGM+) → Availability → Team Availability (AGM+) → Standings → Schedule → Stats → Scouting → League Rulebook → Broadcast Rulebook**.
 
 ### Standings
 

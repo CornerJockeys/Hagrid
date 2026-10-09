@@ -133,6 +133,7 @@ export async function getActivityContext(request: Request, env: Env): Promise<Re
       roster_member: access.rosterMember,
       staff: access.staff,
       captain_plus: access.captainPlus,
+      agm_plus: access.agmPlus,
       player_id: access.playerId,
       player_name: access.playerName,
       division: access.division,

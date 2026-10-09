@@ -19,6 +19,9 @@ interface TeamEligibilityPlayer {
   source_week_eligible: boolean;
   eligible_through: string | null;
   source_as_of: string | null;
+  joined_date: string | null;
+  seasons_played: number | null;
+  seasons: string[];
 }
 
 interface TeamEligibilityResponse {

@@ -27,6 +27,7 @@ import {
   type TeamDivision,
 } from "../league/view";
 import {CURRENT_MLE_SEASON} from "../season-policy";
+import {applyNcpToLeagueUsage} from "../ncp/usage";
 import {getFranchises, resolveFranchise} from "../sprocket/franchises";
 import {getFranchisePlayers} from "../sprocket/players";
 import {getFranchiseRoleUsagesForSeason} from "../sprocket/role-usages";
@@ -260,6 +261,8 @@ async function fetchAndRespond(
         }
       }
     }
+
+    usages = await applyNcpToLeagueUsage(env.DB, teamName, CURRENT_MLE_SEASON, usages);
 
     const [eligibilityEvents, eligibilityRules] = await Promise.all([
       getEligibilityEvents(env),

@@ -15,6 +15,7 @@ import {
 } from "../sprocket/eligibility-data";
 import type {FranchisePlayer} from "../sprocket/players";
 import type {Env} from "../types";
+import {getPlayerProfileMetadata, type PlayerProfileMetadata} from "../player-meta";
 import {getActivityAccess} from "./access";
 import {getCurrentCompetitiveFranchiseRoster} from "./roster";
 import {authenticateActivityRequest, isAuthResponse} from "./auth";
@@ -31,7 +32,7 @@ function rosterShape(player: FranchisePlayer): AvailabilityRosterPlayer {
   };
 }
 
-function playerSummary(player: FranchisePlayer): Record<string, unknown> {
+function playerSummary(player: FranchisePlayer, metadata: PlayerProfileMetadata | null): Record<string, unknown> {
   return {
     sprocket_player_id: player.sprocketPlayerId,
     name: player.name,
@@ -42,6 +43,9 @@ function playerSummary(player: FranchisePlayer): Record<string, unknown> {
     current_scrim_points: player.currentScrimPoints,
     eligible_through: player.eligibleThrough,
     source_as_of: player.sourceAsOf,
+    joined_date: metadata?.joinedDate ?? null,
+    seasons_played: metadata?.seasonsPlayed ?? null,
+    seasons: metadata?.seasons ?? [],
   };
 }
 
@@ -95,6 +99,9 @@ export async function getActivityEligibility(request: Request, env: Env): Promis
     return Response.json({error: "That player is not on the current configured franchise roster."}, {status: 404});
   }
 
+  const metadataMap = await getPlayerProfileMetadata(env.DB, [player.sprocketPlayerId]);
+  const metadata = metadataMap.get(player.sprocketPlayerId) ?? null;
+
   const division = divisionCode(player.skillGroup);
   const today = easternCalendarDate();
   const weekStart = currentLeagueWeekStart();
@@ -130,7 +137,7 @@ export async function getActivityEligibility(request: Request, env: Env): Promis
   }
 
   return Response.json({
-    player: playerSummary(player),
+    player: playerSummary(player, metadata),
     requirement,
     today,
     week_start: weekStart,

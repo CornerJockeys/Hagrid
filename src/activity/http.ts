@@ -9,6 +9,9 @@ import {getActivityScouting, getActivityScoutingPlayer} from "./scouting";
 import {getActivityEligibility} from "./eligibility";
 import {getTeamEligibility} from "./team-eligibility";
 import {getTeamAvailability} from "./team-availability";
+import {getActivityStats} from "./stats";
+import {getActivityStandings} from "./standings";
+import {getActivityRulebook} from "./rulebook";
 
 function methodNotAllowed(): Response {
   return Response.json({error: "Method not allowed."}, {status: 405});
@@ -53,6 +56,24 @@ export async function handleActivityApi(request: Request, env: Env): Promise<Res
       : methodNotAllowed();
   }
 
+
+  if (url.pathname === "/api/activity/stats") {
+    return request.method === "GET"
+      ? getActivityStats(request, env)
+      : methodNotAllowed();
+  }
+
+  if (url.pathname === "/api/activity/standings") {
+    return request.method === "GET"
+      ? getActivityStandings(request, env)
+      : methodNotAllowed();
+  }
+
+  if (url.pathname === "/api/activity/rulebook") {
+    return request.method === "GET"
+      ? getActivityRulebook(request, env)
+      : methodNotAllowed();
+  }
   if (url.pathname === "/api/activity/scouting") {
     return request.method === "GET"
       ? getActivityScouting(request, env)

@@ -9,8 +9,9 @@ import {currentLeagueWeekStart, isEligibleForWeek} from "../eligibility";
 import {getEligibilityEvents, getLeagueEligibilityRules} from "../sprocket/eligibility-data";
 import type {FranchisePlayer} from "../sprocket/players";
 import type {Env} from "../types";
+import {getPlayerProfileMetadata} from "../player-meta";
 import {authenticateActivityRequest, isAuthResponse} from "./auth";
-import {isAccessResponse, requireCaptainPlusAccess} from "./access";
+import {isAccessResponse, requireAgmPlusAccess} from "./access";
 import {getCurrentCompetitiveFranchiseRoster} from "./roster";
 
 type DivisionFilter = "all" | "FL" | "AL" | "CL" | "ML";
@@ -41,7 +42,7 @@ export async function getTeamEligibility(request: Request, env: Env): Promise<Re
   const auth = await authenticateActivityRequest(request, env);
   if (isAuthResponse(auth)) return auth;
 
-  const access = await requireCaptainPlusAccess(env, auth);
+  const access = await requireAgmPlusAccess(env, auth);
   if (isAccessResponse(access)) return access;
 
   const config = await getCachedGuildConfig(env, auth.guildId);
@@ -59,6 +60,10 @@ export async function getTeamEligibility(request: Request, env: Env): Promise<Re
     getEligibilityEvents(env),
     getLeagueEligibilityRules(env),
   ]);
+  const metadata = await getPlayerProfileMetadata(
+    env.DB,
+    players.map(player => player.sprocketPlayerId),
+  );
 
   const today = easternCalendarDate();
   const weekStart = currentLeagueWeekStart();
@@ -91,6 +96,9 @@ export async function getTeamEligibility(request: Request, env: Env): Promise<Re
         source_week_eligible: isEligibleForWeek(player.eligibleThrough, weekStart),
         eligible_through: player.eligibleThrough,
         source_as_of: player.sourceAsOf,
+        joined_date: metadata.get(player.sprocketPlayerId)?.joinedDate ?? null,
+        seasons_played: metadata.get(player.sprocketPlayerId)?.seasonsPlayed ?? null,
+        seasons: metadata.get(player.sprocketPlayerId)?.seasons ?? [],
       };
     })
     .sort((a, b) =>

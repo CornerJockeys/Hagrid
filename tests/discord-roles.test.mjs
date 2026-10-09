@@ -8,10 +8,12 @@ import {
   hasAgmPlusRole,
   hasAnyStaffRole,
   hasCaptainRole,
+  hasCaptainPlusRole,
   isCaptainForDivision,
   hasAnyStaffRoleIds,
   hasAgmPlusRoleIds,
   hasCaptainRoleIds,
+  hasCaptainPlusRoleIds,
   captainDivisionsFromRoleIds,
 } from "../src/discord-roles.ts";
 
@@ -28,6 +30,7 @@ test("FM GM AGM are AGM+ and reminder staff", () => {
     const value = interaction([roleId]);
     assert.equal(hasAgmPlusRole(value), true);
     assert.equal(hasAnyStaffRole(value), true);
+    assert.equal(hasCaptainPlusRole(value), true);
   }
 });
 
@@ -36,6 +39,7 @@ test("RL Captain is reminder staff but not AGM+", () => {
   assert.equal(hasCaptainRole(value), true);
   assert.equal(hasAnyStaffRole(value), true);
   assert.equal(hasAgmPlusRole(value), false);
+  assert.equal(hasCaptainPlusRole(value), true);
   assert.deepEqual(captainDivisions(value), ["CL"]);
   assert.equal(isCaptainForDivision(value, "CL"), true);
   assert.equal(isCaptainForDivision(value, "ML"), false);
@@ -63,6 +67,7 @@ test("Activity role-ID helpers match interaction authorization", () => {
   assert.equal(hasAnyStaffRoleIds(roles), true);
   assert.equal(hasAgmPlusRoleIds(roles), false);
   assert.equal(hasCaptainRoleIds(roles), true);
+  assert.equal(hasCaptainPlusRoleIds(roles), true);
   assert.deepEqual(captainDivisionsFromRoleIds(roles), ["ML"]);
 });
 
@@ -71,5 +76,6 @@ test("Activity AGM+ role IDs grant staff without captain division", () => {
   assert.equal(hasAnyStaffRoleIds(roles), true);
   assert.equal(hasAgmPlusRoleIds(roles), true);
   assert.equal(hasCaptainRoleIds(roles), false);
+  assert.equal(hasCaptainPlusRoleIds(roles), true);
   assert.deepEqual(captainDivisionsFromRoleIds(roles), []);
 });

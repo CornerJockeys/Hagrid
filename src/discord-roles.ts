@@ -39,6 +39,10 @@ export function hasCaptainRoleIds(roleIds: readonly string[]): boolean {
   return roleIdSet(roleIds).has(STAFF_ROLE_IDS.RL_CAPTAIN);
 }
 
+export function hasCaptainPlusRoleIds(roleIds: readonly string[]): boolean {
+  return hasAgmPlusRoleIds(roleIds) || hasCaptainRoleIds(roleIds);
+}
+
 export function captainDivisionsFromRoleIds(roleIds: readonly string[]): TeamDivision[] {
   if (!hasCaptainRoleIds(roleIds)) return [];
   const roles = roleIdSet(roleIds);
@@ -61,6 +65,10 @@ export function hasAgmPlusRole(interaction: DiscordInteraction): boolean {
 
 export function hasCaptainRole(interaction: DiscordInteraction): boolean {
   return hasCaptainRoleIds(interaction.member?.roles ?? []);
+}
+
+export function hasCaptainPlusRole(interaction: DiscordInteraction): boolean {
+  return hasCaptainPlusRoleIds(interaction.member?.roles ?? []);
 }
 
 export function captainDivisions(interaction: DiscordInteraction): TeamDivision[] {

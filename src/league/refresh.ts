@@ -8,6 +8,7 @@ import {promoteLeagueSnapshotBulk} from "./bulk";
 import {leagueSnapshotFromSources, putCachedLeagueSnapshot} from "./cache";
 import type {RawScoutingLine} from "../scouting/calculate";
 import {teamDivision} from "./view";
+import {refreshConfiguredFranchisePlayerMetadata} from "../player-meta";
 
 export const LEAGUE_REFRESH_CRON = "20 * * * *";
 
@@ -235,6 +236,7 @@ export async function refreshLeagueSnapshot(env: Env, reason = "manual"): Promis
       `UPDATE league_snapshot_state SET checked_at = ?, source_as_of = ? WHERE singleton = 1`,
     ).bind(checkedAt, sourceAsOf).run();
     if (!checked.success) throw new Error("D1 rejected the league snapshot freshness update.");
+    await refreshConfiguredFranchisePlayerMetadata(env, players, previousPlayers, checkedAt);
     await putCachedLeagueSnapshot(env, leagueSnapshotFromSources({
       teams,
       players,
@@ -269,6 +271,7 @@ export async function refreshLeagueSnapshot(env: Env, reason = "manual"): Promis
     sourceAsOf,
     now: checkedAt,
   });
+  await refreshConfiguredFranchisePlayerMetadata(env, players, previousPlayers, checkedAt);
   await putCachedLeagueSnapshot(env, leagueSnapshotFromSources({
     teams,
     players,
