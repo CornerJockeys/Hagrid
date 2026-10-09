@@ -8,7 +8,7 @@ import {
   type HeaderEntries,
   type ReplayHeader,
 } from "./header";
-import {rateReplayPlayers, type RatedReplayPlayer, type ReplayPlayerStats} from "./metrics";
+import {rateReplayPlayers, resolveReplayTeamSize, type RatedReplayPlayer, type ReplayPlayerStats} from "./metrics";
 
 export interface ReplayAnalysis {
   header: ReplayHeader;
@@ -61,12 +61,6 @@ function parsePlayer(entries: HeaderEntries): ReplayPlayerStats | null {
   };
 }
 
-function inferredTeamSize(players: ReplayPlayerStats[]): number {
-  const team0 = players.filter(player => player.team === 0).length;
-  const team1 = players.filter(player => player.team === 1).length;
-  return Math.max(team0, team1);
-}
-
 export function analyzeReplay(buffer: ArrayBuffer): ReplayAnalysis {
   const header = parseReplayHeader(buffer);
   const warnings: string[] = [];
@@ -97,21 +91,18 @@ export function analyzeReplay(buffer: ArrayBuffer): ReplayAnalysis {
 
   const team0Count = players.filter(player => player.team === 0).length;
   const team1Count = players.filter(player => player.team === 1).length;
-  const inferredSize = inferredTeamSize(players);
-  const declaredTeamSize = intProperty(header.properties, "TeamSize") ?? 0;
-  let teamSize = declaredTeamSize;
+  const declaredTeamSize = intProperty(header.properties, "TeamSize");
+  const resolvedTeamSize = resolveReplayTeamSize(declaredTeamSize, players);
+  const teamSize = resolvedTeamSize.teamSize;
 
-  if (declaredTeamSize <= 0) {
-    teamSize = inferredSize;
-    warnings.push(`TeamSize was missing; inferred ${teamSize} from PlayerStats.`);
-  } else if (declaredTeamSize > 3 && inferredSize >= 1 && inferredSize <= 3) {
-    // Some newer/private-lobby replays can expose a TeamSize value that does
-    // not represent the per-side competitive size. PlayerStats is a safer
-    // fallback for deciding which Sprocket 1s/2s/3s constants to use.
-    teamSize = inferredSize;
-    warnings.push(
-      `Replay TeamSize was ${declaredTeamSize}; inferred ${teamSize}v${teamSize} from PlayerStats for SR/OPI/DPI.`,
-    );
+  if (resolvedTeamSize.inferred) {
+    if ((declaredTeamSize ?? 0) <= 0) {
+      warnings.push(`TeamSize was missing; inferred ${teamSize} from PlayerStats.`);
+    } else {
+      warnings.push(
+        `Replay TeamSize was ${declaredTeamSize}; inferred ${teamSize}v${teamSize} from PlayerStats for SR/OPI/DPI.`,
+      );
+    }
   }
 
   if (team0Count !== team1Count || team0Count !== teamSize || team1Count !== teamSize) {
