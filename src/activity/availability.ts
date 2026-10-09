@@ -1,5 +1,6 @@
 import {getCachedGuildConfig} from "../config-cache";
 import type {Env} from "../types";
+import {getPlayerProfileMetadata} from "../player-meta";
 import {
   getActivityAccess,
   isAccessResponse,
@@ -121,6 +122,11 @@ export async function getActivityContext(request: Request, env: Env): Promise<Re
     getCachedGuildConfig(env, auth.guildId),
     getActivityAccess(env, auth),
   ]);
+  const profileMap = access.playerId
+    ? await getPlayerProfileMetadata(env.DB, [access.playerId])
+    : new Map();
+  const profile = access.playerId ? profileMap.get(access.playerId) ?? null : null;
+
   return Response.json({
     guild_id: auth.guildId,
     user_id: auth.userId,
@@ -128,6 +134,11 @@ export async function getActivityContext(request: Request, env: Env): Promise<Re
     franchise: config ? {
       name: config.franchise_name,
       code: config.franchise_code,
+    } : null,
+    player_profile: profile ? {
+      joined_date: profile.joinedDate,
+      seasons_played: profile.seasonsPlayed,
+      seasons: profile.seasons,
     } : null,
     access: {
       roster_member: access.rosterMember,

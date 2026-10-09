@@ -38,7 +38,28 @@ h1 { font-size: 26px; }
 h2 { font-size: 22px; }
 h3 { margin: 20px 0 10px; font-size: 14px; color: #d6d9de; }
 .eyebrow { color: #aeb4bd; text-transform: uppercase; letter-spacing: .09em; font-size: 11px; font-weight: 700; margin-bottom: 4px; }
-.user-chip { padding: 8px 11px; border: 1px solid #333842; border-radius: 999px; color: #d8dbe0; background: #1a1d23; }
+.user-chip {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  padding: 8px 11px;
+  border: 1px solid #333842;
+  border-radius: 14px;
+  color: #d8dbe0;
+  background: #1a1d23;
+}
+.user-chip-name {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  font-weight: 700;
+}
+.user-chip small {
+  color: #8f96a1;
+  font-size: 11px;
+}
 
 .tabs { gap: 8px; margin-bottom: 14px; border-bottom: 1px solid #292d35; }
 .tab { border: 0; background: transparent; color: #aeb4bd; padding: 10px 13px 11px; border-bottom: 2px solid transparent; }
@@ -279,7 +300,6 @@ select:focus, input:focus { border-color: #7b838f; }
   display: inline-flex;
   flex-wrap: wrap;
   gap: 4px;
-  margin-left: 6px;
   vertical-align: middle;
 }
 .player-badge {
@@ -338,3 +358,7 @@ select:focus, input:focus { border-color: #7b838f; }
   border-radius: 8px;
   background: #191d23;
 }
+
+.schedule-table { min-width: 520px; }
+.schedule-table .schedule-at { width: 42px; text-align: center; color: #79818d; }
+.schedule-byes { display: flex; gap: 6px; flex-wrap: wrap; padding: 10px 12px 12px; border-top: 1px solid #292e37; }

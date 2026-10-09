@@ -1,4 +1,3 @@
-import {playerBadges} from "./player-badges";
 export type TeamAvailabilityApi = <T>(path: string, init?: RequestInit) => Promise<T>;
 export type TeamAvailabilityStatus = (
   message: string,
@@ -157,12 +156,12 @@ function compressRanges(player: TeamPlayer, day: number): string {
   return ranges.map(range => `${formatTime(range.start)}–${formatTime(range.end)}`).join(", ");
 }
 
-function detailModal(title: string, body: string, titleSuffix = ""): string {
+function detailModal(title: string, body: string): string {
   return `
     <div class="prospect-modal team-detail-modal" role="dialog" aria-modal="true">
       <button class="modal-backdrop" data-close-team-detail aria-label="Close detail"></button>
       <div class="prospect-modal-card team-modal-card">
-        <div class="modal-heading"><h2>${escapeHtml(title)}${titleSuffix}</h2><button class="icon-button" data-close-team-detail aria-label="Close detail">×</button></div>
+        <div class="modal-heading"><h2>${escapeHtml(title)}</h2><button class="icon-button" data-close-team-detail aria-label="Close detail">×</button></div>
         ${body}
       </div>
     </div>`;
@@ -274,7 +273,6 @@ export function mountTeamAvailabilityPanel(
       `<div class="player-detail-meta">
         <span>${escapeHtml(player.division ?? "No division")}</span><span>${escapeHtml(player.slot ?? "No slot")}</span><span>${escapeHtml(status)}</span>
       </div><div class="player-week-detail">${days}</div>`,
-      playerBadges(player),
     );
     document.body.classList.add("modal-open");
     bindClose();

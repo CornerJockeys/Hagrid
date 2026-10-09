@@ -278,6 +278,9 @@ async function handleNcpReview(
   requestId: string,
   decision: string,
 ): Promise<Response> {
+  if (!interaction.guild_id) {
+    return discordMessage("NCP approval can only be completed inside the configured Discord server.");
+  }
   const reviewerId = invokerId(interaction);
   if (!reviewerId) return discordMessage("Hagrid could not identify your Discord account.");
   if (!hasAgmPlusRole(interaction)) {
@@ -301,6 +304,12 @@ async function handleNcpReview(
   if (!record) {
     return discordMessage("Hagrid could not find that pending NCP request.");
   }
+
+  const config = await getCachedGuildConfig(env, interaction.guild_id);
+  if (!config || config.franchise_name.trim().toLocaleLowerCase("en-US") !== record.franchise_name.trim().toLocaleLowerCase("en-US")) {
+    return discordMessage("That NCP request is not tied to this server's currently configured franchise.");
+  }
+
   if (record.status !== "pending") {
     return discordMessage(
       `That NCP was already ${record.status}${record.reviewed_by_discord_id ? ` by <@${record.reviewed_by_discord_id}>` : ""}.`,
@@ -495,6 +504,10 @@ export async function handleNcpComponent(
     const selected = resolveSelectedPlayers(roster, division, mode, ids);
     if (!selected) {
       return discordUpdateMessage("The selected roster changed before confirmation. Start the NCP flow again.", []);
+    }
+    const configuredFranchise = config.franchise_name.trim().toLocaleLowerCase("en-US");
+    if (selected.some(player => player.franchise.trim().toLocaleLowerCase("en-US") !== configuredFranchise)) {
+      return discordUpdateMessage("NCPs can only include players from this server's configured franchise.", []);
     }
 
     if (kind === "dummy") {

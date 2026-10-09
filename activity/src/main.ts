@@ -8,6 +8,7 @@ import {mountStatsPanel} from "./stats";
 import {mountStandingsPanel} from "./standings";
 import {mountSchedulePanel} from "./schedule";
 import {mountRulebookPanel} from "./rulebook";
+import {playerBadges, type PlayerTenure} from "./player-badges";
 import "./style.css";
 import "./eligibility.css";
 import "./team-availability.css";
@@ -17,6 +18,7 @@ interface ActivityContext {
   user_id: string;
   display_name: string;
   franchise: {name: string; code: string | null} | null;
+  player_profile: PlayerTenure | null;
   access: {
     roster_member: boolean;
     staff: boolean;
@@ -124,6 +126,8 @@ function shell(): {loadPersonal: (() => Promise<void>) | null} {
   const accessLabel = context.access.staff
     ? context.access.staff_position ?? context.access.slot ?? "Staff"
     : context.access.division ?? "Roster";
+  const playerName = context.access.player_name ?? context.display_name;
+  const badges = context.player_profile ? playerBadges(context.player_profile) : "";
 
   if (!context.access.roster_member && !context.access.staff) {
     app.innerHTML = `
@@ -149,7 +153,10 @@ function shell(): {loadPersonal: (() => Promise<void>) | null} {
     <div class="app-shell">
       <header class="topbar">
         <div><div class="eyebrow">${escapeHtml(franchise)}</div><h1>Hagrid</h1></div>
-        <div class="user-chip"><span>${escapeHtml(context.display_name)}</span><small>${escapeHtml(accessLabel)}</small></div>
+        <div class="user-chip">
+          <span class="user-chip-name">${escapeHtml(playerName)}${badges}</span>
+          <small>${escapeHtml(accessLabel)}</small>
+        </div>
       </header>
       <nav class="tabs" aria-label="Hagrid tools">
         <button class="tab active" data-tab="eligibility">Eligibility</button>${context.access.agm_plus ? `<button class="tab" data-tab="team-eligibility">Team Eligibility</button>` : ""}<button class="tab" data-tab="availability">Availability</button>${context.access.agm_plus ? `<button class="tab" data-tab="team-availability">Team Availability</button>` : ""}<button class="tab" data-tab="standings">Standings</button><button class="tab" data-tab="schedule">Schedule</button><button class="tab" data-tab="stats">Stats</button>${context.access.staff ? `<button class="tab" data-tab="scouting">Scouting</button>` : ""}${context.access.captain_plus ? `<button class="tab" data-tab="league-rulebook">League Rulebook</button><button class="tab" data-tab="broadcast-rulebook">Broadcast Rulebook</button>` : ""}
@@ -224,7 +231,7 @@ function shell(): {loadPersonal: (() => Promise<void>) | null} {
     }
     if (tab === "schedule" && !scheduleMounted) {
       const panel = document.querySelector<HTMLElement>("#schedule-panel");
-      if (panel) { mountSchedulePanel(panel, setStatus); scheduleMounted = true; }
+      if (panel) { mountSchedulePanel(panel, api, setStatus); scheduleMounted = true; }
     }
     if (context?.access.staff && tab === "scouting" && !scoutingMounted) {
       const panel = document.querySelector<HTMLElement>("#scouting-panel");

@@ -1,4 +1,3 @@
-import {playerBadges} from "./player-badges";
 export type EligibilityApi = <T>(path: string, init?: RequestInit) => Promise<T>;
 export type EligibilityStatus = (
   message: string,
@@ -262,7 +261,7 @@ export function mountEligibilityPanel(
       <div class="eligibility-player-heading">
         <div>
           <div class="eyebrow">${escapeHtml([data.player.division, data.player.slot].filter(Boolean).join(" · ") || "Roster")}</div>
-          <h3>${escapeHtml(data.player.name)} ${playerBadges(data.player)}</h3>
+          <h3>${escapeHtml(data.player.name)}</h3>
         </div>
         <span class="eligibility-status ${statusClass}">${statusText} this week</span>
       </div>
