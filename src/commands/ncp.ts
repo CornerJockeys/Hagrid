@@ -278,6 +278,9 @@ async function handleNcpReview(
   requestId: string,
   decision: string,
 ): Promise<Response> {
+  if (!interaction.guild_id) {
+    return discordMessage("NCP approval can only be completed inside the configured Discord server.");
+  }
   const reviewerId = invokerId(interaction);
   if (!reviewerId) return discordMessage("Hagrid could not identify your Discord account.");
   if (!hasAgmPlusRole(interaction)) {
