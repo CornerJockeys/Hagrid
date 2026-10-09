@@ -363,24 +363,20 @@ select:focus, input:focus { border-color: #7b838f; }
 .schedule-table .schedule-at { width: 42px; text-align: center; color: #79818d; }
 .schedule-byes { display: flex; gap: 6px; flex-wrap: wrap; padding: 10px 12px 12px; border-top: 1px solid #292e37; }
 
-.franchise-schedule-table th,
-.franchise-schedule-table td {
+.prospect-table.franchise-schedule-table {
+  table-layout: fixed;
+}
+.prospect-table.franchise-schedule-table th,
+.prospect-table.franchise-schedule-table td,
+.prospect-table.franchise-schedule-table th:not(:first-child) {
   text-align: left;
 }
-.franchise-schedule-table th:first-child,
-.franchise-schedule-table td:first-child {
-  width: 72px;
+.prospect-table.franchise-schedule-table th:first-child,
+.prospect-table.franchise-schedule-table td:first-child {
   text-align: right;
 }
-.franchise-schedule-table th:nth-child(2),
-.franchise-schedule-table td:nth-child(2) {
-  width: 150px;
-}
-.franchise-schedule-table th:nth-child(3),
-.franchise-schedule-table td:nth-child(3) {
-  width: 110px;
-}
-.franchise-schedule-table th:nth-child(5),
-.franchise-schedule-table td:nth-child(5) {
-  width: 90px;
-}
+.franchise-schedule-table .schedule-col-match { width: 8%; }
+.franchise-schedule-table .schedule-col-dates { width: 18%; }
+.franchise-schedule-table .schedule-col-type { width: 14%; }
+.franchise-schedule-table .schedule-col-opponent { width: auto; }
+.franchise-schedule-table .schedule-col-site { width: 10%; }

@@ -112,6 +112,13 @@ export function mountSchedulePanel(
       </div>
       <div class="prospect-table-scroll">
         <table class="prospect-table schedule-table franchise-schedule-table">
+          <colgroup>
+            <col class="schedule-col-match" />
+            <col class="schedule-col-dates" />
+            <col class="schedule-col-type" />
+            <col class="schedule-col-opponent" />
+            <col class="schedule-col-site" />
+          </colgroup>
           <thead><tr><th>Match</th><th>Dates</th><th>Type</th><th>Opponent</th><th>Site</th></tr></thead>
           <tbody>${rows}</tbody>
         </table>
