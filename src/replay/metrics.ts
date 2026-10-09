@@ -31,6 +31,31 @@ interface SprocketConstants {
   opponentDivisor: number;
 }
 
+export interface ReplayTeamSizeResolution {
+  teamSize: number;
+  inferred: boolean;
+}
+
+export function resolveReplayTeamSize(
+  declaredTeamSize: number | null,
+  players: ReplayPlayerStats[],
+): ReplayTeamSizeResolution {
+  const team0 = players.filter(player => player.team === 0).length;
+  const team1 = players.filter(player => player.team === 1).length;
+  const inferredSize = Math.max(team0, team1);
+  const declared = declaredTeamSize ?? 0;
+
+  if (declared <= 0) {
+    return {teamSize: inferredSize, inferred: true};
+  }
+
+  if (declared > 3 && inferredSize >= 1 && inferredSize <= 3) {
+    return {teamSize: inferredSize, inferred: true};
+  }
+
+  return {teamSize: declared, inferred: false};
+}
+
 const BETA = -Math.log(9);
 
 const DOUBLES: SprocketConstants = {
