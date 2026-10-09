@@ -224,7 +224,7 @@ function shell(): {loadPersonal: (() => Promise<void>) | null} {
     }
     if (tab === "schedule" && !scheduleMounted) {
       const panel = document.querySelector<HTMLElement>("#schedule-panel");
-      if (panel) { mountSchedulePanel(panel, setStatus); scheduleMounted = true; }
+      if (panel) { mountSchedulePanel(panel, api, setStatus); scheduleMounted = true; }
     }
     if (context?.access.staff && tab === "scouting" && !scoutingMounted) {
       const panel = document.querySelector<HTMLElement>("#scouting-panel");
