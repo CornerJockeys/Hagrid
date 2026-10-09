@@ -1,5 +1,4 @@
 import {getConfiguredGuilds} from "./db";
-import {isCompetitiveSlot} from "./league/view";
 import {getPlayerSeasonHistory} from "./sprocket/player-history";
 import type {FranchisePlayer} from "./sprocket/players";
 import type {D1Database, Env} from "./types";
@@ -69,7 +68,6 @@ export async function getPlayerProfileMetadata(
 
 function rosterSignature(players: Array<{sprocketPlayerId: string; slot: string | null; memberId: string | null}>): string {
   return players
-    .filter(player => isCompetitiveSlot(player.slot))
     .map(player => [player.sprocketPlayerId, player.memberId ?? "", player.slot ?? ""].join("|"))
     .sort()
     .join("\n");
@@ -82,7 +80,6 @@ function previousSignature(players: Array<{
   slot: string | null;
 }>): string {
   return players
-    .filter(player => isCompetitiveSlot(player.slot))
     .map(player => [player.sprocket_player_id, player.member_id ?? "", player.slot ?? ""].join("|"))
     .sort()
     .join("\n");
@@ -105,8 +102,10 @@ export async function refreshConfiguredFranchisePlayerMetadata(
 
   const targets: FranchisePlayer[] = [];
   for (const franchise of configured) {
+    // Player identity/badge metadata applies to every current player record
+    // attached to the configured franchise, including non-playing staff.
     const next = currentPlayers.filter(player =>
-      normalize(player.franchise) === franchise && isCompetitiveSlot(player.slot),
+      normalize(player.franchise) === franchise,
     );
     if (next.length === 0) continue;
 
