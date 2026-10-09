@@ -362,3 +362,25 @@ select:focus, input:focus { border-color: #7b838f; }
 .schedule-table { min-width: 520px; }
 .schedule-table .schedule-at { width: 42px; text-align: center; color: #79818d; }
 .schedule-byes { display: flex; gap: 6px; flex-wrap: wrap; padding: 10px 12px 12px; border-top: 1px solid #292e37; }
+
+.franchise-schedule-table th,
+.franchise-schedule-table td {
+  text-align: left;
+}
+.franchise-schedule-table th:first-child,
+.franchise-schedule-table td:first-child {
+  width: 72px;
+  text-align: right;
+}
+.franchise-schedule-table th:nth-child(2),
+.franchise-schedule-table td:nth-child(2) {
+  width: 150px;
+}
+.franchise-schedule-table th:nth-child(3),
+.franchise-schedule-table td:nth-child(3) {
+  width: 110px;
+}
+.franchise-schedule-table th:nth-child(5),
+.franchise-schedule-table td:nth-child(5) {
+  width: 90px;
+}
