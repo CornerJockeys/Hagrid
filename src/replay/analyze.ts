@@ -8,7 +8,7 @@ import {
   type HeaderEntries,
   type ReplayHeader,
 } from "./header";
-import {rateReplayPlayers, type RatedReplayPlayer, type ReplayPlayerStats} from "./metrics";
+import {rateReplayPlayers, resolveReplayTeamSize, type RatedReplayPlayer, type ReplayPlayerStats} from "./metrics";
 
 export interface ReplayAnalysis {
   header: ReplayHeader;
@@ -61,12 +61,6 @@ function parsePlayer(entries: HeaderEntries): ReplayPlayerStats | null {
   };
 }
 
-function inferredTeamSize(players: ReplayPlayerStats[]): number {
-  const team0 = players.filter(player => player.team === 0).length;
-  const team1 = players.filter(player => player.team === 1).length;
-  return Math.max(team0, team1);
-}
-
 export function analyzeReplay(buffer: ArrayBuffer): ReplayAnalysis {
   const header = parseReplayHeader(buffer);
   const warnings: string[] = [];
@@ -95,14 +89,22 @@ export function analyzeReplay(buffer: ArrayBuffer): ReplayAnalysis {
     warnings.push(`${ignoredRows} PlayerStats row(s) without a normal Team 0/1 assignment were ignored.`);
   }
 
-  let teamSize = intProperty(header.properties, "TeamSize") ?? 0;
-  if (teamSize <= 0) {
-    teamSize = inferredTeamSize(players);
-    warnings.push(`TeamSize was missing; inferred ${teamSize} from PlayerStats.`);
-  }
-
   const team0Count = players.filter(player => player.team === 0).length;
   const team1Count = players.filter(player => player.team === 1).length;
+  const declaredTeamSize = intProperty(header.properties, "TeamSize");
+  const resolvedTeamSize = resolveReplayTeamSize(declaredTeamSize, players);
+  const teamSize = resolvedTeamSize.teamSize;
+
+  if (resolvedTeamSize.inferred) {
+    if ((declaredTeamSize ?? 0) <= 0) {
+      warnings.push(`TeamSize was missing; inferred ${teamSize} from PlayerStats.`);
+    } else {
+      warnings.push(
+        `Replay TeamSize was ${declaredTeamSize}; inferred ${teamSize}v${teamSize} from PlayerStats for SR/OPI/DPI.`,
+      );
+    }
+  }
+
   if (team0Count !== team1Count || team0Count !== teamSize || team1Count !== teamSize) {
     warnings.push(
       `PlayerStats contains ${team0Count} Team 0 and ${team1Count} Team 1 player(s) for TeamSize ${teamSize}. ` +

@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {parseReplayHeader, property, stringProperty, intProperty} from "../src/replay/header.ts";
-import {rateReplayPlayers} from "../src/replay/metrics.ts";
+import {rateReplayPlayers, resolveReplayTeamSize} from "../src/replay/metrics.ts";
 
 const encoder = new TextEncoder();
 
@@ -139,5 +139,28 @@ test("Sprocket 3s ratings match the known regression replay values", () => {
     assert.equal(player.opi?.toFixed(2), row[0].toFixed(2));
     assert.equal(player.dpi?.toFixed(2), row[1].toFixed(2));
     assert.equal(player.sr?.toFixed(2), row[2].toFixed(2));
+  }
+});
+
+
+
+test("rating team-size fallback treats a nonstandard total-player TeamSize as 3v3", () => {
+  const players = [
+    {name:"Blue A",team:0,score:400,goals:1,assists:1,saves:2,shots:4,bot:false,onlineId:null,platform:null},
+    {name:"Blue B",team:0,score:300,goals:1,assists:0,saves:1,shots:3,bot:false,onlineId:null,platform:null},
+    {name:"Blue C",team:0,score:250,goals:0,assists:1,saves:1,shots:2,bot:false,onlineId:null,platform:null},
+    {name:"Orange A",team:1,score:500,goals:2,assists:1,saves:2,shots:5,bot:false,onlineId:null,platform:null},
+    {name:"Orange B",team:1,score:350,goals:1,assists:1,saves:1,shots:3,bot:false,onlineId:null,platform:null},
+    {name:"Orange C",team:1,score:220,goals:0,assists:0,saves:2,shots:2,bot:false,onlineId:null,platform:null},
+  ];
+
+  const resolved = resolveReplayTeamSize(6, players);
+  assert.deepEqual(resolved, {teamSize: 3, inferred: true});
+
+  const rated = rateReplayPlayers(players, resolved.teamSize);
+  for (const player of rated) {
+    assert.notEqual(player.sr, null);
+    assert.notEqual(player.opi, null);
+    assert.notEqual(player.dpi, null);
   }
 });
