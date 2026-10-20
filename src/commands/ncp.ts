@@ -382,7 +382,7 @@ async function handleNcpReview(
   }
 
   const record = await env.DB.prepare(
-    `SELECT interaction_id, guild_id, franchise_name, season_number, division, mode,
+    `SELECT interaction_id, guild_id, franchise_name, season_number, division, mode, ncp_game_count, franchise_fault,
             players_json, slots_json, created_by_discord_id, created_at, status,
             reviewed_by_discord_id, reviewed_at
      FROM ncp_records
@@ -415,7 +415,7 @@ async function handleNcpReview(
   }
 
   const reviewed = await env.DB.prepare(
-    `SELECT interaction_id, guild_id, franchise_name, season_number, division, mode,
+    `SELECT interaction_id, guild_id, franchise_name, season_number, division, mode, ncp_game_count, franchise_fault,
             players_json, slots_json, created_by_discord_id, created_at, status,
             reviewed_by_discord_id, reviewed_at
      FROM ncp_records
@@ -527,6 +527,51 @@ export async function handleNcpComponent(
       return discordMessage("That NCP selection is no longer valid.");
     }
 
+    return discordUpdateMessage(
+      `**${kind === "dummy" ? "NCP dummy / demo" : "Submit NCP"} — ${division} · ${mode}**\nWas our franchise at fault for the NCP?`,
+      faultComponents(userId, kind, division, mode),
+    );
+  }
+
+  if (parts[1] === "fault") {
+    const kind = parts[3] as "dummy" | "submit";
+    const division = parts[4] as TeamDivision;
+    const mode = parts[5] as "2s" | "3s";
+    const fault = parseFaultCode(selectedValue(interaction) ?? undefined);
+    if (
+      !["dummy", "submit"].includes(kind) ||
+      !DIVISIONS.includes(division) ||
+      !canUseDivision(interaction, division) ||
+      (mode !== "2s" && mode !== "3s") ||
+      !fault
+    ) {
+      return discordMessage("That NCP fault selection is no longer valid.");
+    }
+
+    return discordUpdateMessage(
+      `**${kind === "dummy" ? "NCP dummy / demo" : "Submit NCP"} — ${division} · ${mode}**\nChoose whether this was a one-game or full-series NCP.`,
+      scopeComponents(userId, kind, division, mode, fault),
+    );
+  }
+
+  if (parts[1] === "scope") {
+    const kind = parts[3] as "dummy" | "submit";
+    const division = parts[4] as TeamDivision;
+    const mode = parts[5] as "2s" | "3s";
+    const fault = parseFaultCode(parts[6]);
+    const selectedCount = selectedValue(interaction);
+    const gameCount = selectedCount === "1" ? 1 : selectedCount === "5" ? 5 : null;
+    if (
+      !["dummy", "submit"].includes(kind) ||
+      !DIVISIONS.includes(division) ||
+      !canUseDivision(interaction, division) ||
+      (mode !== "2s" && mode !== "3s") ||
+      !fault ||
+      gameCount === null
+    ) {
+      return discordMessage("That NCP scope selection is no longer valid.");
+    }
+
     const roster = rosterForDivision(
       await getCurrentCompetitiveFranchiseRoster(env, interaction.guild_id),
       division,
@@ -540,8 +585,8 @@ export async function handleNcpComponent(
     }
 
     return discordUpdateMessage(
-      `**${kind === "dummy" ? "NCP dummy / demo" : "Submit NCP"} — ${division} · ${mode}**\nChoose the ${count} players who are being charged for this NCP.`,
-      playerComponents(userId, kind, division, mode, roster),
+      `**${kind === "dummy" ? "NCP dummy / demo" : "Submit NCP"} — ${division} · ${mode}**\nChoose the ${count} players/slots being charged for this NCP.`,
+      playerComponents(userId, kind, division, mode, fault, gameCount, roster),
     );
   }
 
@@ -549,11 +594,15 @@ export async function handleNcpComponent(
     const kind = parts[3] as "dummy" | "submit";
     const division = parts[4] as TeamDivision;
     const mode = parts[5] as "2s" | "3s";
+    const fault = parseFaultCode(parts[6]);
+    const gameCount = parts[7] === "1" ? 1 : parts[7] === "5" ? 5 : null;
     if (
       !["dummy", "submit"].includes(kind) ||
       !DIVISIONS.includes(division) ||
       !canUseDivision(interaction, division) ||
-      (mode !== "2s" && mode !== "3s")
+      (mode !== "2s" && mode !== "3s") ||
+      !fault ||
+      gameCount === null
     ) {
       return discordMessage("That NCP selection is no longer valid.");
     }
@@ -567,8 +616,16 @@ export async function handleNcpComponent(
     }
 
     return discordUpdateMessage(
-      playerReview(config.franchise_name, division, mode, selected, kind === "dummy"),
-      confirmationComponents(userId, kind, division, mode, selected.map(player => player.sprocketPlayerId)),
+      playerReview(config.franchise_name, division, mode, fault, gameCount, selected, kind === "dummy"),
+      confirmationComponents(
+        userId,
+        kind,
+        division,
+        mode,
+        fault,
+        gameCount,
+        selected.map(player => player.sprocketPlayerId),
+      ),
     );
   }
 
@@ -576,12 +633,16 @@ export async function handleNcpComponent(
     const kind = parts[3] as "dummy" | "submit";
     const division = parts[4] as TeamDivision;
     const mode = parts[5] as "2s" | "3s";
-    const ids = (parts[6] ?? "").split(",").filter(Boolean);
+    const fault = parseFaultCode(parts[6]);
+    const gameCount = parts[7] === "1" ? 1 : parts[7] === "5" ? 5 : null;
+    const ids = (parts[8] ?? "").split(",").filter(Boolean);
     if (
       !["dummy", "submit"].includes(kind) ||
       !DIVISIONS.includes(division) ||
       !canUseDivision(interaction, division) ||
-      (mode !== "2s" && mode !== "3s")
+      (mode !== "2s" && mode !== "3s") ||
+      !fault ||
+      gameCount === null
     ) {
       return discordMessage("That NCP confirmation is no longer valid.");
     }
@@ -600,7 +661,7 @@ export async function handleNcpComponent(
 
     if (kind === "dummy") {
       return discordUpdateMessage(
-        playerReview(config.franchise_name, division, mode, selected, true) +
+        playerReview(config.franchise_name, division, mode, fault, gameCount, selected, true) +
           "\n\n✅ Demo completed. Nothing was saved or posted.",
         [],
       );
@@ -617,9 +678,9 @@ export async function handleNcpComponent(
     const slotsJson = JSON.stringify(selected.map(player => slotLabel(player.slot)));
     const write = await env.DB.prepare(
       `INSERT OR IGNORE INTO ncp_records (
-         interaction_id, guild_id, franchise_name, season_number, division, mode, players_json,
-         slots_json, created_by_discord_id, status
-       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')`,
+         interaction_id, guild_id, franchise_name, season_number, division, mode,
+         ncp_game_count, franchise_fault, players_json, slots_json, created_by_discord_id, status
+       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')`,
     ).bind(
       requestId,
       interaction.guild_id,
@@ -627,6 +688,8 @@ export async function handleNcpComponent(
       CURRENT_MLE_SEASON,
       division,
       mode,
+      gameCount,
+      fault,
       playersJson,
       slotsJson,
       actorId,
@@ -639,7 +702,7 @@ export async function handleNcpComponent(
       await sendDiscordThreadMessage(
         env,
         NCP_THREAD_ID,
-        pendingSummary(config.franchise_name, division, mode, selected, actorId),
+        pendingSummary(config.franchise_name, division, mode, fault, gameCount, selected, actorId),
         approvalComponents(requestId),
       );
     } catch (error) {
