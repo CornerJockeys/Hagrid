@@ -4,8 +4,9 @@ CREATE TABLE IF NOT EXISTS weekly_dump_posts (
   report_date TEXT NOT NULL,
   match_week INTEGER NOT NULL,
   kind TEXT NOT NULL CHECK (kind IN ('eligibility', 'salary', 'usage')),
+  chunk_index INTEGER NOT NULL,
   posted_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY (guild_id, season_number, report_date, kind)
+  PRIMARY KEY (guild_id, season_number, report_date, kind, chunk_index)
 );
 
 CREATE INDEX IF NOT EXISTS idx_weekly_dump_posts_season
