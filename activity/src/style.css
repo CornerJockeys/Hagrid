@@ -495,9 +495,6 @@ select:focus, input:focus { border-color: #7b838f; }
   color: #aeb4bd;
   line-height: 1.3;
 }
-.team-overview-metrics small.negative {
-  color: #d7a3a3;
-}
 @media (max-width: 640px) {
   .team-hub-heading { flex-direction: column; }
   .team-hub-heading > button { width: 100%; }
