@@ -24,6 +24,7 @@ import {
   teamDivision,
   teamDivisionOrder,
   usageForPlayer,
+  usagePolicyForDivision,
   type TeamDivision,
 } from "../league/view";
 import {CURRENT_MLE_SEASON} from "../season-policy";
@@ -42,7 +43,7 @@ import {
 } from "./live-data";
 import type {DiscordInteraction, Env, ExecutionContextLike} from "../types";
 
-const DIVISIONS = new Set<TeamDivision>(["FL", "AL", "CL", "ML"]);
+const DIVISIONS = new Set<TeamDivision>(["FL", "AL", "CL", "ML", "PL"]);
 
 function optionValue(interaction: DiscordInteraction, name: string): string | null {
   const value = interaction.data?.options?.find(option => option.name === name)?.value;
@@ -59,10 +60,11 @@ function selectedDivision(interaction: DiscordInteraction): TeamDivision | null 
 function usageText(usage: LeagueUsageRow | null): string {
   if (!usage) return "U —";
   const division = teamDivision(usage.league);
-  if (!division) return `U 2s ${usage.doubles_uses}/6 · 3s ${usage.standard_uses}/8 · T ${usage.total_uses}/12`;
+  if (!division) return `U 2s ${usage.doubles_uses} · 3s ${usage.standard_uses} · T ${usage.total_uses}`;
+  const policy = usagePolicyForDivision(division);
   const remaining = remainingUsage(usage, division);
   const exhausted = remaining.combined === 0 ? " · ⛔ exhausted" : "";
-  return `U 2s ${usage.doubles_uses}/6 (${remaining.doubles} left) · 3s ${usage.standard_uses}/8 (${remaining.standard} left) · T ${usage.total_uses}/12${exhausted}`;
+  return `U 2s ${usage.doubles_uses}/${policy.doublesLimit} (${remaining.doubles} left) · 3s ${usage.standard_uses}/${policy.standardLimit} (${remaining.standard} left) · T ${usage.total_uses}/${policy.combinedLimit}${exhausted}`;
 }
 
 function metric(value: number | null): string {
@@ -161,7 +163,7 @@ function teamContent(
     grouped.set(entry.division, values);
   }
 
-  for (const key of (["ML", "CL", "AL", "FL"] as TeamDivision[])) {
+  for (const key of (["PL", "ML", "CL", "AL", "FL"] as TeamDivision[])) {
     const values = grouped.get(key);
     if (!values?.length) continue;
     lines.push("", `**${key}**`);
