@@ -133,3 +133,16 @@ export const S20_SCHEDULE_BYES: S20ScheduleBye[] = [
 export function s20ScheduleWeek(matchWeek: number): S20ScheduleWeek | null {
   return S20_SCHEDULE_WEEKS.find(value => value.matchWeek === matchWeek) ?? null;
 }
+
+
+function mondayIsoForDate(value: string): string {
+  const date = new Date(`${value}T12:00:00Z`);
+  if (Number.isNaN(date.getTime())) return "";
+  const daysSinceMonday = (date.getUTCDay() + 6) % 7;
+  date.setUTCDate(date.getUTCDate() - daysSinceMonday);
+  return date.toISOString().slice(0, 10);
+}
+
+export function s20MatchWeekForNewWeekDate(date: string): number | null {
+  return S20_SCHEDULE_WEEKS.find(week => mondayIsoForDate(week.startDate) === date)?.matchWeek ?? null;
+}
