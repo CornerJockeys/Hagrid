@@ -89,8 +89,13 @@ async function main() {
   if (!base) throw new Error("HAGRID_BASE_URL is required.");
 
   const statusResponse = await fetch(`${base}/api/rulebook/watch-state`);
-  if (!statusResponse.ok) {
-    throw new Error(`Could not read Hagrid Rulebook Watch state (${statusResponse.status}).`);
+  const contentType = statusResponse.headers.get("content-type") ?? "";
+  if (!statusResponse.ok || !contentType.includes("application/json")) {
+    console.log(
+      `Rulebook Watch state is not available from the deployed Worker yet (HTTP ${statusResponse.status}); archive job skipped.`,
+    );
+    output("archived", "false");
+    return;
   }
   const status = await statusResponse.json();
 
