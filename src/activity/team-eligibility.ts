@@ -63,7 +63,7 @@ export async function getTeamEligibility(request: Request, env: Env): Promise<Re
   if (division === null) {
     return Response.json({error: "division must be all, FL, AL, CL, or ML."}, {status: 400});
   }
-  if (division !== "all" && !visibleDivisions.includes(division)) {
+  if (division !== "all" && !visibleDivisions.some(visible => visible === division)) {
     return Response.json({error: "That divisional team is outside your Activity access scope."}, {status: 403});
   }
 
@@ -85,7 +85,7 @@ export async function getTeamEligibility(request: Request, env: Env): Promise<Re
     .filter(value => isCompetitiveAvailabilityPlayer(value.roster))
     .filter(value =>
       value.roster.division !== null &&
-      visibleDivisions.includes(value.roster.division) &&
+      visibleDivisions.some(visible => visible === value.roster.division) &&
       (division === "all" || value.roster.division === division)
     )
     .map(({player, roster}) => {
