@@ -219,12 +219,14 @@ export function mountTeamAvailabilityPanel(
   if (!resolutionSelect || !label || !summary || !missing || !grid || !roster || !detailRoot) return;
 
   const syncDivisionButtons = (): void => {
+    const visibleDivisions = data?.visible_divisions ?? [];
+    const hasData = data !== null;
     for (const button of divisionButtons) {
       const value = button.dataset.teamDivision as TeamDivisionFilter | undefined;
-      const allowed = !data ||
+      const allowed = !hasData ||
         value === "all" ||
-        (value ? data.visible_divisions.includes(value as Exclude<TeamDivisionFilter, "all">) : false);
-      button.hidden = !allowed || (value === "all" && Boolean(data) && data.visible_divisions.length <= 1);
+        (value ? visibleDivisions.includes(value as Exclude<TeamDivisionFilter, "all">) : false);
+      button.hidden = !allowed || (value === "all" && hasData && visibleDivisions.length <= 1);
       const active = button.dataset.teamDivision === selectedDivision;
       button.classList.toggle("active", active);
       button.setAttribute("aria-pressed", active ? "true" : "false");
