@@ -1,4 +1,4 @@
-import {usagePolicyForDivision, type TeamDivision} from "../league/view";
+import {usagePolicyForDivision, type TeamDivision} from "../league/view.ts";
 import type {FranchisePlayer} from "../sprocket/players";
 import type {RoleUsage} from "../sprocket/role-usages";
 
