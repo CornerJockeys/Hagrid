@@ -43,7 +43,7 @@ import {
 } from "./live-data";
 import type {DiscordInteraction, Env, ExecutionContextLike} from "../types";
 
-const DIVISIONS = new Set<TeamDivision>(["FL", "AL", "CL", "ML", "PL"]);
+const DIVISIONS = new Set<TeamDivision>(["FL", "AL", "CL", "ML"]);
 
 function optionValue(interaction: DiscordInteraction, name: string): string | null {
   const value = interaction.data?.options?.find(option => option.name === name)?.value;
@@ -163,7 +163,7 @@ function teamContent(
     grouped.set(entry.division, values);
   }
 
-  for (const key of (["PL", "ML", "CL", "AL", "FL"] as TeamDivision[])) {
+  for (const key of (["ML", "CL", "AL", "FL"] as TeamDivision[])) {
     const values = grouped.get(key);
     if (!values?.length) continue;
     lines.push("", `**${key}**`);
