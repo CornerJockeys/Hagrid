@@ -28,6 +28,28 @@ function requiredPlayers(mode: string): 2 | 3 {
   return mode === "3s" ? 3 : 2;
 }
 
+type NcpFault = "at_fault" | "not_at_fault";
+
+function faultCode(value: NcpFault): "a" | "n" {
+  return value === "at_fault" ? "a" : "n";
+}
+
+function parseFaultCode(value: string | undefined): NcpFault | null {
+  if (value === "a") return "at_fault";
+  if (value === "n") return "not_at_fault";
+  return null;
+}
+
+function playoffEffect(gameCount: number, fault: NcpFault | "unknown"): string {
+  if (fault === "at_fault") {
+    return "Playoff eligibility games: **No — this franchise was at fault.**";
+  }
+  if (fault === "not_at_fault") {
+    return `Playoff eligibility games: **Potentially yes — up to ${gameCount} NCP game${gameCount === 1 ? "" : "s"} may count because this franchise was not at fault.** Hagrid stores this context for the playoff-participation tracker.`;
+  }
+  return "Playoff eligibility games: **Unknown — this older record does not contain fault context, so Hagrid will not assume credit.**";
+}
+
 function availableDivisions(interaction: DiscordInteraction): TeamDivision[] {
   if (hasAgmPlusRole(interaction)) return DIVISIONS;
   if (hasCaptainRole(interaction)) return captainDivisions(interaction);
@@ -53,6 +75,8 @@ interface NcpRecordRow {
   season_number: number;
   division: string;
   mode: string;
+  ncp_game_count: number;
+  franchise_fault: "at_fault" | "not_at_fault" | "unknown";
   players_json: string;
   slots_json: string;
   created_by_discord_id: string;
@@ -118,11 +142,59 @@ function modeComponents(userId: string, division: TeamDivision, dummy: boolean):
 }
 
 
+
+function faultComponents(
+  userId: string,
+  kind: "dummy" | "submit",
+  division: TeamDivision,
+  mode: "2s" | "3s",
+): unknown[] {
+  return [{
+    type: 1,
+    components: [{
+      type: 3,
+      custom_id: `ncp:fault:${userId}:${kind}:${division}:${mode}`,
+      placeholder: "Was our franchise at fault?",
+      min_values: 1,
+      max_values: 1,
+      options: [
+        {label: "Our franchise was at fault", value: "a", description: "NCP games cannot count toward playoff eligibility"},
+        {label: "Opponent was at fault", value: "n", description: "NCP games may count toward playoff eligibility"},
+      ],
+    }],
+  }];
+}
+
+function scopeComponents(
+  userId: string,
+  kind: "dummy" | "submit",
+  division: TeamDivision,
+  mode: "2s" | "3s",
+  fault: NcpFault,
+): unknown[] {
+  return [{
+    type: 1,
+    components: [{
+      type: 3,
+      custom_id: `ncp:scope:${userId}:${kind}:${division}:${mode}:${faultCode(fault)}`,
+      placeholder: "How much of the series was NCP'd?",
+      min_values: 1,
+      max_values: 1,
+      options: [
+        {label: "One game", value: "1", description: "A single-game NCP"},
+        {label: "Full series", value: "5", description: "A five-game series NCP"},
+      ],
+    }],
+  }];
+}
+
 function playerComponents(
   userId: string,
   kind: "dummy" | "submit",
   division: TeamDivision,
   mode: "2s" | "3s",
+  fault: NcpFault,
+  gameCount: 1 | 5,
   players: FranchisePlayer[],
 ): unknown[] {
   const count = requiredPlayers(mode);
@@ -130,7 +202,7 @@ function playerComponents(
     type: 1,
     components: [{
       type: 3,
-      custom_id: `ncp:players:${userId}:${kind}:${division}:${mode}`,
+      custom_id: `ncp:players:${userId}:${kind}:${division}:${mode}:${faultCode(fault)}:${gameCount}`,
       placeholder: `Choose ${count} players`,
       min_values: count,
       max_values: count,
@@ -148,13 +220,15 @@ function confirmationComponents(
   kind: "dummy" | "submit",
   division: TeamDivision,
   mode: "2s" | "3s",
+  fault: NcpFault,
+  gameCount: 1 | 5,
   playerIds: string[],
 ): unknown[] {
   const encoded = playerIds.join(",");
   return [{
     type: 1,
     components: [
-      {type: 2, style: 3, label: kind === "dummy" ? "Finish Demo" : "Confirm NCP", custom_id: `ncp:confirm:${userId}:${kind}:${division}:${mode}:${encoded}`},
+      {type: 2, style: 3, label: kind === "dummy" ? "Finish Demo" : "Confirm NCP", custom_id: `ncp:confirm:${userId}:${kind}:${division}:${mode}:${faultCode(fault)}:${gameCount}:${encoded}`},
       {type: 2, style: 4, label: "Cancel", custom_id: `ncp:cancel:${userId}`},
     ],
   }];
@@ -188,11 +262,17 @@ function playerReview(
   franchise: string,
   division: TeamDivision,
   mode: "2s" | "3s",
+  fault: NcpFault,
+  gameCount: 1 | 5,
   players: FranchisePlayer[],
   dummy: boolean,
 ): string {
+  const scopeLabel = gameCount === 1 ? "1 game" : "full 5-game series";
   const lines = [
     `**${dummy ? "[DUMMY] " : ""}NCP Review — ${franchise} · ${division} · ${mode}**`,
+    "",
+    `NCP scope: **${scopeLabel}**`,
+    `Fault: **${fault === "at_fault" ? "our franchise" : "opponent"}**`,
     "",
     dummy ? "**Players charged (demo)**" : "**Players requested**",
     ...players.map(player => `Slot ${slotLabel(player.slot)} — **${player.name}**`),
@@ -201,7 +281,7 @@ function playerReview(
     ...players.map(player => `Slot ${slotLabel(player.slot)}: +1 series use`),
     "",
     "**Playoff eligibility effect**",
-    "NCP playoff credit is **conditional**: NCP games normally do not count, but may count when this franchise was not at fault.",
+    playoffEffect(gameCount, fault),
   ];
   if (dummy) lines.push("", "_Dummy only — no NCP is saved or posted._");
   return lines.join("\n");
@@ -231,17 +311,22 @@ function pendingSummary(
   franchise: string,
   division: TeamDivision,
   mode: "2s" | "3s",
+  fault: NcpFault,
+  gameCount: 1 | 5,
   players: FranchisePlayer[],
   actorId: string,
 ): string {
   return [
     `**NCP Pending AGM+ Approval — ${franchise} · ${division} · ${mode}**`,
     "",
+    `NCP scope: **${gameCount === 1 ? "1 game" : "full 5-game series"}**`,
+    `Fault: **${fault === "at_fault" ? "our franchise" : "opponent"}**`,
+    "",
     "**Players / slots requested**",
     ...players.map(player => `• Slot ${slotLabel(player.slot)} — ${player.name}`),
     "",
     "If approved: **1 series use is charged to each listed slot.**",
-    "Playoff eligibility games: **Conditional — they may count if this franchise was not at fault.**",
+    playoffEffect(gameCount, fault),
     `Requested by: <@${actorId}>`,
     "",
     "**AGM+ review required:** approve or reject this request below.",
@@ -258,6 +343,9 @@ function reviewedSummary(
   return [
     `**NCP ${approved ? "Approved" : "Rejected"} — ${record.franchise_name} · ${record.division} · ${record.mode}**`,
     "",
+    `NCP scope: **${record.ncp_game_count === 1 ? "1 game" : "full 5-game series"}**`,
+    `Fault: **${record.franchise_fault === "at_fault" ? "our franchise" : record.franchise_fault === "not_at_fault" ? "opponent" : "unknown"}**`,
+    "",
     "**Players / slots requested**",
     ...(players.length > 0
       ? players.map(player => `• Slot ${player.slot} — ${player.name}`)
@@ -266,7 +354,7 @@ function reviewedSummary(
     approved
       ? "Usage consumed: **Yes — 1 series use per listed slot.**"
       : "Usage consumed: **No — rejected requests do not affect usage.**",
-    "Playoff eligibility games: **Conditional — they may count if this franchise was not at fault.**",
+    playoffEffect(record.ncp_game_count, record.franchise_fault),
     `Requested by: <@${record.created_by_discord_id}>`,
     `${approved ? "Approved" : "Rejected"} by: <@${reviewerId}>`,
   ].join("\n");
