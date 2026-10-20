@@ -11,7 +11,7 @@ import type {FranchisePlayer} from "../sprocket/players";
 import type {Env} from "../types";
 import {getPlayerProfileMetadata} from "../player-meta";
 import {authenticateActivityRequest, isAuthResponse} from "./auth";
-import {isAccessResponse, requireAgmPlusAccess} from "./access";
+import {activityVisibleDivisions, getActivityAccess} from "./access";
 import {getCurrentCompetitiveFranchiseRoster} from "./roster";
 
 type DivisionFilter = "all" | "FL" | "AL" | "CL" | "ML";
@@ -42,8 +42,17 @@ export async function getTeamEligibility(request: Request, env: Env): Promise<Re
   const auth = await authenticateActivityRequest(request, env);
   if (isAuthResponse(auth)) return auth;
 
-  const access = await requireAgmPlusAccess(env, auth);
-  if (isAccessResponse(access)) return access;
+  const access = await getActivityAccess(env, auth);
+  if (!access.rosterMember && !access.staff) {
+    return Response.json(
+      {error: "Your Discord account is not linked to the configured franchise."},
+      {status: 403},
+    );
+  }
+  const visibleDivisions = activityVisibleDivisions(access, auth.roleIds);
+  if (visibleDivisions.length === 0) {
+    return Response.json({error: "Hagrid could not determine which divisional team you can view."}, {status: 403});
+  }
 
   const config = await getCachedGuildConfig(env, auth.guildId);
   if (!config) {
@@ -53,6 +62,9 @@ export async function getTeamEligibility(request: Request, env: Env): Promise<Re
   const division = normalizeDivision(new URL(request.url).searchParams.get("division"));
   if (division === null) {
     return Response.json({error: "division must be all, FL, AL, CL, or ML."}, {status: 400});
+  }
+  if (division !== "all" && !visibleDivisions.includes(division)) {
+    return Response.json({error: "That divisional team is outside your Activity access scope."}, {status: 403});
   }
 
   const [players, events, rules] = await Promise.all([
@@ -71,7 +83,11 @@ export async function getTeamEligibility(request: Request, env: Env): Promise<Re
   const rows = players
     .map(player => ({player, roster: rosterShape(player)}))
     .filter(value => isCompetitiveAvailabilityPlayer(value.roster))
-    .filter(value => division === "all" || value.roster.division === division)
+    .filter(value =>
+      value.roster.division !== null &&
+      visibleDivisions.includes(value.roster.division) &&
+      (division === "all" || value.roster.division === division)
+    )
     .map(({player, roster}) => {
       const rule = rules.find(value =>
         roster.division
@@ -112,6 +128,7 @@ export async function getTeamEligibility(request: Request, env: Env): Promise<Re
     today,
     week_start: weekStart,
     division,
+    visible_divisions: visibleDivisions,
     players: rows,
   });
 }
