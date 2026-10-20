@@ -69,7 +69,7 @@ export async function getTeamAvailability(request: Request, env: Env): Promise<R
   if (weekStart instanceof Response) return weekStart;
   const division = parseDivision(request);
   if (division instanceof Response) return division;
-  if (division && !visibleDivisions.includes(division as never)) {
+  if (division && !visibleDivisions.some(value => value === division)) {
     return Response.json({error: "That divisional team is outside your Activity access scope."}, {status: 403});
   }
 
@@ -92,7 +92,7 @@ export async function getTeamAvailability(request: Request, env: Env): Promise<R
       slot: player.slot,
       staffPosition: player.staffPosition,
     }))
-    .filter(player => player.division !== null && visibleDivisions.includes(player.division as never));
+    .filter(player => player.division !== null && visibleDivisions.some(value => value === player.division));
   const submissions = submissionResult.results
     .map(submission)
     .filter((value): value is AvailabilitySubmission => value !== null);
