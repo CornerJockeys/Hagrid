@@ -1,4 +1,4 @@
-import type {TeamDivision} from "../league/view";
+import {usagePolicyForDivision, type TeamDivision} from "../league/view";
 import type {FranchisePlayer} from "../sprocket/players";
 import type {RoleUsage} from "../sprocket/role-usages";
 
@@ -9,6 +9,7 @@ function normalizeDivision(value: string | null): TeamDivision | null {
   if (normalized === "al" || normalized.includes("academy")) return "AL";
   if (normalized === "cl" || normalized.includes("champion")) return "CL";
   if (normalized === "ml" || normalized.includes("master")) return "ML";
+  if (normalized === "pl" || normalized.includes("premier")) return "PL";
   return null;
 }
 
@@ -16,11 +17,15 @@ function slotSortLabel(value: string): string {
   return value.trim().replace(/^PLAYER/i, "") || value.trim();
 }
 
-function effectiveRemaining(usage: RoleUsage): {doubles: number; standard: number; combined: number} {
-  const combined = Math.max(0, 12 - usage.totalUses);
+function effectiveRemaining(
+  usage: RoleUsage,
+  division: TeamDivision,
+): {doubles: number; standard: number; combined: number} {
+  const policy = usagePolicyForDivision(division);
+  const combined = Math.max(0, policy.combinedLimit - usage.totalUses);
   return {
-    doubles: Math.max(0, Math.min(6 - usage.doublesUses, combined)),
-    standard: Math.max(0, Math.min(8 - usage.standardUses, combined)),
+    doubles: Math.max(0, Math.min(policy.doublesLimit - usage.doublesUses, combined)),
+    standard: Math.max(0, Math.min(policy.standardLimit - usage.standardUses, combined)),
     combined,
   };
 }
@@ -100,7 +105,7 @@ export function buildUsageAlerts(
     .filter(usage => normalizeDivision(usage.league) === division)
     .map(usage => {
       const slot = roleKey(usage.role);
-      const remaining = effectiveRemaining(usage);
+      const remaining = effectiveRemaining(usage, division);
       const text = sentenceForRemaining(remaining.doubles, remaining.standard, remaining.combined);
       return {
         slot,
