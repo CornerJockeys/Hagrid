@@ -510,3 +510,15 @@ select:focus, input:focus { border-color: #7b838f; }
   .team-overview-metrics > :nth-last-child(-n+2) { border-bottom: 1px solid #252a32; }
   .team-overview-metrics > :last-child { border-bottom: 0; }
 }
+
+
+.rulebook-sync {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin: -2px 0 10px;
+  color: #9299a3;
+  font-size: 11px;
+}
+.rulebook-sync strong { color: #c7cbd1; }
