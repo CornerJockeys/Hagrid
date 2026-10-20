@@ -33,3 +33,16 @@ test("usage reminder omits healthy slots", () => {
   const alerts = buildUsageAlerts("ML", players, [usage("C",2,3,5)]);
   assert.equal(alerts.length, 0);
 });
+
+
+test("FL reminders use the 6/9/15 Season 20 usage policy", () => {
+  const flPlayers = [
+    {sprocketPlayerId:"a",memberId:null,discordId:"10",name:"A",salary:0,skillGroup:"Foundation League",gameId:null,gameTitle:"Rocket League",franchise:"Wizards",staffPosition:null,slot:"PLAYERA",currentScrimPoints:0,eligibleThrough:null,sourceAsOf:null},
+  ];
+  const alerts = buildUsageAlerts("FL", flPlayers, [
+    {doublesUses:4,standardUses:8,totalUses:12,seasonNumber:20,teamName:"Wizards",league:"Foundation League",role:"A",sourceAsOf:null},
+  ]);
+  assert.equal(alerts[0]?.doublesRemaining, 2);
+  assert.equal(alerts[0]?.standardRemaining, 1);
+  assert.equal(alerts[0]?.combinedRemaining, 3);
+});
