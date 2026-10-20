@@ -250,6 +250,28 @@ const commands = [
     ],
   },
   {
+    name: "rulebookwatch",
+    description: "Pause, resume, or inspect Hagrid's live rulebook watcher (GM/FM).",
+    type: 1,
+    options: [
+      {
+        type: 1,
+        name: "pause",
+        description: "Freeze the last known-good rulebook until resumed.",
+      },
+      {
+        type: 1,
+        name: "resume",
+        description: "Resume five-minute rulebook checks against the frozen baseline.",
+      },
+      {
+        type: 1,
+        name: "status",
+        description: "Show Rulebook Watch status and the last known-good sync.",
+      },
+    ],
+  },
+  {
     name: "sync",
     description: "Run or inspect Hagrid's franchise data sync.",
     type: 1,
