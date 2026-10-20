@@ -1,0 +1,48 @@
+name: Archive Rulebook
+
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: hagrid-rulebook-archive
+  cancel-in-progress: false
+
+jobs:
+  archive:
+    runs-on: ubuntu-latest
+    if: github.repository == 'CornerJockeys/Hagrid'
+    env:
+      HAGRID_BASE_URL: ${{ vars.HAGRID_BASE_URL }}
+
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Archive accepted rulebook
+        id: archive
+        run: node scripts/archive-rulebook.mjs
+
+      - name: Commit archived rulebook
+        if: steps.archive.outputs.archived == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "Hagrid Rulebook Watch"
+          git config user.email "actions@users.noreply.github.com"
+          git add resources src/rulebooks/data.ts
+          git commit -m "Archive updated Season 20 rulebook"
+          git pull --rebase origin main
+          git push origin HEAD:main
