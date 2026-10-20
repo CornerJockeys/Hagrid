@@ -1,4 +1,5 @@
 import {sendDiscordChannelMessage} from "../discord";
+import {S20_ELIGIBILITY_SALARY_LOCK_DATE} from "../season-policy";
 import type {Env} from "../types";
 import {easternDate, easternHour, easternMinute, reminderDue} from "./logic";
 
@@ -32,6 +33,19 @@ export async function runScheduledReminders(env: Env): Promise<void> {
   const today = easternDate(now);
   const hour = easternHour(now);
   const minute = easternMinute(now);
+
+  // Eligibility is locked at the New Week Deadline on Jan 4. The reminder
+  // scheduler only sends at 1:30 PM ET, so there is no useful day-of ping
+  // after the noon lock. Close any remaining eligibility reminders instead.
+  if (today >= S20_ELIGIBILITY_SALARY_LOCK_DATE) {
+    await env.DB.prepare(
+      `UPDATE scrim_reminders
+       SET status = 'completed', completed_at = CURRENT_TIMESTAMP, closed_at = CURRENT_TIMESTAMP
+       WHERE status = 'active'`,
+    ).run();
+    return;
+  }
+
   const rows = await env.DB.prepare(
     `SELECT id, channel_id, player_discord_id, player_name, division, due_date,
             cadence, created_by_discord_id, last_ping_date
