@@ -1,4 +1,4 @@
-import {MASTER_CRON} from "../scheduler";
+import {MASTER_CRON} from "../scheduler.ts";
 import type {Env, ScheduledEventLike} from "../types";
 import {SEASON_20_RULEBOOK} from "./data.ts";
 
