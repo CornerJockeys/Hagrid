@@ -195,7 +195,6 @@ export function mountTeamOverviewPanel(
           : team.usage.warning_slots === 0
             ? "No slots near limits"
             : `${team.usage.warning_slots} slot${team.usage.warning_slots === 1 ? "" : "s"} near limits`;
-      const salaryClass = team.salary.cap_space < 0 ? "negative" : "";
       return `
         <article class="team-overview-card">
           <div class="team-overview-card-title">
@@ -216,7 +215,7 @@ export function mountTeamOverviewPanel(
             <div>
               <span>Team Salary</span>
               <strong>${number(team.salary.team_salary)} / ${number(team.salary.cap)}</strong>
-              <small class="${salaryClass}">Cap space ${number(team.salary.cap_space)}</small>
+              <small>Cap space ${number(team.salary.cap_space)}</small>
             </div>
             <button data-open-team-page="availability">
               <span>Availability</span>
