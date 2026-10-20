@@ -7,7 +7,7 @@ import type {FranchisePlayer} from "../sprocket/players";
 import {getCurrentCompetitiveFranchiseRoster} from "../activity/roster";
 import {CURRENT_MLE_SEASON} from "../season-policy";
 
-const DIVISIONS: TeamDivision[] = ["FL", "AL", "CL", "ML"];
+const DIVISIONS: TeamDivision[] = ["FL", "AL", "CL", "ML", "PL"];
 const NCP_THREAD_ID = "1553513630333665461";
 
 function invokerId(interaction: DiscordInteraction): string | null {
@@ -201,7 +201,7 @@ function playerReview(
     ...players.map(player => `Slot ${slotLabel(player.slot)}: +1 series use`),
     "",
     "**Playoff eligibility effect**",
-    "Games from this NCP do **not** count toward the 15-game playoff requirement.",
+    "NCP playoff credit is **conditional**: NCP games normally do not count, but may count when this franchise was not at fault.",
   ];
   if (dummy) lines.push("", "_Dummy only — no NCP is saved or posted._");
   return lines.join("\n");
@@ -241,7 +241,7 @@ function pendingSummary(
     ...players.map(player => `• Slot ${slotLabel(player.slot)} — ${player.name}`),
     "",
     "If approved: **1 series use is charged to each listed slot.**",
-    "Playoff eligibility games: **No — NCP games are excluded.**",
+    "Playoff eligibility games: **Conditional — they may count if this franchise was not at fault.**",
     `Requested by: <@${actorId}>`,
     "",
     "**AGM+ review required:** approve or reject this request below.",
@@ -266,7 +266,7 @@ function reviewedSummary(
     approved
       ? "Usage consumed: **Yes — 1 series use per listed slot.**"
       : "Usage consumed: **No — rejected requests do not affect usage.**",
-    "Playoff eligibility games: **No — NCP games are excluded.**",
+    "Playoff eligibility games: **Conditional — they may count if this franchise was not at fault.**",
     `Requested by: <@${record.created_by_discord_id}>`,
     `${approved ? "Approved" : "Rejected"} by: <@${reviewerId}>`,
   ].join("\n");
