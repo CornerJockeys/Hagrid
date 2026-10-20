@@ -1,9 +1,9 @@
-import {divisionPolicy, type MleDivision} from "../season-policy";
+import {divisionPolicy} from "../season-policy";
 import type {LeaguePlayerRow, LeagueUsageRow} from "./db";
 
-export type TeamDivision = MleDivision;
+export type TeamDivision = "FL" | "AL" | "CL" | "ML";
 
-const DIVISION_ORDER: TeamDivision[] = ["PL", "ML", "CL", "AL", "FL"];
+const DIVISION_ORDER: TeamDivision[] = ["ML", "CL", "AL", "FL"];
 
 export interface UsagePolicy {
   rosterSlots: number;
@@ -48,7 +48,6 @@ export function teamDivision(value: string | null): TeamDivision | null {
   if (normalized === "al" || normalized.includes("academy")) return "AL";
   if (normalized === "cl" || normalized.includes("champion")) return "CL";
   if (normalized === "ml" || normalized.includes("master")) return "ML";
-  if (normalized === "pl" || normalized.includes("premier")) return "PL";
   return null;
 }
 
