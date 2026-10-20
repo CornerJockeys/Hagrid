@@ -1,4 +1,4 @@
-import {divisionPolicy} from "../season-policy";
+import {divisionPolicy} from "../season-policy.ts";
 import type {LeaguePlayerRow, LeagueUsageRow} from "./db";
 
 export type TeamDivision = "FL" | "AL" | "CL" | "ML";
