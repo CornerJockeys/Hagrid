@@ -1,4 +1,4 @@
-import {MASTER_CRON} from "../scheduler.ts";
+import {MASTER_CRON, isRulebookWatchTime} from "../scheduler.ts";
 import type {Env, ScheduledEventLike} from "../types";
 import {SEASON_20_RULEBOOK} from "./data.ts";
 
@@ -532,7 +532,7 @@ export async function runScheduledRulebookWatch(
   env: Env,
   event: ScheduledEventLike,
 ): Promise<void> {
-  if (event.cron !== RULEBOOK_WATCH_CRON) return;
+  if (event.cron !== RULEBOOK_WATCH_CRON || !isRulebookWatchTime(event.scheduledTime)) return;
   try {
     await checkRulebookForChanges(env);
   } catch (error) {
