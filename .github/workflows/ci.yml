@@ -26,5 +26,8 @@ jobs:
       - name: Build Activity
         run: npm run build:activity
 
+      - name: Check rulebook archive script
+        run: node --check scripts/archive-rulebook.mjs
+
       - name: Replay regression tests
         run: node --experimental-strip-types --test tests/*.test.mjs
