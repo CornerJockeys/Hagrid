@@ -8,10 +8,28 @@ interface RulebookResponse {
   title: string;
   warning: string | null;
   content: string;
+  last_synced_at?: string | null;
+  watch_enabled?: boolean;
+  source_url?: string;
 }
 
 function escapeHtml(value: string): string {
   return value.replace(/[&<>'"]/g, char => ({"&":"&amp;","<":"&lt;",">":"&gt;","'":"&#39;",'"':"&quot;"}[char] ?? char));
+}
+
+function formatSync(value: string | null | undefined): string {
+  if (!value) return "Bundled fallback";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    timeZone: "America/New_York",
+    timeZoneName: "short",
+  }).format(date);
 }
 
 function blocks(content: string): string[] {
@@ -47,16 +65,21 @@ export function mountRulebookPanel(
       <p>Search the source rulebook text stored with Hagrid. Results preserve the wording in the uploaded source file.</p></div></div>
     <div class="toolbar rulebook-toolbar"><label>Search<input id="rulebook-search" type="search" placeholder="e.g. NCP, salary cap, substitutions" /></label><button id="rulebook-clear" class="secondary-button">Clear</button></div>
     <div id="rulebook-warning"></div>
+    <div id="rulebook-sync" class="rulebook-sync"></div>
     <div id="rulebook-content" class="rulebook-card"><div class="table-empty"><strong>Loading rulebook…</strong></div></div>`;
 
   const input = panel.querySelector<HTMLInputElement>("#rulebook-search");
   const output = panel.querySelector<HTMLElement>("#rulebook-content");
   const warning = panel.querySelector<HTMLElement>("#rulebook-warning");
-  if (!input || !output || !warning) return;
+  const sync = panel.querySelector<HTMLElement>("#rulebook-sync");
+  if (!input || !output || !warning || !sync) return;
 
   const render = (): void => {
     if (!data) return;
     warning.innerHTML = data.warning ? `<div class="notice-card warning"><strong>Source warning</strong><p>${escapeHtml(data.warning)}</p></div>` : "";
+    sync.innerHTML = kind === "league"
+      ? `<span><strong>Last synced:</strong> ${escapeHtml(formatSync(data.last_synced_at))}</span>${data.watch_enabled === false ? '<span class="status-pill status-pend">Watcher paused</span>' : ""}`
+      : "";
     output.innerHTML = results(data.content, input.value);
   };
 
