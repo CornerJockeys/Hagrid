@@ -61,12 +61,26 @@ The franchise sync imports the configured franchise's Rocket League roster, slot
 /test dump
 ```
 
-`/ncp` is available to current franchise Captain+ staff. Captains are limited to their Discord-linked division; AGM/GM/FM staff can manage all configured-franchise divisions. A submission selects Doubles or Standard and exactly 2 or 3 current roster players respectively, then posts a **pending** request to the configured NCP thread. An AGM/GM/FM must approve or reject it there before it affects slot usage. Approved NCPs consume one series use for each selected slot while remaining excluded from playoff-eligibility games. `/ncpdummy` previews the same Captain+ flow without saving, posting, or changing usage. The future Season 20 matches/fixtures adapter will add the live match picker to this flow.
+`/ncp` is available to current franchise Captain+ staff. Captains are limited to their Discord-linked division; AGM/GM/FM staff can manage all configured-franchise divisions. A submission selects Doubles or Standard and exactly 2 or 3 current roster players respectively, then posts a **pending** request to the configured NCP thread. An AGM/GM/FM must approve or reject it there before it affects slot usage. Approved NCPs consume one series use for each selected slot. The flow also records whether the franchise or opponent was at fault and whether the NCP covered one game or the full five-game series. Season 20 NCP playoff credit is conditional: games may count toward the 15-game requirement when the franchise was not at fault. Hagrid stores that context now but does not automatically credit playoff-participation games until the player/game participation tracker is wired. `/ncpdummy` previews the same Captain+ flow without saving, posting, or changing usage. The future Season 20 matches/fixtures adapter will add the live match picker to this flow.
 
-`/test dump` safely simulates the weekly **Eligibility**, **Salary**, or **Usage** output (or all three) in the configured Season 20 threads. The tester chooses a Match Week label from 1–10; every dump title includes that Match Week number. Usage posts to thread `1555478962187018271`, Salary to `1555478919811964928`, and Eligibility to `1555478866716262420`. This simulates the real weekly Discord output while leaving scheduled state unchanged.
+`/test dump` safely simulates the weekly **Eligibility**, **Salary**, or **Usage** output (or all three) in the configured Season 20 threads. The tester chooses a Match Week label from 1–10; every dump title includes that Match Week number. Usage posts to thread `1555478962187018271`, Salary to `1555478919811964928`, and Eligibility to `1555478866716262420`. This simulates the real weekly Discord output while leaving scheduled state unchanged. Production dumps run at **1:30 PM Eastern** on Mondays that begin a real Match Week, skip bye weeks, and are idempotent. Eligibility and Salary begin with Match Week 1 and stop after the Jan. 4 lock snapshot; Usage begins Nov. 2 (after Match Week 1 has produced real usage) and continues through the Jan. 18 Match Week 10 check.
 
 The regular `/remind` command keeps its zero-option guided entry point. Reminder demos use the separate `/reminddummy` command, which opens the list of Player, Division, Team, Usage Division, and Usage Team previews. Each demo shows the example Discord output we expect from that reminder type without saving or pinging anyone.
 
+
+### Season 20 roster, salary, and usage policy
+
+Hagrid centralizes the current Season 20 rules instead of duplicating limits in commands and reports:
+
+- **FL:** 4 active slots, Team Salary uses the top 4 salaries, cap **34.5**, usage **6 Doubles / 9 Standard / 15 combined**
+- **AL:** 8 active slots, Team Salary uses the top 5 salaries, cap **62.5**, usage **6 / 8 / 12**
+- **CL:** 8 active slots, Team Salary uses the top 5 salaries, cap **74.5**, usage **6 / 8 / 12**
+- **ML:** 8 active slots, Team Salary uses the top 5 salaries, cap **86.5**, usage **6 / 8 / 12**
+- **PL:** 4 active slots, Team Salary uses the top 4 salaries, cap **79.0**, usage **6 / 9 / 15**
+
+Negative cap space is a normal numeric result and is displayed as a negative value rather than treated as an automatic roster violation. Salary-cap restrictions apply when active-roster transactions are made.
+
+Season 20 operational cutoffs are also centralized: Eligibility/Salaries lock Jan. 4, 2027; Roster Lock is Jan. 11; proactive Usage checks continue through the Match Week 10 Monday on Jan. 18.
 
 ### Season 20 schedule and match-data dependencies
 
@@ -272,7 +286,7 @@ Trackmania datasets are intentionally out of scope. Hagrid is a Rocket League pr
 
 ## Scheduling
 
-The franchise sync targets **Monday at 1:00 PM America/New_York**. Cloudflare cron is UTC, so Hagrid registers both possible UTC Monday times and verifies the actual Eastern clock before executing. This keeps the intended local time through daylight-saving changes.
+The franchise sync targets **Monday at 1:00 PM America/New_York**. Cloudflare cron is UTC, so Hagrid registers both possible UTC Monday times and verifies the actual Eastern clock before executing. This keeps the intended local time through daylight-saving changes. Weekly Match Week Eligibility/Salary/Usage posts run at **1:30 PM Eastern** after the sync and hourly `:20` league snapshot refresh; the local Season 20 schedule suppresses them during bye weeks.
 
 The HCPB/pool snapshot uses a separate hourly cron at `20 * * * *`.
 

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import {S20_SCHEDULE_WEEKS} from "../src/schedule/s20.ts";
+import {S20_SCHEDULE_WEEKS, s20MatchWeekForNewWeekDate} from "../src/schedule/s20.ts";
 
 test("S20 static schedule snapshot has 10 complete scheduled match weeks", () => {
   assert.equal(S20_SCHEDULE_WEEKS.length, 10);
@@ -35,4 +35,15 @@ test("S20 schedule alternates supplied division/conference pattern", () => {
     S20_SCHEDULE_WEEKS.map(week => week.kind),
     ["Division","Division","Division","Conference","Division","Conference","Division","Conference","Division","Conference"],
   );
+});
+
+
+test("S20 New Week dates map to the correct match weeks and skip byes", () => {
+  assert.equal(s20MatchWeekForNewWeekDate("2026-10-26"), 1);
+  assert.equal(s20MatchWeekForNewWeekDate("2026-11-02"), 2);
+  assert.equal(s20MatchWeekForNewWeekDate("2026-11-23"), null);
+  assert.equal(s20MatchWeekForNewWeekDate("2026-11-30"), 5);
+  assert.equal(s20MatchWeekForNewWeekDate("2027-01-04"), 8);
+  assert.equal(s20MatchWeekForNewWeekDate("2027-01-11"), 9);
+  assert.equal(s20MatchWeekForNewWeekDate("2027-01-18"), 10);
 });

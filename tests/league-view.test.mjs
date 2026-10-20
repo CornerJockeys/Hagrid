@@ -56,12 +56,12 @@ test("usage resolves by current division and slot", () => {
 });
 
 
-test("S20 usage policy distinguishes FL roster size while keeping mode caps", () => {
+test("S20 usage policy applies FL four-slot and expanded usage rules", () => {
   assert.deepEqual(usagePolicyForDivision("FL"), {
-    rosterSlots: 7,
+    rosterSlots: 4,
     doublesLimit: 6,
-    standardLimit: 8,
-    combinedLimit: 12,
+    standardLimit: 9,
+    combinedLimit: 15,
   });
   assert.deepEqual(usagePolicyForDivision("CL"), {
     rosterSlots: 8,

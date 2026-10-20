@@ -1,3 +1,4 @@
+import {divisionPolicy} from "../season-policy.ts";
 import type {LeaguePlayerRow, LeagueUsageRow} from "./db";
 
 export type TeamDivision = "FL" | "AL" | "CL" | "ML";
@@ -18,11 +19,12 @@ export interface UsageRemaining {
 }
 
 export function usagePolicyForDivision(division: TeamDivision): UsagePolicy {
+  const policy = divisionPolicy(division);
   return {
-    rosterSlots: division === "FL" ? 7 : 8,
-    doublesLimit: 6,
-    standardLimit: 8,
-    combinedLimit: 12,
+    rosterSlots: policy.rosterSlots,
+    doublesLimit: policy.doublesLimit,
+    standardLimit: policy.standardLimit,
+    combinedLimit: policy.combinedLimit,
   };
 }
 
