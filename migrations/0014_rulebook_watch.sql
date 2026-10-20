@@ -4,6 +4,7 @@ CREATE TABLE IF NOT EXISTS rulebook_watch_state (
   source_url TEXT NOT NULL,
   current_hash TEXT,
   current_length INTEGER,
+  current_content TEXT,
   last_checked_at TEXT,
   last_synced_at TEXT,
   paused_at TEXT,
@@ -30,3 +31,10 @@ CREATE TABLE IF NOT EXISTS rulebook_revisions (
 
 CREATE INDEX IF NOT EXISTS idx_rulebook_revisions_observed
   ON rulebook_revisions (observed_at DESC);
+
+CREATE TABLE IF NOT EXISTS rulebook_notification_chunks (
+  source_hash TEXT NOT NULL,
+  chunk_index INTEGER NOT NULL,
+  sent_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (source_hash, chunk_index)
+);
