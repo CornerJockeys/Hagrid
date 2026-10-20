@@ -33,6 +33,6 @@ test("weekly report windows follow S20 operational dates", () => {
   assert.deepEqual(s20WeeklyReportKinds("2026-11-02"), ["eligibility", "salary", "usage"]);
   assert.deepEqual(s20WeeklyReportKinds("2027-01-04"), ["eligibility", "salary", "usage"]);
   assert.deepEqual(s20WeeklyReportKinds("2027-01-11"), ["usage"]);
-  assert.deepEqual(s20WeeklyReportKinds("2027-01-25"), ["usage"]);
+  assert.deepEqual(s20WeeklyReportKinds("2027-01-25"), []);
   assert.deepEqual(s20WeeklyReportKinds("2027-02-01"), []);
 });
