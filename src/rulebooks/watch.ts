@@ -1,4 +1,4 @@
-import {SEASON_20_RULEBOOK} from "./data";
+import {SEASON_20_RULEBOOK} from "./data.ts";
 import type {Env, ScheduledEventLike} from "../types";
 
 export const RULEBOOK_WATCH_CRON = "*/5 * * * *";
