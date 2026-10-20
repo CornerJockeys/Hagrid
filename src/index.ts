@@ -4,6 +4,7 @@ import {handleFaCommand, handleFaComponent} from "./commands/pool";
 import {handlePlayerAutocomplete, handlePlayerCommand} from "./commands/player";
 import {handleNcpCommand, handleNcpComponent, handleNcpDummyCommand} from "./commands/ncp";
 import {handleReplayCommand} from "./commands/replay";
+import {handleRulebookWatchCommand} from "./commands/rulebook-watch";
 import {handleRemindCommand, handleRemindComponent, handleRemindDummyCommand, handleRemindModal} from "./commands/remind";
 import {handleRemindersCommand} from "./commands/reminders";
 import {handleStandingsCommand} from "./commands/standings";
@@ -12,6 +13,10 @@ import {handleTeamAutocomplete, handleTeamCommand} from "./commands/team";
 import {handleTestCommand, handleTestComponent} from "./commands/test";
 import {discordMessage, discordPong, verifyDiscordRequest} from "./discord";
 import {runScheduledLeagueRefresh} from "./league/refresh";
+import {
+  rulebookWatchPublicStatus,
+  runScheduledRulebookWatch,
+} from "./rulebooks/watch";
 import {runScheduledDumps} from "./dumps/scheduled";
 import {readinessResponse} from "./readiness";
 import {runScheduledReminders} from "./reminders/runner";
@@ -97,6 +102,8 @@ async function handleInteraction(
         return await handlePlayerCommand(interaction, env, ctx);
       case "replay":
         return await handleReplayCommand(interaction, env, ctx);
+      case "rulebookwatch":
+        return await handleRulebookWatchCommand(interaction, env);
       case "remind":
         return await handleRemindCommand(interaction, env);
       case "reminddummy":
@@ -139,6 +146,10 @@ export default {
       return handleInteraction(request, env, ctx);
     }
 
+    if (request.method === "GET" && url.pathname === "/api/rulebook/watch-state") {
+      return rulebookWatchPublicStatus(env);
+    }
+
     if (url.pathname.startsWith("/api/activity/")) {
       try {
         return await handleActivityApi(request, env);
@@ -158,6 +169,7 @@ export default {
       runScheduledScoutingRefresh(env, event),
       runScheduledLeagueRefresh(env, event),
       runScheduledReminders(env),
+      runScheduledRulebookWatch(env, event),
     ]));
   },
 };
