@@ -51,6 +51,7 @@ interface WatchStateRow {
 }
 
 export interface RulebookDiffHunk {
+  context: string[];
   before: string[];
   after: string[];
 }
@@ -132,6 +133,16 @@ function findAnchor(
   return best ? {beforeOffset: best.beforeOffset, afterOffset: best.afterOffset} : null;
 }
 
+function diffContext(
+  lines: Array<{display: string; key: string}>,
+  index: number,
+): string[] {
+  return lines
+    .slice(Math.max(0, index - 3), index)
+    .map(line => line.display)
+    .filter(Boolean);
+}
+
 export function diffRulebookContent(
   previous: string,
   next: string,
@@ -149,12 +160,22 @@ export function diffRulebookContent(
       continue;
     }
 
+    const context = diffContext(before, i);
+
     if (i >= before.length) {
-      hunks.push({before: [], after: after.slice(j).map(line => line.display)});
+      hunks.push({
+        context,
+        before: [],
+        after: after.slice(j).map(line => line.display),
+      });
       break;
     }
     if (j >= after.length) {
-      hunks.push({before: before.slice(i).map(line => line.display), after: []});
+      hunks.push({
+        context,
+        before: before.slice(i).map(line => line.display),
+        after: [],
+      });
       break;
     }
 
@@ -162,13 +183,14 @@ export function diffRulebookContent(
     if (!anchor || (anchor.beforeOffset === 0 && anchor.afterOffset === 0)) {
       const oldLine = before[i]?.display ? [before[i].display] : [];
       const newLine = after[j]?.display ? [after[j].display] : [];
-      hunks.push({before: oldLine, after: newLine});
+      hunks.push({context, before: oldLine, after: newLine});
       i += oldLine.length;
       j += newLine.length;
       continue;
     }
 
     hunks.push({
+      context,
       before: before.slice(i, i + anchor.beforeOffset).map(line => line.display),
       after: after.slice(j, j + anchor.afterOffset).map(line => line.display),
     });
@@ -176,22 +198,7 @@ export function diffRulebookContent(
     j += anchor.afterOffset;
   }
 
-  // Small neighboring edits are easier to read as one logical change.
-  const merged: RulebookDiffHunk[] = [];
-  for (const hunk of hunks) {
-    const previousHunk = merged.at(-1);
-    if (
-      previousHunk &&
-      previousHunk.before.length + previousHunk.after.length < 8 &&
-      hunk.before.length + hunk.after.length < 8
-    ) {
-      previousHunk.before.push(...hunk.before);
-      previousHunk.after.push(...hunk.after);
-    } else {
-      merged.push({before: [...hunk.before], after: [...hunk.after]});
-    }
-  }
-  return merged.filter(hunk => hunk.before.length > 0 || hunk.after.length > 0);
+  return hunks.filter(hunk => hunk.before.length > 0 || hunk.after.length > 0);
 }
 
 function quote(lines: string[]): string {
@@ -202,6 +209,7 @@ function quote(lines: string[]): string {
 function diffText(hunks: RulebookDiffHunk[]): string {
   return hunks.map((hunk, index) => [
     `**Change ${index + 1}**`,
+    ...(hunk.context.length > 0 ? ["**Context**", quote(hunk.context)] : []),
     "**Before**",
     quote(hunk.before),
     "**After**",
@@ -249,7 +257,7 @@ async function postRulebookChange(
   }
 
   const body = diffText(hunks);
-  const chunks = splitDiscordText(body);
+  const chunks = splitDiscordText(body, 1500);
   const header = [
     "📘 **RULEBOOK CHANGE**",
     `<@${RULEBOOK_CHANGE_USER_ID}>`,
