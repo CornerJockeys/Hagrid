@@ -4,7 +4,7 @@ import {
   snapshotFranchisePlayers,
   snapshotFranchiseRoleUsages,
 } from "../league/cache";
-import {remainingUsage, slotLabel, teamDivision, type TeamDivision} from "../league/view";
+import {remainingUsage, slotLabel, teamDivision, usagePolicyForDivision, type TeamDivision} from "../league/view";
 import {getFranchisePlayers} from "../sprocket/players";
 import {getFranchiseRoleUsagesForSeason} from "../sprocket/role-usages";
 import {CURRENT_MLE_SEASON} from "../season-policy";
@@ -12,12 +12,13 @@ import {applyNcpToRoleUsage} from "../ncp/usage";
 import type {Env} from "../types";
 
 export type DumpKind = "eligibility" | "salary" | "usage";
-const DIVISIONS: TeamDivision[] = ["FL", "AL", "CL", "ML"];
+const DIVISIONS: TeamDivision[] = ["FL", "AL", "CL", "ML", "PL"];
 const DIVISION_NAMES: Record<TeamDivision, string> = {
   FL: "Foundation League",
   AL: "Academy League",
   CL: "Champion League",
   ML: "Master League",
+  PL: "Premier League",
 };
 
 function roleKey(value: string | null): string {
@@ -109,8 +110,9 @@ export async function buildDumpMessages(
           refreshed_at: "",
         }, division);
         const player = bySlot.get(roleKey(usage.role));
+        const policy = usagePolicyForDivision(division);
         lines.push(
-          `${roleKey(usage.role)} · ${player?.name ?? "Open/unknown slot"} · 2s ${usage.doublesUses}/6 (${remaining.doubles} left) · 3s ${usage.standardUses}/8 (${remaining.standard} left) · total ${usage.totalUses}/12 (${remaining.combined} left)`,
+          `${roleKey(usage.role)} · ${player?.name ?? "Open/unknown slot"} · 2s ${usage.doublesUses}/${policy.doublesLimit} (${remaining.doubles} left) · 3s ${usage.standardUses}/${policy.standardLimit} (${remaining.standard} left) · total ${usage.totalUses}/${policy.combinedLimit} (${remaining.combined} left)`,
         );
       }
       lines.push("");
