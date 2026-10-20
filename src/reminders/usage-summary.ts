@@ -9,7 +9,6 @@ function normalizeDivision(value: string | null): TeamDivision | null {
   if (normalized === "al" || normalized.includes("academy")) return "AL";
   if (normalized === "cl" || normalized.includes("champion")) return "CL";
   if (normalized === "ml" || normalized.includes("master")) return "ML";
-  if (normalized === "pl" || normalized.includes("premier")) return "PL";
   return null;
 }
 
