@@ -29,3 +29,15 @@ test("rulebook comparison reports real wording and value changes", () => {
   assert.match(text, /43\.5/);
   assert.match(text, /34\.5/);
 });
+
+
+test("rulebook change blocks keep nearby section context", () => {
+  const changes = diffRulebookContent(
+    "Table 1.6: League Salary Caps\nLeague\nFoundation\n43.5\nAcademy\n62.5",
+    "Table 1.6: League Salary Caps\nLeague\nFoundation\n34.5\nAcademy\n62.5",
+  );
+  assert.equal(changes.length, 1);
+  assert.ok(changes[0].context.includes("Foundation"));
+  assert.deepEqual(changes[0].before, ["43.5"]);
+  assert.deepEqual(changes[0].after, ["34.5"]);
+});
