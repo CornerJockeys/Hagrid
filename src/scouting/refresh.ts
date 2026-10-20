@@ -1,3 +1,4 @@
+import {isHourlyRefreshTime} from "../scheduler";
 import type {Env, ScheduledEventLike} from "../types";
 import {promoteScoutingSnapshotBulk} from "./bulk";
 import {getCachedScoutingSnapshot, putCachedScoutingSnapshot} from "./cache";
@@ -10,7 +11,6 @@ import {
 } from "./calculate";
 
 export const SCOUTING_ALGORITHM_VERSION = "hcpb-v1.1-2026-09-30";
-export const SCOUTING_CRON = "20 * * * *";
 
 interface ScoutingStateRow {
   source_hash: string;
@@ -366,7 +366,7 @@ export async function runScheduledScoutingRefresh(
   env: Env,
   event: ScheduledEventLike,
 ): Promise<void> {
-  if (event.cron !== SCOUTING_CRON) return;
+  if (!isHourlyRefreshTime(event.scheduledTime)) return;
   try {
     const summary = await refreshScouting(env, "scheduled-hourly");
     console.log(

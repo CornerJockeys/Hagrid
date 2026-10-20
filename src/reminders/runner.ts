@@ -1,6 +1,6 @@
 import {sendDiscordChannelMessage} from "../discord";
 import {S20_ELIGIBILITY_SALARY_LOCK_DATE} from "../season-policy";
-import type {Env} from "../types";
+import type {Env, ScheduledEventLike} from "../types";
 import {easternDate, easternHour, easternMinute, reminderDue} from "./logic";
 
 interface ReminderRow {
@@ -23,13 +23,13 @@ async function close(env: Env, id: number): Promise<void> {
   ).bind(id).run();
 }
 
-export async function runScheduledReminders(env: Env): Promise<void> {
+export async function runScheduledReminders(env: Env, event: ScheduledEventLike): Promise<void> {
   if (!env.DISCORD_BOT_TOKEN) {
     console.warn("Reminder scheduler skipped because DISCORD_BOT_TOKEN is not configured.");
     return;
   }
 
-  const now = new Date();
+  const now = new Date(event.scheduledTime);
   const today = easternDate(now);
   const hour = easternHour(now);
   const minute = easternMinute(now);

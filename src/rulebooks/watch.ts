@@ -1,7 +1,8 @@
-import {SEASON_20_RULEBOOK} from "./data.ts";
+import {MASTER_CRON} from "../scheduler.ts";
 import type {Env, ScheduledEventLike} from "../types";
+import {SEASON_20_RULEBOOK} from "./data.ts";
 
-export const RULEBOOK_WATCH_CRON = "*/5 * * * *";
+export const RULEBOOK_WATCH_CRON = MASTER_CRON;
 export const RULEBOOK_DOCUMENT_ID = "12HhCEkuGfGF9Q5pjhPPea4okGUF9eguwgFL9D7mRk24";
 export const RULEBOOK_SOURCE_URL =
   `https://docs.google.com/document/d/${RULEBOOK_DOCUMENT_ID}/edit`;

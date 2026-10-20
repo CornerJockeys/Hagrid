@@ -27,10 +27,7 @@ export function isWeeklySyncTime(timestamp: number): boolean {
 }
 
 export async function runScheduledSyncs(env: Env, event: ScheduledEventLike): Promise<void> {
-  if (!isWeeklySyncTime(event.scheduledTime)) {
-    console.log(`Skipping cron ${event.cron}; it is not Monday 1:00 PM America/New_York.`);
-    return;
-  }
+  if (!isWeeklySyncTime(event.scheduledTime)) return;
 
   const guilds = await getConfiguredGuilds(env.DB);
   for (const guild of guilds) {

@@ -325,11 +325,13 @@ Trackmania datasets are intentionally out of scope. Hagrid is a Rocket League pr
 
 ## Scheduling
 
-The franchise sync targets **Monday at 1:00 PM America/New_York**. Cloudflare cron is UTC, so Hagrid registers both possible UTC Monday times and verifies the actual Eastern clock before executing. This keeps the intended local time through daylight-saving changes. Weekly Match Week Eligibility/Salary/Usage posts run at **1:30 PM Eastern** after the sync and hourly `:20` league snapshot refresh; the local Season 20 schedule suppresses them during bye weeks.
+Hagrid uses a single Cloudflare cron trigger every **five minutes** as its master clock. Individual scheduled jobs inspect the trigger timestamp and only run when their own cadence is due. This keeps Hagrid comfortably under Cloudflare's Free-plan cron-trigger limit while preserving all existing schedules.
 
-The HCPB/pool snapshot uses a separate hourly cron at `20 * * * *`.
+The franchise sync targets **Monday at 1:00 PM America/New_York**. Weekly Match Week Eligibility/Salary/Usage posts and reminders run at **1:30 PM Eastern**; the local Season 20 schedule suppresses weekly dumps during bye weeks. Because Hagrid checks the actual Eastern clock internally, daylight-saving changes do not require separate UTC cron registrations.
 
-The live League Rulebook watcher uses a separate **five-minute** cron. It checks the public Google Doc, ignores formatting-only equivalents, keeps a last-known-good snapshot in KV/D1, and notifies the configured Discord channel only when accepted rulebook content changes.
+The league and HCPB/pool snapshots still refresh at **:20 past every hour**. The five-minute master clock naturally includes the :20 tick, so no separate hourly cron trigger is needed.
+
+The live League Rulebook watcher runs on every five-minute master-clock tick. It checks the public Google Doc, ignores formatting-only equivalents, keeps a last-known-good snapshot in KV/D1, and notifies the configured Discord channel only when accepted rulebook content changes.
 
 ## Architecture
 
@@ -340,7 +342,7 @@ Initial hosting target:
 - **Workers KV** — current derived scouting/pool snapshot and source hash used by the Activity and pool lookups
 - **D1** — durable franchise state, history, configuration, availability, reminders, daily scouting history, and sync metadata
 - **R2 (optional)** — source archives/replay retention if later needed
-- **Cron Triggers** — Monday franchise sync + weekly dumps + hourly scouting/league refresh + five-minute rulebook watch
+- **Cron Triggers** — one five-minute master clock dispatching Monday sync, weekly dumps/reminders, hourly scouting/league refresh, and live rulebook checks
 
 Hagrid does not mirror the entire MLE database.
 
