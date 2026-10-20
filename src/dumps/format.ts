@@ -12,13 +12,12 @@ import {applyNcpToRoleUsage} from "../ncp/usage";
 import type {Env} from "../types";
 
 export type DumpKind = "eligibility" | "salary" | "usage";
-const DIVISIONS: TeamDivision[] = ["FL", "AL", "CL", "ML", "PL"];
+const DIVISIONS: TeamDivision[] = ["FL", "AL", "CL", "ML"];
 const DIVISION_NAMES: Record<TeamDivision, string> = {
   FL: "Foundation League",
   AL: "Academy League",
   CL: "Champion League",
   ML: "Master League",
-  PL: "Premier League",
 };
 
 function roleKey(value: string | null): string {
