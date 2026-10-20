@@ -188,6 +188,7 @@ function shell(): void {
           context?.current_week_start ?? "",
           context?.window ?? {start_minute: 720, end_minute: 1440, base_resolution_minutes: 30},
           context?.access.player_id ?? null,
+          Boolean(context?.access.roster_member),
         );
         teamOverviewMounted = true;
       }
