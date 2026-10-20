@@ -33,6 +33,7 @@ export async function runScheduledReminders(env: Env): Promise<void> {
   const today = easternDate(now);
   const hour = easternHour(now);
   const minute = easternMinute(now);
+  if (hour !== 13 || minute !== 30) return;
 
   // Eligibility is locked at the New Week Deadline on Jan 4. The reminder
   // scheduler only sends at 1:30 PM ET, so there is no useful day-of ping
@@ -61,8 +62,6 @@ export async function runScheduledReminders(env: Env): Promise<void> {
     }
 
     if (
-      hour === 13 &&
-      minute === 30 &&
       reminder.last_ping_date !== today &&
       reminderDue(reminder.cadence, reminder.due_date, today)
     ) {

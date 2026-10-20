@@ -8,7 +8,7 @@ import {
 import type {Env} from "../types";
 import {getPlayerProfileMetadata} from "../player-meta";
 import {getCurrentCompetitiveFranchiseRoster} from "./roster";
-import {isAccessResponse, requireAgmPlusAccess} from "./access";
+import {activityVisibleDivisions, getActivityAccess} from "./access";
 import {
   AVAILABILITY_END_MINUTE,
   AVAILABILITY_RESOLUTION_MINUTES,
@@ -53,13 +53,25 @@ function submission(row: SubmissionRow): AvailabilitySubmission | null {
 export async function getTeamAvailability(request: Request, env: Env): Promise<Response> {
   const auth = await authenticateActivityRequest(request, env);
   if (isAuthResponse(auth)) return auth;
-  const access = await requireAgmPlusAccess(env, auth);
-  if (isAccessResponse(access)) return access;
+  const access = await getActivityAccess(env, auth);
+  if (!access.rosterMember && !access.staff) {
+    return Response.json(
+      {error: "Your Discord account is not linked to the configured franchise."},
+      {status: 403},
+    );
+  }
+  const visibleDivisions = activityVisibleDivisions(access, auth.roleIds);
+  if (visibleDivisions.length === 0) {
+    return Response.json({error: "Hagrid could not determine which divisional team you can view."}, {status: 403});
+  }
 
   const weekStart = requestedAvailabilityWeek(request);
   if (weekStart instanceof Response) return weekStart;
   const division = parseDivision(request);
   if (division instanceof Response) return division;
+  if (division && !visibleDivisions.some(value => value === division)) {
+    return Response.json({error: "That divisional team is outside your Activity access scope."}, {status: 403});
+  }
 
   const [rosterPlayers, submissionResult] = await Promise.all([
     getCurrentCompetitiveFranchiseRoster(env, auth.guildId),
@@ -70,15 +82,17 @@ export async function getTeamAvailability(request: Request, env: Env): Promise<R
     ).bind(auth.guildId, weekStart).all<SubmissionRow>(),
   ]);
 
-  const roster: AvailabilityRosterPlayer[] = rosterPlayers.map(player => ({
-    sprocketPlayerId: player.sprocketPlayerId,
-    discordUserId: player.discordId,
-    name: player.name,
-    division: divisionCode(player.skillGroup),
-    salary: player.salary,
-    slot: player.slot,
-    staffPosition: player.staffPosition,
-  }));
+  const roster: AvailabilityRosterPlayer[] = rosterPlayers
+    .map(player => ({
+      sprocketPlayerId: player.sprocketPlayerId,
+      discordUserId: player.discordId,
+      name: player.name,
+      division: divisionCode(player.skillGroup),
+      salary: player.salary,
+      slot: player.slot,
+      staffPosition: player.staffPosition,
+    }))
+    .filter(player => player.division !== null && visibleDivisions.some(value => value === player.division));
   const submissions = submissionResult.results
     .map(submission)
     .filter((value): value is AvailabilitySubmission => value !== null);
@@ -105,6 +119,7 @@ export async function getTeamAvailability(request: Request, env: Env): Promise<R
   return Response.json({
     week_start: weekStart,
     division: division ?? "all",
+    visible_divisions: visibleDivisions,
     window: {
       start_minute: AVAILABILITY_START_MINUTE,
       end_minute: AVAILABILITY_END_MINUTE,

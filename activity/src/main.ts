@@ -1,9 +1,7 @@
 import {DiscordSDK} from "@discord/embedded-app-sdk";
-import {mountPersonalAvailabilityPanel, type AvailabilityWindow} from "./personal-availability";
-import {mountEligibilityPanel} from "./eligibility";
+import type {AvailabilityWindow} from "./personal-availability";
 import {mountScoutingPanel} from "./scouting";
-import {mountTeamAvailabilityPanel} from "./team-availability";
-import {mountTeamEligibilityPanel} from "./team-eligibility";
+import {mountTeamOverviewPanel} from "./team-overview";
 import {mountStatsPanel} from "./stats";
 import {mountStandingsPanel} from "./standings";
 import {mountSchedulePanel} from "./schedule";
@@ -120,8 +118,8 @@ function switchTab(tab: string): void {
   });
 }
 
-function shell(): {loadPersonal: (() => Promise<void>) | null} {
-  if (!context) return {loadPersonal: null};
+function shell(): void {
+  if (!context) return;
   const franchise = context.franchise?.name ?? "Franchise not configured";
   const accessLabel = context.access.staff
     ? context.access.staff_position ?? context.access.slot ?? "Staff"
@@ -135,12 +133,10 @@ function shell(): {loadPersonal: (() => Promise<void>) | null} {
         <header class="topbar"><div><div class="eyebrow">${escapeHtml(franchise)}</div><h1>Hagrid</h1></div><div class="user-chip">${escapeHtml(context.display_name)}</div></header>
         <div class="startup-card access-card"><h2>Roster access required</h2><p>Your Discord account is verified in this server, but Hagrid cannot match it to the current franchise roster.</p><p>Ask franchise staff to run the data sync and confirm your Discord ID is linked in Sprocket/MLE.</p></div>
       </div>`;
-    return {loadPersonal: null};
+    return;
   }
 
   const extraPanels = [
-    context.access.agm_plus ? '<section id="team-eligibility-panel" class="panel hidden" data-panel="team-eligibility"></section>' : "",
-    context.access.agm_plus ? '<section id="team-availability-panel" class="panel hidden" data-panel="team-availability"></section>' : "",
     '<section id="standings-panel" class="panel hidden" data-panel="standings"></section>',
     '<section id="schedule-panel" class="panel hidden" data-panel="schedule"></section>',
     '<section id="stats-panel" class="panel hidden" data-panel="stats"></section>',
@@ -159,66 +155,42 @@ function shell(): {loadPersonal: (() => Promise<void>) | null} {
         </div>
       </header>
       <nav class="tabs" aria-label="Hagrid tools">
-        <button class="tab active" data-tab="eligibility">Eligibility</button>${context.access.agm_plus ? `<button class="tab" data-tab="team-eligibility">Team Eligibility</button>` : ""}<button class="tab" data-tab="availability">Availability</button>${context.access.agm_plus ? `<button class="tab" data-tab="team-availability">Team Availability</button>` : ""}<button class="tab" data-tab="standings">Standings</button><button class="tab" data-tab="schedule">Schedule</button><button class="tab" data-tab="stats">Stats</button>${context.access.staff ? `<button class="tab" data-tab="scouting">Scouting</button>` : ""}${context.access.captain_plus ? `<button class="tab" data-tab="league-rulebook">League Rulebook</button><button class="tab" data-tab="broadcast-rulebook">Broadcast Rulebook</button>` : ""}
+        <button class="tab active" data-tab="team-overview">Team Overview</button>
+        <button class="tab" data-tab="standings">Standings</button>
+        <button class="tab" data-tab="schedule">Schedule</button>
+        <button class="tab" data-tab="stats">Stats</button>
+        ${context.access.staff ? '<button class="tab" data-tab="scouting">Scouting</button>' : ""}
+        ${context.access.captain_plus ? '<button class="tab" data-tab="league-rulebook">League Rulebook</button><button class="tab" data-tab="broadcast-rulebook">Broadcast Rulebook</button>' : ""}
       </nav>
       <main>
-        <section id="eligibility-panel" class="panel" data-panel="eligibility"></section><section id="availability-panel" class="panel hidden" data-panel="availability"></section>${extraPanels}
+        <section id="team-overview-panel" class="panel" data-panel="team-overview"></section>
+        ${extraPanels}
       </main>
       <div id="activity-status" class="activity-status" aria-live="polite"></div>
     </div>`;
 
-  const availabilityPanel = document.querySelector<HTMLElement>("#availability-panel");
-  const personal = availabilityPanel
-    ? mountPersonalAvailabilityPanel(
-      availabilityPanel,
-      api,
-      setStatus,
-      context.current_week_start,
-      context.window,
-    )
-    : null;
-
-  let eligibilityMounted = false;
-  let availabilityLoaded = false;
-  let teamEligibilityMounted = false;
-  let teamAvailabilityMounted = false;
+  let teamOverviewMounted = false;
   let statsMounted = false;
   let standingsMounted = false;
   let scheduleMounted = false;
   let scoutingMounted = false;
   let leagueRulebookMounted = false;
   let broadcastRulebookMounted = false;
+
   const mountLazyView = (tab: string): void => {
-    if (tab === "availability" && !availabilityLoaded && personal?.load) {
-      availabilityLoaded = true;
-      void personal.load();
-    }
-    if (tab === "eligibility" && !eligibilityMounted) {
-      const panel = document.querySelector<HTMLElement>("#eligibility-panel");
+    if (tab === "team-overview" && !teamOverviewMounted) {
+      const panel = document.querySelector<HTMLElement>("#team-overview-panel");
       if (panel) {
-        mountEligibilityPanel(
+        mountTeamOverviewPanel(
           panel,
           api,
           setStatus,
-          Boolean(context?.access.captain_plus),
+          context?.current_week_start ?? "",
+          context?.window ?? {start_minute: 720, end_minute: 1440, base_resolution_minutes: 30},
           context?.access.player_id ?? null,
+          Boolean(context?.access.roster_member),
         );
-        eligibilityMounted = true;
-      }
-    }
-
-    if (context?.access.agm_plus && tab === "team-eligibility" && !teamEligibilityMounted) {
-      const panel = document.querySelector<HTMLElement>("#team-eligibility-panel");
-      if (panel) {
-        mountTeamEligibilityPanel(panel, api, setStatus);
-        teamEligibilityMounted = true;
-      }
-    }
-    if (context?.access.agm_plus && tab === "team-availability" && !teamAvailabilityMounted) {
-      const panel = document.querySelector<HTMLElement>("#team-availability-panel");
-      if (panel) {
-        mountTeamAvailabilityPanel(panel, api, setStatus, context.current_week_start);
-        teamAvailabilityMounted = true;
+        teamOverviewMounted = true;
       }
     }
     if (tab === "stats" && !statsMounted) {
@@ -252,14 +224,13 @@ function shell(): {loadPersonal: (() => Promise<void>) | null} {
 
   document.querySelectorAll<HTMLButtonElement>(".tab").forEach(button => {
     button.addEventListener("click", () => {
-      const tab = button.dataset.tab ?? "availability";
+      const tab = button.dataset.tab ?? "team-overview";
       switchTab(tab);
       mountLazyView(tab);
     });
   });
 
-  mountLazyView("eligibility");
-  return {loadPersonal: personal?.load ?? null};
+  mountLazyView("team-overview");
 }
 
 async function start(): Promise<void> {

@@ -34,6 +34,7 @@ interface TeamPlayer {
 interface TeamAvailabilityResponse {
   week_start: string;
   division: string;
+  visible_divisions: Exclude<TeamDivisionFilter, "all">[];
   window: {
     start_minute: number;
     end_minute: number;
@@ -182,11 +183,11 @@ export function mountTeamAvailabilityPanel(
 
   panel.innerHTML = `
     <div class="panel-heading">
-      <div><div class="eyebrow">Staff · Eastern Time (ET)</div><h2>Team Availability</h2>
+      <div><div class="eyebrow">Team · Eastern Time (ET)</div><h2>Team Availability</h2>
         <p>Compare the current competitive roster, spot missing submissions, and open any time block or player for detail.</p></div>
       <div class="week-picker">
         <button id="team-previous-week" class="icon-button" aria-label="Previous week">←</button>
-        <div><strong id="team-week-label">${formatWeek(weekStart)}</strong><span>Staff view</span></div>
+        <div><strong id="team-week-label">${formatWeek(weekStart)}</strong><span>Team view</span></div>
         <button id="team-next-week" class="icon-button" aria-label="Next week">→</button>
       </div>
     </div>
@@ -218,7 +219,14 @@ export function mountTeamAvailabilityPanel(
   if (!resolutionSelect || !label || !summary || !missing || !grid || !roster || !detailRoot) return;
 
   const syncDivisionButtons = (): void => {
+    const visibleDivisions = data?.visible_divisions ?? [];
+    const hasData = data !== null;
     for (const button of divisionButtons) {
+      const value = button.dataset.teamDivision as TeamDivisionFilter | undefined;
+      const allowed = !hasData ||
+        value === "all" ||
+        (value ? visibleDivisions.includes(value as Exclude<TeamDivisionFilter, "all">) : false);
+      button.hidden = !allowed || (value === "all" && hasData && visibleDivisions.length <= 1);
       const active = button.dataset.teamDivision === selectedDivision;
       button.classList.toggle("active", active);
       button.setAttribute("aria-pressed", active ? "true" : "false");
@@ -364,6 +372,9 @@ export function mountTeamAvailabilityPanel(
       if (version !== loadVersion) return;
       data = next;
       weekStart = next.week_start;
+      if (next.visible_divisions.length === 1 && selectedDivision === "all") {
+        selectedDivision = next.visible_divisions[0];
+      }
       render();
       setStatus(`Loaded ${next.players.length} rostered player${next.players.length === 1 ? "" : "s"}.`, "success");
     } catch (error) {

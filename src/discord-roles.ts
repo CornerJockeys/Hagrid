@@ -28,6 +28,11 @@ export function hasAnyStaffRoleIds(roleIds: readonly string[]): boolean {
   return Object.values(STAFF_ROLE_IDS).some(roleId => roles.has(roleId));
 }
 
+export function hasGmFmRoleIds(roleIds: readonly string[]): boolean {
+  const roles = roleIdSet(roleIds);
+  return roles.has(STAFF_ROLE_IDS.FM) || roles.has(STAFF_ROLE_IDS.GM);
+}
+
 export function hasAgmPlusRoleIds(roleIds: readonly string[]): boolean {
   const roles = roleIdSet(roleIds);
   return roles.has(STAFF_ROLE_IDS.FM) ||
@@ -57,6 +62,10 @@ export function interactionRoleIds(interaction: DiscordInteraction): string[] {
 
 export function hasAnyStaffRole(interaction: DiscordInteraction): boolean {
   return hasAnyStaffRoleIds(interaction.member?.roles ?? []);
+}
+
+export function hasGmFmRole(interaction: DiscordInteraction): boolean {
+  return hasGmFmRoleIds(interaction.member?.roles ?? []);
 }
 
 export function hasAgmPlusRole(interaction: DiscordInteraction): boolean {

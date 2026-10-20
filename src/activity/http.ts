@@ -9,6 +9,7 @@ import {getActivityScouting, getActivityScoutingPlayer} from "./scouting";
 import {getActivityEligibility} from "./eligibility";
 import {getTeamEligibility} from "./team-eligibility";
 import {getTeamAvailability} from "./team-availability";
+import {getTeamOverview} from "./team-overview";
 import {getActivityStats} from "./stats";
 import {getActivityStandings} from "./standings";
 import {getActivitySchedule} from "./schedule";
@@ -37,6 +38,12 @@ export async function handleActivityApi(request: Request, env: Env): Promise<Res
     if (request.method === "GET") return getMyAvailability(request, env);
     if (request.method === "PUT") return saveMyAvailability(request, env);
     return methodNotAllowed();
+  }
+
+  if (url.pathname === "/api/activity/team-overview") {
+    return request.method === "GET"
+      ? getTeamOverview(request, env)
+      : methodNotAllowed();
   }
 
   if (url.pathname === "/api/activity/availability/team") {

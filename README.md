@@ -102,7 +102,7 @@ The remaining shared match-data work should be built around the features that ac
 - **Usage and participation reconciliation:** where player/game participation is available, cross-check published slot usage against who actually played.
 - **Weekly automation:** the locally stored schedule now provides the real Match Week/date calendar (including byes), so dump/checkpoint timing no longer needs to wait on live fixtures.
 
-The Activity tab order is **Eligibility → Team Eligibility (AGM+) → Availability → Team Availability (AGM+) → Standings → Schedule → Stats → Scouting → League Rulebook → Broadcast Rulebook**.
+The Activity tab order is **Team Overview → Standings → Schedule → Stats → Scouting → League Rulebook → Broadcast Rulebook**. Team Overview contains its own **Overview / Eligibility / Availability** navigation, replacing the four former top-level personal/team eligibility and availability tabs.
 
 ### Standings
 
@@ -143,61 +143,71 @@ The Activity is the richer UI layer for features that do not fit cleanly into Di
 
 ### Activity access
 
-The Activity verifies the Discord user and server, then links that Discord ID to the current franchise roster imported by Hagrid.
+The Activity verifies the Discord user and server, then links that Discord ID to the current franchise roster imported by Hagrid. Discord roles remain authoritative for staff permissions.
 
-- **Current roster members** can use `My Availability` and their per-player `Eligibility` tracker.
-- **AGM/GM/FM staff** can additionally use Team Eligibility and Team Availability; Captain+ permissions remain available for player-level staff workflows such as NCP submission and rulebook access, while staff roles control Scouting.
-- Users who are in the Discord server but cannot be matched to the current franchise roster receive a clear roster-link error instead of being allowed to write availability under an untrusted identity.
+- **Players** can open Team Overview for their own divisional team, see teammates' eligibility and submitted availability, inspect an individual teammate's eligibility tracker, and edit only their own availability.
+- **Captains** receive the same Team Overview and detailed Eligibility/Availability pages scoped to the division role they captain.
+- **AGM/GM/FM staff** can view all FL/AL/CL/ML divisional teams in Team Overview and switch between them in the detailed pages.
+- A user can never edit another player's availability; team visibility is read-only while the personal availability endpoint remains identity-bound.
+- Non-playing staff can use team views without occupying a competitive roster slot. Personal availability editing is only shown when that Discord account has a linked roster identity.
+- Users who are neither linked to the franchise nor authorized franchise staff receive a clear access error.
 
-Staff status is derived from the current franchise data (`Franchise Staff Position`), with a captain-slot fallback for compatibility. Staff-only panels are lazy-loaded so opening Hagrid solely to submit availability does not trigger unnecessary team/HCPB requests.
+Staff-only/high-volume panels remain lazy-loaded so opening Hagrid does not trigger every backend request at startup.
 
-### My Availability
+### Team Overview
 
-Availability is an internal franchise tool only. Hagrid does **not** ingest opponent availability, negotiate match times, or schedule official MLE matches.
+**Team Overview** is the Activity landing page for roster operations. The same UI adapts to the viewer's permissions instead of maintaining separate player, captain, and manager dashboards.
 
-The player workflow uses a When2Meet-style grid:
+Each visible divisional card summarizes:
 
-- Monday through Sunday
-- **12:00 PM through 12:00 AM Eastern Time**
-- 1-hour display blocks by default
-- optional 30-minute display blocks
-- drag-to-select editing
-- optional checkbox editing
-- previous/next week navigation
-- **Copy Previous Week** into the current unsaved draft
-- explicit **Save Availability** action
+- current-week eligibility and how many players need attention,
+- role usage once Season 20 usage reporting begins,
+- Team Salary, salary cap, and plain numeric cap space (including negative values),
+- current-week availability submissions and missing players.
 
-Selections are stored internally at 30-minute resolution even when the player uses the hourly view. Availability is stored compactly as one D1 row per player/week. Saving an empty week is still a real submission and means the player is unavailable for the entire window.
+The Team Salary calculation uses the centralized Season 20 rules: top four salaries for FL/PL and top five for AL/CL/ML. Negative cap space is displayed as a normal negative number rather than as an automatic violation.
 
-### Eligibility Tracker
+The Team Overview sub-navigation is **Overview / Eligibility / Availability**.
 
-The Activity includes a player-specific scrim eligibility view based on Sprocket's published `eligibility_data` event ledger and league eligibility requirements.
+### Eligibility
 
-- shows active scrim-point decay from the Monday starting the current week through 30 days from today
-- applies the published division-specific eligibility requirement rather than hard-coding one threshold
-- treats scrim points as active through 30 days after the scrim, matching the MLE Evidence calculation
-- applies the weekly rule from the Evidence view: reaching the requirement unlocks the rest of that week; if already eligible Monday, the full week remains locked through Sunday
-- shows the current player feed's scrim points and `Eligible Through` value beside the independently calculated decay curve
-- current players can view their own tracker; staff/captains can select any competitive player on the configured franchise
+Eligibility combines the former personal and Team Eligibility views.
 
-### Team Eligibility
+- players can see eligibility for the competitive players in their own divisional team,
+- captains are scoped to the division(s) attached to their Captain role,
+- AGM/GM/FM staff can view all configured franchise divisions,
+- selecting a player opens the existing detailed scrim-point decay tracker,
+- the detailed tracker still shows requirement, active points, Eligible Through, source freshness, and the weekly eligibility latch.
 
-AGM/GM/FM users have a **Team Eligibility** Activity view between the personal Eligibility and Availability tabs. It provides an all-roster or FL/AL/CL/ML overview with current-week eligibility, scrim points, requirement, Eligible Through, salary, and source-mismatch counts.
+The backend enforces the viewer's team scope; the frontend cannot widen access by changing a query parameter.
 
-### Team Availability
+### Availability
 
-The staff view uses the same underlying 30-minute data and presents it as a scheduling heatmap.
+Availability combines the personal editor and team heatmap on one page.
 
-- filter by **FL / AL / CL / ML / PL** or view the full franchise
-- switch between **1-hour** and **30-minute** heatmap cells
-- hourly cells count a player only when that player is available for the entire hour
-- click a time block to see **Available / Unavailable / Missing** players
-- click a player to see that player's full weekly availability in readable time ranges
-- show missing submissions separately
-- distinguish a missing submission from an **unlinked Discord identity**
-- show roster / submitted / missing / Discord-linked counts
+The personal editor still uses the When2Meet-style grid:
 
-Only competitive MLE roster spots (`PLAYERA`, `PLAYERB`, etc.) participate in team overlap counts. Franchise-only staff records are excluded so they cannot inflate the denominator or make a time window look worse than it actually is.
+- Monday through Sunday,
+- **12:00 PM through 12:00 AM Eastern Time**,
+- 1-hour display blocks by default with optional 30-minute blocks,
+- drag or checkbox editing,
+- previous/next week navigation,
+- **Copy Previous Week**,
+- explicit **Save Availability**.
+
+Selections are stored at 30-minute resolution. Saving an empty week is a valid submission meaning unavailable for the whole scheduling window.
+
+The team view uses those same submissions as a read-only scheduling heatmap.
+
+- players see their own divisional team,
+- captains see the team(s) they captain,
+- AGM/GM/FM staff can view every franchise division,
+- click a time block for Available / Unavailable / Missing,
+- click a player for that player's submitted weekly ranges,
+- missing submissions and unlinked Discord identities remain distinct,
+- only competitive roster slots participate in overlap counts.
+
+Players may view teammates' intentionally submitted team availability, but may only change their own submission.
 
 ### Scouting
 
@@ -253,6 +263,35 @@ Each refresh:
 
 The legacy D1 current scouting tables remain as a fallback/bootstrap path, but production reads prefer KV. This keeps the hourly `:20` refresh cadence without rewriting the full current scouting dataset in D1 every time Sprocket changes.
 
+## Live League Rulebook
+
+The official Season 20 Google Doc is Hagrid's live League Rulebook source. Hagrid retains the bundled repository copy as a fallback.
+
+Every five minutes the Worker:
+
+1. fetches the public text export,
+2. normalizes whitespace and equivalent numeric presentation such as `74.5` vs `74.50`,
+3. compares it with the last accepted known-good version,
+4. rejects suspicious snapshots that are empty, very small, or suddenly lose a large portion of the document,
+5. when real content changed, posts **RULEBOOK CHANGE** with Before/After blocks in the configured Discord channel and pings the configured recipient,
+6. updates the live KV copy and sync timestamp only after the notification succeeds.
+
+The Activity shows **Last synced** and continues serving the last known-good copy if Google is unavailable or the watcher is paused.
+
+GM/FM controls:
+
+```text
+/rulebookwatch status
+/rulebookwatch pause
+/rulebookwatch resume
+```
+
+Pausing freezes the current baseline: Hagrid does not accept source changes, update the Activity copy, archive a new version, or send change notifications. Resuming compares the current Google Doc against that frozen baseline on the next five-minute check, so multiple edits while paused become one consolidated change notification sequence.
+
+Accepted versions are archived by the scheduled GitHub workflow. It writes dated PDF/text files under `resources/`, updates the current fallback text and bundled rulebook data, and tracks accepted hashes so the same version is not archived twice. Multiple accepted revisions on the same date receive a numeric suffix.
+
+Rulebook changes **never automatically rewrite operational league rules** such as salary caps, usage limits, eligibility requirements, or deadlines. Those remain explicit, tested Hagrid policy and must be reviewed separately.
+
 ## Data sources
 
 Hagrid consumes selected public Sprocket datasets.
@@ -290,6 +329,8 @@ The franchise sync targets **Monday at 1:00 PM America/New_York**. Cloudflare cr
 
 The HCPB/pool snapshot uses a separate hourly cron at `20 * * * *`.
 
+The live League Rulebook watcher uses a separate **five-minute** cron. It checks the public Google Doc, ignores formatting-only equivalents, keeps a last-known-good snapshot in KV/D1, and notifies the configured Discord channel only when accepted rulebook content changes.
+
 ## Architecture
 
 Initial hosting target:
@@ -299,7 +340,7 @@ Initial hosting target:
 - **Workers KV** — current derived scouting/pool snapshot and source hash used by the Activity and pool lookups
 - **D1** — durable franchise state, history, configuration, availability, reminders, daily scouting history, and sync metadata
 - **R2 (optional)** — source archives/replay retention if later needed
-- **Cron Triggers** — Monday franchise sync + hourly scouting refresh
+- **Cron Triggers** — Monday franchise sync + weekly dumps + hourly scouting/league refresh + five-minute rulebook watch
 
 Hagrid does not mirror the entire MLE database.
 
@@ -436,7 +477,7 @@ Implemented through **Pass 3 wiring**:
 
 Live-source validation currently confirms the Wizards source path resolves a current six-player franchise roster with linked Discord IDs and competitive slots, plus current role usage, standings, FA/PEND identities, and 984 usable scouting rows.
 
-The remaining V1 work is now primarily **live deployment and user testing**: configure the account/application credentials, run the deployment workflow, complete the Discord Activity URL mapping, then exercise each command and Activity workflow with real users.
+The remaining known data-dependent work is **official match results, official player match stats/participation, standings result validation/drill-down, and the real match-backed NCP picker** once MLE publishes the final Season 20 sources. Everything else remains subject to live deployment and user testing.
 
 V1+ is intentionally held for Season 20 dataset/schema availability.
 

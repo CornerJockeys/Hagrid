@@ -16,7 +16,7 @@ import {
 import type {FranchisePlayer} from "../sprocket/players";
 import type {Env} from "../types";
 import {getPlayerProfileMetadata, type PlayerProfileMetadata} from "../player-meta";
-import {getActivityAccess} from "./access";
+import {activityVisibleDivisions, getActivityAccess} from "./access";
 import {getCurrentCompetitiveFranchiseRoster} from "./roster";
 import {authenticateActivityRequest, isAuthResponse} from "./auth";
 
@@ -69,8 +69,10 @@ export async function getActivityEligibility(request: Request, env: Env): Promis
   if (requested && !/^\d{1,20}$/.test(requested)) {
     return Response.json({error: "player_id must be a valid Sprocket player ID."}, {status: 400});
   }
-  if (requested && requested !== access.playerId && !access.captainPlus) {
-    return Response.json({error: "Players can only view their own eligibility tracker."}, {status: 403});
+
+  const visibleDivisions = activityVisibleDivisions(access, auth.roleIds);
+  if (visibleDivisions.length === 0) {
+    return Response.json({error: "Hagrid could not determine which divisional team you can view."}, {status: 403});
   }
 
   const players = await getCurrentCompetitiveFranchiseRoster(env, auth.guildId);
@@ -82,21 +84,29 @@ export async function getActivityEligibility(request: Request, env: Env): Promis
       (left.roster.division ?? "").localeCompare(right.roster.division ?? "") ||
       left.player.name.localeCompare(right.player.name),
     );
+  const visibleCompetitive = competitive.filter(value =>
+    value.roster.division !== null && visibleDivisions.some(visible => visible === value.roster.division),
+  );
 
-  let playerId = requested || access.playerId || "";
-  const requestedIsCompetitive = requested
-    ? competitive.some(value => value.player.sprocketPlayerId === requested)
-    : false;
   if (
-    access.captainPlus &&
-    (!requested || (requested === access.playerId && !requestedIsCompetitive))
+    requested &&
+    !visibleCompetitive.some(value => value.player.sprocketPlayerId === requested)
   ) {
-    playerId = competitive[0]?.player.sprocketPlayerId ?? "";
+    return Response.json(
+      {error: "That player is outside the divisional team you are allowed to view."},
+      {status: 403},
+    );
   }
 
-  const player = players.find(value => value.sprocketPlayerId === playerId);
+  const ownIsVisibleCompetitive = access.playerId
+    ? visibleCompetitive.some(value => value.player.sprocketPlayerId === access.playerId)
+    : false;
+  const playerId = requested ||
+    (ownIsVisibleCompetitive ? access.playerId ?? "" : visibleCompetitive[0]?.player.sprocketPlayerId ?? "");
+
+  const player = visibleCompetitive.find(value => value.player.sprocketPlayerId === playerId)?.player ?? null;
   if (!player) {
-    return Response.json({error: "That player is not on the current configured franchise roster."}, {status: 404});
+    return Response.json({error: "No visible competitive roster player is available for this eligibility view."}, {status: 404});
   }
 
   const metadataMap = await getPlayerProfileMetadata(env.DB, [player.sprocketPlayerId]);
@@ -147,13 +157,11 @@ export async function getActivityEligibility(request: Request, env: Env): Promis
     event_count: playerEvents.length,
     decay,
     detail_error: detailError,
-    selectable_players: access.captainPlus
-      ? competitive.map(value => ({
-          sprocket_player_id: value.player.sprocketPlayerId,
-          name: value.player.name,
-          division: value.roster.division,
-          slot: value.player.slot,
-        }))
-      : [],
+    selectable_players: visibleCompetitive.map(value => ({
+      sprocket_player_id: value.player.sprocketPlayerId,
+      name: value.player.name,
+      division: value.roster.division,
+      slot: value.player.slot,
+    })),
   });
 }

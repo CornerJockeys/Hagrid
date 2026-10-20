@@ -1,5 +1,6 @@
 import {getCachedGuildConfig} from "../config-cache";
 import {getCurrentLeagueSnapshot} from "../league/cache";
+import {teamDivision, type TeamDivision} from "../league/view";
 import type {Env} from "../types";
 import type {ActivityPrincipal} from "./auth";
 
@@ -29,10 +30,10 @@ function hasActivityAgmPlusRole(roleIds: readonly string[]): boolean {
     roles.has(ACTIVITY_STAFF_ROLE_IDS.AGM);
 }
 
-function activityCaptainDivisions(roleIds: readonly string[]): Array<"FL" | "AL" | "CL" | "ML"> {
+function activityCaptainDivisions(roleIds: readonly string[]): TeamDivision[] {
   const roles = new Set(roleIds);
   if (!roles.has(ACTIVITY_STAFF_ROLE_IDS.RL_CAPTAIN)) return [];
-  return (Object.entries(ACTIVITY_DIVISION_ROLE_IDS) as Array<["FL" | "AL" | "CL" | "ML", string]>)
+  return (Object.entries(ACTIVITY_DIVISION_ROLE_IDS) as Array<[TeamDivision, string]>)
     .filter(([, roleId]) => roles.has(roleId))
     .map(([division]) => division);
 }
@@ -114,6 +115,19 @@ export async function getActivityAccess(
     division: cached.division ?? discordDivision,
     staffPosition: discordStaffLabel(auth.roleIds),
   };
+}
+
+export function activityVisibleDivisions(
+  access: ActivityAccess,
+  roleIds: readonly string[],
+): TeamDivision[] {
+  if (access.agmPlus) return ["FL", "AL", "CL", "ML"];
+
+  const captainDivisions = activityCaptainDivisions(roleIds);
+  if (captainDivisions.length > 0) return captainDivisions;
+
+  const ownDivision = teamDivision(access.division);
+  return ownDivision ? [ownDivision] : [];
 }
 
 export async function requireRosterAccess(

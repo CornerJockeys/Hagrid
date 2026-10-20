@@ -1,9 +1,9 @@
 import {
   BROADCAST_RULEBOOK,
   BROADCAST_RULEBOOK_TITLE,
-  SEASON_20_RULEBOOK,
   SEASON_20_RULEBOOK_TITLE,
 } from "../rulebooks/data";
+import {getCurrentRulebookSnapshot} from "../rulebooks/watch";
 import type {Env} from "../types";
 import {isAccessResponse, requireCaptainPlusAccess} from "./access";
 import {authenticateActivityRequest, isAuthResponse} from "./auth";
@@ -33,10 +33,14 @@ export async function getActivityRulebook(request: Request, env: Env): Promise<R
     });
   }
 
+  const live = await getCurrentRulebookSnapshot(env);
   return Response.json({
     kind,
     title: SEASON_20_RULEBOOK_TITLE,
     warning: null,
-    content: SEASON_20_RULEBOOK,
+    content: live.content,
+    last_synced_at: live.lastSyncedAt,
+    watch_enabled: live.watchEnabled,
+    source_url: live.sourceUrl,
   });
 }

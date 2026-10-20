@@ -29,6 +29,7 @@ interface TeamEligibilityResponse {
   today: string;
   week_start: string;
   division: Division;
+  visible_divisions: Exclude<Division, "all">[];
   players: TeamEligibilityPlayer[];
 }
 
@@ -71,9 +72,9 @@ export function mountTeamEligibilityPanel(
   panel.innerHTML = `
     <div class="panel-heading">
       <div>
-        <div class="eyebrow">Captain+ · Scrim Eligibility</div>
+        <div class="eyebrow">Team · Scrim Eligibility</div>
         <h2>Team Eligibility</h2>
-        <p>Review the current competitive roster at a glance. Status follows Hagrid's weekly eligibility latch, while points and Eligible Through come from the current Sprocket publications.</p>
+        <p>Review the competitive roster you can see at a glance. Status follows Hagrid's weekly eligibility latch, while points and Eligible Through come from the current Sprocket publications.</p>
       </div>
     </div>
     <div class="toolbar eligibility-toolbar">
@@ -94,7 +95,14 @@ export function mountTeamEligibilityPanel(
   if (!output) return;
 
   const syncButtons = (): void => {
+    const visibleDivisions = data?.visible_divisions ?? [];
+    const hasData = data !== null;
     panel.querySelectorAll<HTMLButtonElement>("[data-team-eligibility-division]").forEach(button => {
+      const value = button.dataset.teamEligibilityDivision as Division | undefined;
+      const visible = !hasData ||
+        value === "all" ||
+        (value ? visibleDivisions.includes(value as Exclude<Division, "all">) : false);
+      button.hidden = !visible || (value === "all" && hasData && visibleDivisions.length <= 1);
       button.classList.toggle("active", button.dataset.teamEligibilityDivision === division);
     });
   };
@@ -146,6 +154,10 @@ export function mountTeamEligibilityPanel(
       data = await api<TeamEligibilityResponse>(
         "/api/activity/eligibility/team?division=all",
       );
+      if (data.visible_divisions.length === 1) {
+        division = data.visible_divisions[0];
+      }
+      syncButtons();
       const visible = render();
       setStatus(`Loaded ${data.players.length} team eligibility row${data.players.length === 1 ? "" : "s"}; showing ${visible}.`, "success");
     } catch (error) {
