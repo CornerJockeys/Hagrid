@@ -95,12 +95,14 @@ export function mountTeamEligibilityPanel(
   if (!output) return;
 
   const syncButtons = (): void => {
+    const visibleDivisions = data?.visible_divisions ?? [];
+    const hasData = data !== null;
     panel.querySelectorAll<HTMLButtonElement>("[data-team-eligibility-division]").forEach(button => {
       const value = button.dataset.teamEligibilityDivision as Division | undefined;
-      const visible = !data ||
+      const visible = !hasData ||
         value === "all" ||
-        (value ? data.visible_divisions.includes(value as Exclude<Division, "all">) : false);
-      button.hidden = !visible || (value === "all" && Boolean(data) && data.visible_divisions.length <= 1);
+        (value ? visibleDivisions.includes(value as Exclude<Division, "all">) : false);
+      button.hidden = !visible || (value === "all" && hasData && visibleDivisions.length <= 1);
       button.classList.toggle("active", button.dataset.teamEligibilityDivision === division);
     });
   };
