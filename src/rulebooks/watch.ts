@@ -21,6 +21,7 @@ export interface RulebookWatchState {
   sourceUrl: string;
   currentHash: string | null;
   currentLength: number | null;
+  currentContent: string | null;
   lastCheckedAt: string | null;
   lastSyncedAt: string | null;
   pausedAt: string | null;
@@ -42,6 +43,7 @@ interface WatchStateRow {
   source_url: string;
   current_hash: string | null;
   current_length: number | null;
+  current_content: string | null;
   last_checked_at: string | null;
   last_synced_at: string | null;
   paused_at: string | null;
@@ -247,8 +249,33 @@ function splitDiscordText(value: string, limit = 1800): string[] {
   return chunks;
 }
 
+async function notificationChunkSent(
+  env: Env,
+  sourceHash: string,
+  chunkIndex: number,
+): Promise<boolean> {
+  const row = await env.DB.prepare(
+    `SELECT 1 AS present
+     FROM rulebook_notification_chunks
+     WHERE source_hash = ? AND chunk_index = ?`,
+  ).bind(sourceHash, chunkIndex).first<{present: number}>();
+  return Boolean(row?.present);
+}
+
+async function markNotificationChunkSent(
+  env: Env,
+  sourceHash: string,
+  chunkIndex: number,
+): Promise<void> {
+  await env.DB.prepare(
+    `INSERT OR IGNORE INTO rulebook_notification_chunks (source_hash, chunk_index)
+     VALUES (?, ?)`,
+  ).bind(sourceHash, chunkIndex).run();
+}
+
 async function postRulebookChange(
   env: Env,
+  sourceHash: string,
   hunks: RulebookDiffHunk[],
   syncedAt: string,
 ): Promise<void> {
@@ -271,6 +298,7 @@ async function postRulebookChange(
     : [header];
 
   for (let index = 0; index < messages.length; index += 1) {
+    if (await notificationChunkSent(env, sourceHash, index)) continue;
     const response = await fetch(
       `https://discord.com/api/v10/channels/${RULEBOOK_CHANGE_CHANNEL_ID}/messages`,
       {
@@ -293,12 +321,13 @@ async function postRulebookChange(
         `Rulebook change notification failed (${response.status}): ${error.slice(0, 500)}`,
       );
     }
+    await markNotificationChunkSent(env, sourceHash, index);
   }
 }
 
 export async function getRulebookWatchState(env: Env): Promise<RulebookWatchState> {
   const row = await env.DB.prepare(
-    `SELECT enabled, source_url, current_hash, current_length, last_checked_at,
+    `SELECT enabled, source_url, current_hash, current_length, current_content, last_checked_at,
             last_synced_at, paused_at, paused_by_discord_id, resumed_at,
             resumed_by_discord_id
      FROM rulebook_watch_state
@@ -310,6 +339,7 @@ export async function getRulebookWatchState(env: Env): Promise<RulebookWatchStat
     sourceUrl: row?.source_url ?? RULEBOOK_SOURCE_URL,
     currentHash: row?.current_hash ?? null,
     currentLength: row?.current_length ?? null,
+    currentContent: row?.current_content ?? null,
     lastCheckedAt: row?.last_checked_at ?? null,
     lastSyncedAt: row?.last_synced_at ?? null,
     pausedAt: row?.paused_at ?? null,
@@ -367,7 +397,7 @@ export async function getCurrentRulebookSnapshot(env: Env): Promise<RulebookSnap
     cachedRulebook(env),
   ]);
   return {
-    content: cached ?? SEASON_20_RULEBOOK,
+    content: cached ?? state.currentContent ?? SEASON_20_RULEBOOK,
     sourceHash: state.currentHash,
     lastSyncedAt: state.lastSyncedAt,
     watchEnabled: state.enabled,
@@ -440,14 +470,16 @@ export async function checkRulebookForChanges(env: Env): Promise<{
   }
 
   const nextHash = await rulebookContentHash(next);
+  const cached = await cachedRulebook(env);
   if (state.currentHash === nextHash) {
+    if (!cached) await storeRulebook(env, state.currentContent ?? next);
     await env.DB.prepare(
       "UPDATE rulebook_watch_state SET last_checked_at = CURRENT_TIMESTAMP WHERE id = 1",
     ).run();
     return {checked: true, changed: false, initialized: false, ignoredAsUnsafe: false, changeCount: 0};
   }
 
-  const previous = await cachedRulebook(env) ?? SEASON_20_RULEBOOK;
+  const previous = cached ?? state.currentContent ?? SEASON_20_RULEBOOK;
 
   // First deployment establishes the public document as the known-good baseline
   // without manufacturing a change notification from an older bundled fallback.
@@ -456,10 +488,10 @@ export async function checkRulebookForChanges(env: Env): Promise<{
     await recordRevision(env, nextHash, next.length, []);
     await env.DB.prepare(
       `UPDATE rulebook_watch_state
-       SET current_hash = ?, current_length = ?, last_checked_at = CURRENT_TIMESTAMP,
-           last_synced_at = CURRENT_TIMESTAMP
+       SET current_hash = ?, current_length = ?, current_content = ?,
+           last_checked_at = CURRENT_TIMESTAMP, last_synced_at = CURRENT_TIMESTAMP
        WHERE id = 1`,
-    ).bind(nextHash, next.length).run();
+    ).bind(nextHash, next.length, next).run();
     return {checked: true, changed: false, initialized: true, ignoredAsUnsafe: false, changeCount: 0};
   }
 
@@ -469,14 +501,14 @@ export async function checkRulebookForChanges(env: Env): Promise<{
     await storeRulebook(env, next);
     await env.DB.prepare(
       `UPDATE rulebook_watch_state
-       SET current_hash = ?, current_length = ?, last_checked_at = CURRENT_TIMESTAMP,
-           last_synced_at = CURRENT_TIMESTAMP
+       SET current_hash = ?, current_length = ?, current_content = ?,
+           last_checked_at = CURRENT_TIMESTAMP, last_synced_at = CURRENT_TIMESTAMP
        WHERE id = 1`,
-    ).bind(nextHash, next.length).run();
+    ).bind(nextHash, next.length, next).run();
     return {checked: true, changed: false, initialized: false, ignoredAsUnsafe: false, changeCount: 0};
   }
 
-  await postRulebookChange(env, hunks, checkedAt);
+  await postRulebookChange(env, nextHash, hunks, checkedAt);
   await storeRulebook(env, next);
   await recordRevision(env, nextHash, next.length, hunks);
   await env.DB.prepare(
