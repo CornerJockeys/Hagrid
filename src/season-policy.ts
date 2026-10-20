@@ -52,7 +52,7 @@ export const S20_FIRST_MATCH_WEEK_NEW_WEEK_DATE = "2026-10-26";
 export const S20_USAGE_REPORT_START_DATE = "2026-11-02";
 export const S20_ELIGIBILITY_SALARY_LOCK_DATE = "2027-01-04";
 export const S20_ROSTER_LOCK_DATE = "2027-01-11";
-export const S20_FINAL_REGULAR_SEASON_CHECK_DATE = "2027-01-25";
+export const S20_FINAL_REGULAR_SEASON_CHECK_DATE = "2027-01-18";
 
 export type S20WeeklyReportKind = "eligibility" | "salary" | "usage";
 
