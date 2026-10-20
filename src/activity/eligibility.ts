@@ -85,7 +85,7 @@ export async function getActivityEligibility(request: Request, env: Env): Promis
       left.player.name.localeCompare(right.player.name),
     );
   const visibleCompetitive = competitive.filter(value =>
-    value.roster.division !== null && visibleDivisions.includes(value.roster.division),
+    value.roster.division !== null && visibleDivisions.some(visible => visible === value.roster.division),
   );
 
   if (
