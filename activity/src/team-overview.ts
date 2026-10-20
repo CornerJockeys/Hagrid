@@ -84,6 +84,7 @@ export function mountTeamOverviewPanel(
   currentWeekStart: string,
   windowConfig: AvailabilityWindow,
   ownPlayerId: string | null,
+  canEditOwnAvailability: boolean,
 ): void {
   let overview: TeamOverviewResponse | null = null;
   let eligibilityMounted = false;
@@ -143,14 +144,18 @@ export function mountTeamOverviewPanel(
     const personalRoot = panel.querySelector<HTMLElement>("#combined-my-availability");
     const teamRoot = panel.querySelector<HTMLElement>("#combined-team-availability");
     if (!personalRoot || !teamRoot) return;
-    const personal = mountPersonalAvailabilityPanel(
-      personalRoot,
-      api,
-      setStatus,
-      currentWeekStart,
-      windowConfig,
-    );
-    personalAvailabilityLoad = personal.load;
+    if (canEditOwnAvailability) {
+      const personal = mountPersonalAvailabilityPanel(
+        personalRoot,
+        api,
+        setStatus,
+        currentWeekStart,
+        windowConfig,
+      );
+      personalAvailabilityLoad = personal.load;
+    } else {
+      personalRoot.innerHTML = "";
+    }
     mountTeamAvailabilityPanel(teamRoot, api, setStatus, currentWeekStart);
     availabilityMounted = true;
   };
