@@ -7,7 +7,12 @@ import {
 import {remainingUsage, slotLabel, teamDivision, usagePolicyForDivision, type TeamDivision} from "../league/view";
 import {getFranchisePlayers} from "../sprocket/players";
 import {getFranchiseRoleUsagesForSeason} from "../sprocket/role-usages";
-import {CURRENT_MLE_SEASON} from "../season-policy";
+import {
+  CURRENT_MLE_SEASON,
+  capSpaceFromKnownPlayers,
+  divisionPolicy,
+  teamSalaryFromKnownPlayers,
+} from "../season-policy";
 import {applyNcpToRoleUsage} from "../ncp/usage";
 import type {Env} from "../types";
 
@@ -22,6 +27,10 @@ const DIVISION_NAMES: Record<TeamDivision, string> = {
 
 function roleKey(value: string | null): string {
   return (value ?? "").trim().replace(/^PLAYER/i, "").toLocaleUpperCase("en-US");
+}
+
+function salaryNumber(value: number): string {
+  return Number.isInteger(value) ? value.toFixed(0) : value.toFixed(1);
 }
 
 function title(franchise: string, matchWeek: number, kind: DumpKind): string {
@@ -76,6 +85,13 @@ export async function buildDumpMessages(
       for (const player of roster) {
         lines.push(`${slotLabel(player.slot)} · ${player.name} · Salary: ${player.salary ?? "—"}`);
       }
+      const salaries = roster.map(player => player.salary);
+      const teamSalary = teamSalaryFromKnownPlayers(division, salaries);
+      const policy = divisionPolicy(division);
+      const capSpace = capSpaceFromKnownPlayers(division, salaries);
+      lines.push(
+        `Team Salary: **${salaryNumber(teamSalary)} / ${salaryNumber(policy.salaryCap)}** · Cap Space: **${salaryNumber(capSpace)}**`,
+      );
       lines.push("");
     }
   } else {
