@@ -40,12 +40,15 @@ function parseFaultCode(value: string | undefined): NcpFault | null {
   return null;
 }
 
-function playoffEffect(gameCount: number, fault: NcpFault | "unknown"): string {
+function playoffEffect(gameCount: number | null, fault: NcpFault | "unknown"): string {
   if (fault === "at_fault") {
     return "Playoff eligibility games: **No — this franchise was at fault.**";
   }
-  if (fault === "not_at_fault") {
+  if (fault === "not_at_fault" && (gameCount === 1 || gameCount === 5)) {
     return `Playoff eligibility games: **Potentially yes — up to ${gameCount} NCP game${gameCount === 1 ? "" : "s"} may count because this franchise was not at fault.** Hagrid stores this context for the playoff-participation tracker.`;
+  }
+  if (fault === "not_at_fault") {
+    return "Playoff eligibility games: **Potentially yes, but this older record does not contain the NCP game count.** Hagrid will not assume a credit amount.";
   }
   return "Playoff eligibility games: **Unknown — this older record does not contain fault context, so Hagrid will not assume credit.**";
 }
@@ -75,7 +78,7 @@ interface NcpRecordRow {
   season_number: number;
   division: string;
   mode: string;
-  ncp_game_count: number;
+  ncp_game_count: number | null;
   franchise_fault: "at_fault" | "not_at_fault" | "unknown";
   players_json: string;
   slots_json: string;
@@ -343,7 +346,7 @@ function reviewedSummary(
   return [
     `**NCP ${approved ? "Approved" : "Rejected"} — ${record.franchise_name} · ${record.division} · ${record.mode}**`,
     "",
-    `NCP scope: **${record.ncp_game_count === 1 ? "1 game" : "full 5-game series"}**`,
+    `NCP scope: **${record.ncp_game_count === 1 ? "1 game" : record.ncp_game_count === 5 ? "full 5-game series" : "unknown (historical record)"}**`,
     `Fault: **${record.franchise_fault === "at_fault" ? "our franchise" : record.franchise_fault === "not_at_fault" ? "opponent" : "unknown"}**`,
     "",
     "**Players / slots requested**",
