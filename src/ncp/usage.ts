@@ -23,7 +23,7 @@ function roleKey(value: string | null): string {
 
 function division(value: string): TeamDivision | null {
   const normalized = value.trim().toLocaleUpperCase("en-US");
-  return normalized === "FL" || normalized === "AL" || normalized === "CL" || normalized === "ML" || normalized === "PL"
+  return normalized === "FL" || normalized === "AL" || normalized === "CL" || normalized === "ML"
     ? normalized
     : null;
 }
