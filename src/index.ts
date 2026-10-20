@@ -168,7 +168,7 @@ export default {
       runScheduledDumps(env, event),
       runScheduledScoutingRefresh(env, event),
       runScheduledLeagueRefresh(env, event),
-      runScheduledReminders(env),
+      runScheduledReminders(env, event),
       runScheduledRulebookWatch(env, event),
     ]));
   },
