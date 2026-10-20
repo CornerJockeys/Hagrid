@@ -7,7 +7,7 @@ import type {FranchisePlayer} from "../sprocket/players";
 import {getCurrentCompetitiveFranchiseRoster} from "../activity/roster";
 import {CURRENT_MLE_SEASON} from "../season-policy";
 
-const DIVISIONS: TeamDivision[] = ["FL", "AL", "CL", "ML", "PL"];
+const DIVISIONS: TeamDivision[] = ["FL", "AL", "CL", "ML"];
 const NCP_THREAD_ID = "1553513630333665461";
 
 function invokerId(interaction: DiscordInteraction): string | null {
