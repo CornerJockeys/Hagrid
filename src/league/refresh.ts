@@ -3,6 +3,7 @@ import {getRocketLeaguePlayers, type FranchisePlayer} from "../sprocket/players"
 import {getRoleUsagesForSeason, type RoleUsage} from "../sprocket/role-usages";
 import {getScoutingStatLines} from "../sprocket/scouting";
 import {CURRENT_MLE_SEASON} from "../season-policy";
+import {isHourlyRefreshTime} from "../scheduler";
 import type {Env, ScheduledEventLike} from "../types";
 import {promoteLeagueSnapshotBulk} from "./bulk";
 import {leagueSnapshotFromSources, putCachedLeagueSnapshot} from "./cache";
@@ -10,7 +11,6 @@ import type {RawScoutingLine} from "../scouting/calculate";
 import {teamDivision} from "./view";
 import {refreshConfiguredFranchisePlayerMetadata} from "../player-meta";
 
-export const LEAGUE_REFRESH_CRON = "20 * * * *";
 
 interface LeagueSnapshotStateRow {
   source_hash: string;
@@ -311,7 +311,7 @@ export async function runScheduledLeagueRefresh(
   env: Env,
   event: ScheduledEventLike,
 ): Promise<void> {
-  if (event.cron !== LEAGUE_REFRESH_CRON) return;
+  if (!isHourlyRefreshTime(event.scheduledTime)) return;
   try {
     await refreshLeagueSnapshot(env, "scheduled-hourly");
   } catch (error) {
