@@ -513,10 +513,10 @@ export async function checkRulebookForChanges(env: Env): Promise<{
   await recordRevision(env, nextHash, next.length, hunks);
   await env.DB.prepare(
     `UPDATE rulebook_watch_state
-     SET current_hash = ?, current_length = ?, last_checked_at = CURRENT_TIMESTAMP,
-         last_synced_at = CURRENT_TIMESTAMP
+     SET current_hash = ?, current_length = ?, current_content = ?,
+         last_checked_at = CURRENT_TIMESTAMP, last_synced_at = CURRENT_TIMESTAMP
      WHERE id = 1`,
-  ).bind(nextHash, next.length).run();
+  ).bind(nextHash, next.length, next).run();
 
   return {
     checked: true,
