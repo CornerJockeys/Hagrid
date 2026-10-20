@@ -267,7 +267,7 @@ The legacy D1 current scouting tables remain as a fallback/bootstrap path, but p
 
 The official Season 20 Google Doc is Hagrid's live League Rulebook source. Hagrid retains the bundled repository copy as a fallback.
 
-Every five minutes the Worker:
+Once per hour, on the `:20` master-clock tick, the Worker:
 
 1. fetches the public text export,
 2. normalizes whitespace and equivalent numeric presentation such as `74.5` vs `74.50`,
@@ -286,7 +286,7 @@ GM/FM controls:
 /rulebookwatch resume
 ```
 
-Pausing freezes the current baseline: Hagrid does not accept source changes, update the Activity copy, archive a new version, or send change notifications. Resuming compares the current Google Doc against that frozen baseline on the next five-minute check, so multiple edits while paused become one consolidated change notification sequence.
+Pausing freezes the current baseline: Hagrid does not accept source changes, update the Activity copy, archive a new version, or send change notifications. Resuming compares the current Google Doc against that frozen baseline on the next hourly rulebook check, so multiple edits while paused become one consolidated change notification sequence.
 
 Accepted versions are archived by the scheduled GitHub workflow. It writes dated PDF/text files under `resources/`, updates the current fallback text and bundled rulebook data, and tracks accepted hashes so the same version is not archived twice. Multiple accepted revisions on the same date receive a numeric suffix.
 
@@ -325,13 +325,13 @@ Trackmania datasets are intentionally out of scope. Hagrid is a Rocket League pr
 
 ## Scheduling
 
-Hagrid uses a single Cloudflare cron trigger every **five minutes** as its master clock. Individual scheduled jobs inspect the trigger timestamp and only run when their own cadence is due. This keeps Hagrid comfortably under Cloudflare's Free-plan cron-trigger limit while preserving all existing schedules.
+Hagrid uses a single Cloudflare cron trigger every **ten minutes** as its master clock. Individual scheduled jobs inspect the trigger timestamp and only run when their own cadence is due. This keeps Hagrid comfortably under Cloudflare's Free-plan cron-trigger limit while preserving all existing schedules.
 
 The franchise sync targets **Monday at 1:00 PM America/New_York**. Weekly Match Week Eligibility/Salary/Usage posts and reminders run at **1:30 PM Eastern**; the local Season 20 schedule suppresses weekly dumps during bye weeks. Because Hagrid checks the actual Eastern clock internally, daylight-saving changes do not require separate UTC cron registrations.
 
-The league and HCPB/pool snapshots still refresh at **:20 past every hour**. The five-minute master clock naturally includes the :20 tick, so no separate hourly cron trigger is needed.
+The league and HCPB/pool snapshots still refresh at **:20 past every hour**. The ten-minute master clock naturally includes the :20 tick, so no separate hourly cron trigger is needed.
 
-The live League Rulebook watcher runs on every five-minute master-clock tick. It checks the public Google Doc, ignores formatting-only equivalents, keeps a last-known-good snapshot in KV/D1, and notifies the configured Discord channel only when accepted rulebook content changes.
+The live League Rulebook watcher runs once per hour on the **:20** master-clock tick. It checks the public Google Doc, ignores formatting-only equivalents, keeps a last-known-good snapshot in KV/D1, and notifies the configured Discord channel only when accepted rulebook content changes.
 
 ## Architecture
 
@@ -342,7 +342,7 @@ Initial hosting target:
 - **Workers KV** — current derived scouting/pool snapshot and source hash used by the Activity and pool lookups
 - **D1** — durable franchise state, history, configuration, availability, reminders, daily scouting history, and sync metadata
 - **R2 (optional)** — source archives/replay retention if later needed
-- **Cron Triggers** — one five-minute master clock dispatching Monday sync, weekly dumps/reminders, hourly scouting/league refresh, and live rulebook checks
+- **Cron Triggers** — one ten-minute master clock dispatching Monday sync, weekly dumps/reminders, hourly scouting/league refresh, and hourly rulebook checks
 
 Hagrid does not mirror the entire MLE database.
 
