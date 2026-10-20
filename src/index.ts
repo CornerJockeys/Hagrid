@@ -12,6 +12,7 @@ import {handleTeamAutocomplete, handleTeamCommand} from "./commands/team";
 import {handleTestCommand, handleTestComponent} from "./commands/test";
 import {discordMessage, discordPong, verifyDiscordRequest} from "./discord";
 import {runScheduledLeagueRefresh} from "./league/refresh";
+import {runScheduledDumps} from "./dumps/scheduled";
 import {readinessResponse} from "./readiness";
 import {runScheduledReminders} from "./reminders/runner";
 import {runScheduledScoutingRefresh} from "./scouting/refresh";
@@ -153,6 +154,7 @@ export default {
   scheduled(event: ScheduledEventLike, env: Env, ctx: ExecutionContextLike): void {
     ctx.waitUntil(Promise.all([
       runScheduledSyncs(env, event),
+      runScheduledDumps(env, event),
       runScheduledScoutingRefresh(env, event),
       runScheduledLeagueRefresh(env, event),
       runScheduledReminders(env),
