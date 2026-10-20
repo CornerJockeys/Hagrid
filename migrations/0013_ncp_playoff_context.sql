@@ -1,5 +1,5 @@
 ALTER TABLE ncp_records
-  ADD COLUMN ncp_game_count INTEGER NOT NULL DEFAULT 5
+  ADD COLUMN ncp_game_count INTEGER
   CHECK (ncp_game_count IN (1, 5));
 
 ALTER TABLE ncp_records
