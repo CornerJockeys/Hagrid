@@ -12,12 +12,13 @@ async function alreadyPosted(
   guildId: string,
   date: string,
   kind: DumpKind,
+  chunkIndex: number,
 ): Promise<boolean> {
   const row = await env.DB.prepare(
     `SELECT 1 AS present
      FROM weekly_dump_posts
-     WHERE guild_id = ? AND season_number = ? AND report_date = ? AND kind = ?`,
-  ).bind(guildId, CURRENT_MLE_SEASON, date, kind).first<{present: number}>();
+     WHERE guild_id = ? AND season_number = ? AND report_date = ? AND kind = ? AND chunk_index = ?`,
+  ).bind(guildId, CURRENT_MLE_SEASON, date, kind, chunkIndex).first<{present: number}>();
   return Boolean(row?.present);
 }
 
@@ -27,12 +28,13 @@ async function markPosted(
   date: string,
   matchWeek: number,
   kind: DumpKind,
+  chunkIndex: number,
 ): Promise<void> {
   await env.DB.prepare(
     `INSERT OR IGNORE INTO weekly_dump_posts (
-       guild_id, season_number, report_date, match_week, kind
-     ) VALUES (?, ?, ?, ?, ?)`,
-  ).bind(guildId, CURRENT_MLE_SEASON, date, matchWeek, kind).run();
+       guild_id, season_number, report_date, match_week, kind, chunk_index
+     ) VALUES (?, ?, ?, ?, ?, ?)`,
+  ).bind(guildId, CURRENT_MLE_SEASON, date, matchWeek, kind, chunkIndex).run();
 }
 
 export async function runScheduledDumps(env: Env, event: ScheduledEventLike): Promise<void> {
@@ -53,7 +55,6 @@ export async function runScheduledDumps(env: Env, event: ScheduledEventLike): Pr
   for (const guild of guilds) {
     for (const kind of kinds) {
       try {
-        if (await alreadyPosted(env, guild.guild_id, date, kind)) continue;
         const messages = await buildDumpMessages(
           env,
           guild.franchise_name,
@@ -61,10 +62,11 @@ export async function runScheduledDumps(env: Env, event: ScheduledEventLike): Pr
           matchWeek,
         );
         const threadId = dumpThreadId(kind);
-        for (const message of messages) {
-          await sendDiscordThreadMessage(env, threadId, message);
+        for (let index = 0; index < messages.length; index += 1) {
+          if (await alreadyPosted(env, guild.guild_id, date, kind, index)) continue;
+          await sendDiscordThreadMessage(env, threadId, messages[index]);
+          await markPosted(env, guild.guild_id, date, matchWeek, kind, index);
         }
-        await markPosted(env, guild.guild_id, date, matchWeek, kind);
         console.log(
           `Posted S${CURRENT_MLE_SEASON} ${kind} dump for ${guild.franchise_name}, Match Week ${matchWeek}.`,
         );
