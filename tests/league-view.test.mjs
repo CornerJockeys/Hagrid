@@ -32,6 +32,7 @@ const player = {
 test("league view normalizes divisions and roster slots", () => {
   assert.equal(teamDivision("Champion League"), "CL");
   assert.equal(teamDivision("ML"), "ML");
+  assert.equal(teamDivision("Premier League"), "PL");
   assert.equal(isCompetitiveSlot("PLAYERB"), true);
   assert.equal(isCompetitiveSlot("GM"), false);
   assert.equal(slotLabel("PLAYERB"), "B");
@@ -56,12 +57,18 @@ test("usage resolves by current division and slot", () => {
 });
 
 
-test("S20 usage policy distinguishes FL roster size while keeping mode caps", () => {
+test("S20 usage policy applies FL/PL four-slot and expanded usage rules", () => {
   assert.deepEqual(usagePolicyForDivision("FL"), {
-    rosterSlots: 7,
+    rosterSlots: 4,
     doublesLimit: 6,
-    standardLimit: 8,
-    combinedLimit: 12,
+    standardLimit: 9,
+    combinedLimit: 15,
+  });
+  assert.deepEqual(usagePolicyForDivision("PL"), {
+    rosterSlots: 4,
+    doublesLimit: 6,
+    standardLimit: 9,
+    combinedLimit: 15,
   });
   assert.deepEqual(usagePolicyForDivision("CL"), {
     rosterSlots: 8,
