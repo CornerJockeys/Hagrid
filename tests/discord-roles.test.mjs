@@ -9,11 +9,13 @@ import {
   hasAnyStaffRole,
   hasCaptainRole,
   hasCaptainPlusRole,
+  hasGmFmRole,
   isCaptainForDivision,
   hasAnyStaffRoleIds,
   hasAgmPlusRoleIds,
   hasCaptainRoleIds,
   hasCaptainPlusRoleIds,
+  hasGmFmRoleIds,
   captainDivisionsFromRoleIds,
 } from "../src/discord-roles.ts";
 
@@ -78,4 +80,15 @@ test("Activity AGM+ role IDs grant staff without captain division", () => {
   assert.equal(hasCaptainRoleIds(roles), false);
   assert.equal(hasCaptainPlusRoleIds(roles), true);
   assert.deepEqual(captainDivisionsFromRoleIds(roles), []);
+});
+
+
+test("Rulebook Watch controls are restricted to GM and FM", () => {
+  for (const roleId of [STAFF_ROLE_IDS.GM, STAFF_ROLE_IDS.FM]) {
+    assert.equal(hasGmFmRole(interaction([roleId])), true);
+    assert.equal(hasGmFmRoleIds([roleId]), true);
+  }
+  assert.equal(hasGmFmRole(interaction([STAFF_ROLE_IDS.AGM])), false);
+  assert.equal(hasGmFmRole(interaction([STAFF_ROLE_IDS.RL_CAPTAIN])), false);
+  assert.equal(hasGmFmRoleIds([STAFF_ROLE_IDS.AGM]), false);
 });
