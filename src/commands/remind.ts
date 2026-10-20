@@ -13,7 +13,7 @@ import {eligibilityNeedSteps, formatEligibilityNeed, formatShortDate, inferScrim
 import {getEligibilityEvents, getLeagueEligibilityRules} from "../sprocket/eligibility-data";
 import {getFranchisePlayers, type FranchisePlayer} from "../sprocket/players";
 import {getFranchiseRoleUsagesForSeason, type RoleUsage} from "../sprocket/role-usages";
-import {CURRENT_MLE_SEASON} from "../season-policy";
+import {CURRENT_MLE_SEASON, S20_ELIGIBILITY_SALARY_LOCK_DATE} from "../season-policy";
 import {applyNcpToRoleUsage} from "../ncp/usage";
 import type {DiscordInteraction, Env} from "../types";
 
@@ -804,6 +804,12 @@ export async function handleRemindModal(
   }
 
   if (scope !== "player") return discordMessage("That reminder form is no longer valid.");
+
+  if (dueDate > S20_ELIGIBILITY_SALARY_LOCK_DATE) {
+    return discordMessage(
+      "Player eligibility reminders cannot target a date after the Season 20 Eligibility Lock on Jan 4, 2027.",
+    );
+  }
 
   const [divisionRaw, playerId] = context.split("|");
   const division = divisionRaw as TeamDivision;
