@@ -176,6 +176,7 @@ export async function reconcileRosterRoles(env: Env): Promise<{
     .filter((target): target is RosterRoleTarget => target !== null);
   const targetByPlayer = new Map(targets.map(target => [target.sprocketPlayerId, target]));
   const managedRosterRoles = configuredRosterRoleIds(automation);
+  const baselineRoles = new Set(automation.mappings.new_member);
 
   let cleanedRoles = 0;
 
@@ -193,14 +194,16 @@ export async function reconcileRosterRoles(env: Env): Promise<{
 
     if (stillDesired) continue;
 
-    await removeRoleIfPresent(
-      env,
-      guildId,
-      assignment.discord_user_id,
-      assignment.role_id,
-      memberById.get(assignment.discord_user_id),
-      "Hagrid roster role cleanup",
-    );
+    if (!baselineRoles.has(assignment.role_id)) {
+      await removeRoleIfPresent(
+        env,
+        guildId,
+        assignment.discord_user_id,
+        assignment.role_id,
+        memberById.get(assignment.discord_user_id),
+        "Hagrid roster role cleanup",
+      );
+    }
     await deleteAssignment(
       env,
       guildId,
@@ -225,7 +228,7 @@ export async function reconcileRosterRoles(env: Env): Promise<{
     // a human originally assigned them, which makes first-run promotions and
     // demotions self-healing.
     for (const roleId of managedRosterRoles) {
-      if (desiredIds.has(roleId) || !roles.has(roleId)) continue;
+      if (baselineRoles.has(roleId) || desiredIds.has(roleId) || !roles.has(roleId)) continue;
       await removeMemberRole(
         env,
         guildId,
