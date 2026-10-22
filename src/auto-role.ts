@@ -160,14 +160,17 @@ export async function runScheduledAutoRole(
 
   const roleId = configuredRoleId(env);
   const scanStartedAt = new Date(event.scheduledTime).toISOString();
-  const state = await readState(env, guildId);
+  let state = await readState(env, guildId);
 
-  // First deployment establishes a cutoff instead of retroactively giving the
-  // access role to every existing member who may intentionally lack it.
+  // Start one master-clock interval behind on first deployment so a member who
+  // joins between deploy and the first scheduled tick is not lost. Persist the
+  // cutoff before calling Discord so permission/intent failures keep the same
+  // retry window instead of sliding forward.
   if (!state) {
-    await setState(env, guildId, scanStartedAt);
-    console.log(`Automatic member role initialized for guild ${guildId}.`);
-    return;
+    const initialCutoff = new Date(event.scheduledTime - 10 * 60 * 1000).toISOString();
+    await setState(env, guildId, initialCutoff);
+    state = {last_success_at: initialCutoff};
+    console.log(`Automatic member role initialized for guild ${guildId} at ${initialCutoff}.`);
   }
 
   const members = await listGuildMembers(env, guildId);
