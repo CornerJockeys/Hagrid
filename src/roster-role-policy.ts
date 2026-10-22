@@ -13,6 +13,19 @@ export function isCaptainPosition(value: string | null): boolean {
   return /(^|\b)(captain|capt)(\b|$)/.test(normalized);
 }
 
+export function isFranchiseStaffPosition(value: string | null): boolean {
+  if (!value) return false;
+  const normalized = value.trim().toLocaleLowerCase("en-US");
+  return (
+    normalized === "agm" ||
+    normalized === "gm" ||
+    normalized === "fm" ||
+    normalized.includes("assistant general manager") ||
+    normalized.includes("general manager") ||
+    normalized.includes("franchise manager")
+  );
+}
+
 export function rosterRoleTarget(player: {
   sprocket_player_id: string;
   discord_id: string | null;
