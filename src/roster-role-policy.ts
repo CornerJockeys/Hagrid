@@ -1,10 +1,9 @@
-import {DIVISION_ROLE_IDS} from "./discord-roles.ts";
-import {isCompetitiveSlot, teamDivision} from "./league/view.ts";
+import {isCompetitiveSlot, teamDivision, type TeamDivision} from "./league/view.ts";
 
 export interface RosterRoleTarget {
   sprocketPlayerId: string;
   discordUserId: string;
-  divisionRoleId: string | null;
+  division: TeamDivision | null;
   captain: boolean;
 }
 
@@ -30,7 +29,7 @@ export function rosterRoleTarget(player: {
   return {
     sprocketPlayerId: player.sprocket_player_id,
     discordUserId,
-    divisionRoleId: division ? DIVISION_ROLE_IDS[division] : null,
+    division,
     captain: competitive && isCaptainPosition(player.staff_position),
   };
 }
