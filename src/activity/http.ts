@@ -14,6 +14,7 @@ import {getActivityStats} from "./stats";
 import {getActivityStandings} from "./standings";
 import {getActivitySchedule} from "./schedule";
 import {getActivityRulebook} from "./rulebook";
+import {getActivityRoleAutomation, saveActivityRoleAutomation} from "./admin";
 
 function methodNotAllowed(): Response {
   return Response.json({error: "Method not allowed."}, {status: 405});
@@ -32,6 +33,12 @@ export async function handleActivityApi(request: Request, env: Env): Promise<Res
     return request.method === "GET"
       ? getActivityContext(request, env)
       : methodNotAllowed();
+  }
+
+  if (url.pathname === "/api/activity/admin/roles") {
+    if (request.method === "GET") return getActivityRoleAutomation(request, env);
+    if (request.method === "PUT") return saveActivityRoleAutomation(request, env);
+    return methodNotAllowed();
   }
 
   if (url.pathname === "/api/activity/availability") {
