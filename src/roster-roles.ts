@@ -8,7 +8,6 @@ import {
   type DiscordGuildMember,
 } from "./auto-role";
 import {getCurrentLeagueSnapshot, snapshotTeamPlayers} from "./league/cache";
-import {isCompetitiveSlot, teamDivision} from "./league/view";
 import {isRosterRoleReconcileTime} from "./scheduler";
 import type {Env, ScheduledEventLike} from "./types";
 
