@@ -14,6 +14,7 @@ const REQUIRED_TABLES = [
   "player_profile_metadata",
   "ncp_records",
   "auto_role_state",
+  "roster_role_state",
 ] as const;
 
 interface TableRow {
