@@ -1,4 +1,5 @@
 import {getCachedGuildConfig} from "../config-cache";
+import {hasGmFmRoleIds} from "../discord-roles";
 import type {Env} from "../types";
 import {getPlayerProfileMetadata} from "../player-meta";
 import {
@@ -145,6 +146,7 @@ export async function getActivityContext(request: Request, env: Env): Promise<Re
       staff: access.staff,
       captain_plus: access.captainPlus,
       agm_plus: access.agmPlus,
+      gm_plus: hasGmFmRoleIds(auth.roleIds),
       player_id: access.playerId,
       player_name: access.playerName,
       division: access.division,
