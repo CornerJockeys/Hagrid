@@ -5,7 +5,7 @@ const DISCORD_API = "https://discord.com/api/v10";
 const MAX_MEMBER_PAGES = 30;
 const MAX_ASSIGNMENTS_PER_RUN = 15;
 
-interface DiscordGuildMember {
+export interface DiscordGuildMember {
   joined_at?: string | null;
   pending?: boolean;
   roles?: string[];
@@ -63,7 +63,7 @@ export function isPendingRecentMember(
   );
 }
 
-async function listGuildMembers(env: Env, guildId: string): Promise<DiscordGuildMember[]> {
+export async function listGuildMembers(env: Env, guildId: string): Promise<DiscordGuildMember[]> {
   if (!env.DISCORD_BOT_TOKEN) {
     throw new Error("DISCORD_BOT_TOKEN is not configured.");
   }
@@ -102,11 +102,12 @@ async function listGuildMembers(env: Env, guildId: string): Promise<DiscordGuild
   );
 }
 
-async function addMemberRole(
+export async function addMemberRole(
   env: Env,
   guildId: string,
   userId: string,
   roleId: string,
+  reason = "Hagrid automatic new-member access role",
 ): Promise<void> {
   if (!env.DISCORD_BOT_TOKEN) {
     throw new Error("DISCORD_BOT_TOKEN is not configured.");
@@ -118,7 +119,7 @@ async function addMemberRole(
       method: "PUT",
       headers: {
         Authorization: `Bot ${env.DISCORD_BOT_TOKEN}`,
-        "X-Audit-Log-Reason": encodeURIComponent("Hagrid automatic new-member access role"),
+        "X-Audit-Log-Reason": encodeURIComponent(reason),
       },
     },
   );
@@ -127,6 +128,39 @@ async function addMemberRole(
     const body = await response.text();
     throw new Error(
       `Discord role assignment failed for ${userId} (${response.status}). Confirm Hagrid has Manage Roles and its bot role is above the access role. ${body.slice(0, 300)}`,
+    );
+  }
+}
+
+
+export async function removeMemberRole(
+  env: Env,
+  guildId: string,
+  userId: string,
+  roleId: string,
+  reason: string,
+): Promise<void> {
+  if (!env.DISCORD_BOT_TOKEN) {
+    throw new Error("DISCORD_BOT_TOKEN is not configured.");
+  }
+
+  const response = await fetch(
+    DISCORD_API + "/guilds/" + guildId + "/members/" + userId + "/roles/" + roleId,
+    {
+      method: "DELETE",
+      headers: {
+        Authorization: "Bot " + env.DISCORD_BOT_TOKEN,
+        "X-Audit-Log-Reason": encodeURIComponent(reason),
+      },
+    },
+  );
+
+  if (!response.ok && response.status !== 404) {
+    const body = await response.text();
+    throw new Error(
+      "Discord role removal failed for " + userId + " (" + response.status + "). " +
+      "Confirm Hagrid has Manage Roles and its bot role is above the managed role. " +
+      body.slice(0, 300),
     );
   }
 }

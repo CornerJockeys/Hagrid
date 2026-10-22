@@ -22,6 +22,7 @@ import {runScheduledDumps} from "./dumps/scheduled";
 import {readinessResponse} from "./readiness";
 import {runScheduledReminders} from "./reminders/runner";
 import {runScheduledScoutingRefresh} from "./scouting/refresh";
+import {runScheduledRosterRoleReconciliation} from "./roster-roles";
 import {runScheduledSyncs} from "./sync/scheduled";
 import type {
   DiscordInteraction,
@@ -172,6 +173,7 @@ export default {
       runScheduledReminders(env, event),
       runScheduledRulebookWatch(env, event),
       runScheduledAutoRole(env, event),
+      runScheduledRosterRoleReconciliation(env, event),
     ]));
   },
 };
