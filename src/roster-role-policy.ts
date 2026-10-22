@@ -46,3 +46,31 @@ export function rosterRoleTarget(player: {
     captain: competitive && isCaptainPosition(player.staff_position),
   };
 }
+
+
+export interface FormerRoleFlags {
+  formerPlayer: boolean;
+  formerFranchiseStaff: boolean;
+}
+
+export function formerRoleFlags(input: {
+  wasPlayer: boolean;
+  wasFranchiseStaff: boolean;
+  currentKnown: boolean;
+  currentSameFranchise: boolean;
+  currentCompetitive: boolean;
+  currentFranchiseStaff: boolean;
+}): FormerRoleFlags {
+  const currentPlayer = input.currentSameFranchise && input.currentCompetitive;
+  const currentStaff = input.currentSameFranchise && input.currentFranchiseStaff;
+
+  return {
+    formerPlayer: input.wasPlayer && !currentPlayer,
+    // A missing player-feed row can mean someone became non-playing staff.
+    // Require positive current data before calling them former franchise staff.
+    formerFranchiseStaff:
+      input.wasFranchiseStaff &&
+      input.currentKnown &&
+      !currentStaff,
+  };
+}
