@@ -168,7 +168,9 @@ Managed circumstances:
 - AL Player,
 - CL Player,
 - ML Player,
-- Rocket League Captain.
+- Rocket League Captain,
+- Former Player,
+- Former Franchise Staff.
 
 Each circumstance can map to **one or several Discord role IDs**. GM/FM configure them in the Activity Admin panel using comma-separated IDs, for example `123456789012345678, 987654321098765432`. Hagrid normalizes whitespace and duplicate IDs. AGM/GM/FM role IDs are rejected from automation even if entered manually.
 
@@ -190,7 +192,7 @@ Examples:
 - a playing AGM/GM/FM can still receive the correct player division role, but Hagrid never assigns or removes the AGM/GM/FM Discord role itself,
 - non-playing staff do not gain a player division role merely because their record contains a skill-group value.
 
-Hagrid persists both the GM/FM role mappings and the exact roster-role assignments it manages in D1. That state lets mapping changes, promotions/demotions, releases/transfers, and Discord-account relinks clean up stale automated roles before applying the new set. New Member mappings apply to future joins; roster mappings reconcile the current roster hourly.
+Hagrid persists both the GM/FM role mappings and the exact roster-role assignments it manages in D1. It also uses effective-dated league-player history to distinguish Former Player from Former Franchise Staff. That state lets mapping changes, promotions/demotions, releases/transfers, staff changes, returns, and Discord-account relinks clean up stale automated roles before applying the new set. New Member mappings apply to future joins; active/former roster mappings reconcile hourly.
 
 ## Hagrid Activity
 
@@ -211,11 +213,11 @@ Staff-only/high-volume panels remain lazy-loaded so opening Hagrid does not trig
 
 ### Admin
 
-The **Admin** tab is visible only to GM/FM Discord roles. Its Role Automation panel controls the role IDs Hagrid assigns for **New Member, FL, AL, CL, ML, and RL Captain** circumstances.
+The **Admin** tab is visible only to GM/FM Discord roles. Its Role Automation panel controls the role IDs Hagrid assigns for **New Member, FL, AL, CL, ML, RL Captain, Former Player, and Former Franchise Staff** circumstances.
 
 A field may contain one role ID or multiple comma-separated role IDs. For example, an FL field containing two IDs causes an FL player to receive both roles. Saving validates numeric Discord snowflakes, removes duplicates, rejects AGM/GM/FM roles, and stores the normalized mapping in D1.
 
-The existing MLE division/Captain IDs are prefilled as defaults. These are also the canonical permission roles used by Hagrid's current Discord command authorization, so they should normally remain in their corresponding mappings when adding supplemental roles.
+The existing MLE division/Captain IDs are prefilled as defaults. Former Player and Former Franchise Staff start blank until GM/FM configure them. These are independent states: a playing AGM who later leaves can qualify for both, while a player who stops being staff but remains rostered can qualify only as Former Franchise Staff. Captain history alone does not count as franchise staff. Because non-playing franchise staff may be absent from the player feed, Hagrid requires positive current data before assigning Former Franchise Staff rather than treating disappearance alone as proof that staff status ended. The canonical division/Captain roles are also used by Hagrid's current Discord command authorization, so they should normally remain in their corresponding mappings when adding supplemental roles.
 
 ### Team Overview
 
