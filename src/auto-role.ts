@@ -1,3 +1,4 @@
+import {roleIdsForCircumstance} from "./role-automation.ts";
 import type {Env, ScheduledEventLike} from "./types";
 
 export const DEFAULT_MEMBER_ACCESS_ROLE_ID = "490569480473149453";
@@ -23,11 +24,6 @@ interface AutoRoleStateRow {
 function configuredGuildId(env: Env): string | null {
   const value = env.DISCORD_GUILD_ID?.trim() ?? "";
   return /^\d{10,25}$/.test(value) ? value : null;
-}
-
-function configuredRoleId(env: Env): string {
-  const value = env.DISCORD_AUTO_ROLE_ID?.trim() ?? "";
-  return /^\d{10,25}$/.test(value) ? value : DEFAULT_MEMBER_ACCESS_ROLE_ID;
 }
 
 function joinedAfter(member: DiscordGuildMember, cutoffIso: string): boolean {
@@ -192,7 +188,7 @@ export async function runScheduledAutoRole(
   const guildId = configuredGuildId(env);
   if (!guildId || !env.DISCORD_BOT_TOKEN) return;
 
-  const roleId = configuredRoleId(env);
+  const roleIds = await roleIdsForCircumstance(env, guildId, "new_member");
   const scanStartedAt = new Date(event.scheduledTime).toISOString();
   let state = await readState(env, guildId);
 
@@ -212,17 +208,22 @@ export async function runScheduledAutoRole(
     isPendingRecentMember(member, state.last_success_at)
   );
   const candidates = members.filter(member =>
-    shouldAssignAccessRole(member, state.last_success_at, roleId)
+    roleIds.some(roleId => shouldAssignAccessRole(member, state.last_success_at, roleId))
   );
 
   const batch = candidates.slice(0, MAX_ASSIGNMENTS_PER_RUN);
   for (const member of batch) {
     const userId = member.user?.id;
     if (!userId) continue;
-    await addMemberRole(env, guildId, userId, roleId);
-    console.log(
-      `Assigned automatic access role ${roleId} to Discord member ${userId} (${member.user?.username ?? "unknown"}).`,
-    );
+    const existingRoles = new Set(member.roles ?? []);
+    for (const roleId of roleIds) {
+      if (existingRoles.has(roleId)) continue;
+      await addMemberRole(env, guildId, userId, roleId);
+      existingRoles.add(roleId);
+      console.log(
+        `Assigned automatic access role ${roleId} to Discord member ${userId} (${member.user?.username ?? "unknown"}).`,
+      );
+    }
   }
 
   const hasMoreCandidates = candidates.length > batch.length;

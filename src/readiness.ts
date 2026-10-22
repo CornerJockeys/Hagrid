@@ -15,6 +15,8 @@ const REQUIRED_TABLES = [
   "ncp_records",
   "auto_role_state",
   "roster_role_state",
+  "role_automation_config",
+  "roster_role_assignments",
 ] as const;
 
 interface TableRow {

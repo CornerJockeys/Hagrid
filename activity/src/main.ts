@@ -6,6 +6,7 @@ import {mountStatsPanel} from "./stats";
 import {mountStandingsPanel} from "./standings";
 import {mountSchedulePanel} from "./schedule";
 import {mountRulebookPanel} from "./rulebook";
+import {mountAdminPanel} from "./admin";
 import {playerBadges, type PlayerTenure} from "./player-badges";
 import "./style.css";
 import "./eligibility.css";
@@ -22,6 +23,7 @@ interface ActivityContext {
     staff: boolean;
     captain_plus: boolean;
     agm_plus: boolean;
+    gm_plus: boolean;
     player_id: string | null;
     player_name: string | null;
     division: string | null;
@@ -143,6 +145,7 @@ function shell(): void {
     context.access.staff ? '<section id="scouting-panel" class="panel hidden" data-panel="scouting"></section>' : "",
     context.access.captain_plus ? '<section id="league-rulebook-panel" class="panel hidden" data-panel="league-rulebook"></section>' : "",
     context.access.captain_plus ? '<section id="broadcast-rulebook-panel" class="panel hidden" data-panel="broadcast-rulebook"></section>' : "",
+    context.access.gm_plus ? '<section id="admin-panel" class="panel hidden" data-panel="admin"></section>' : "",
   ].join("");
 
   app.innerHTML = `
@@ -161,6 +164,7 @@ function shell(): void {
         <button class="tab" data-tab="stats">Stats</button>
         ${context.access.staff ? '<button class="tab" data-tab="scouting">Scouting</button>' : ""}
         ${context.access.captain_plus ? '<button class="tab" data-tab="league-rulebook">League Rulebook</button><button class="tab" data-tab="broadcast-rulebook">Broadcast Rulebook</button>' : ""}
+        ${context.access.gm_plus ? '<button class="tab" data-tab="admin">Admin</button>' : ""}
       </nav>
       <main>
         <section id="team-overview-panel" class="panel" data-panel="team-overview"></section>
@@ -176,6 +180,7 @@ function shell(): void {
   let scoutingMounted = false;
   let leagueRulebookMounted = false;
   let broadcastRulebookMounted = false;
+  let adminMounted = false;
 
   const mountLazyView = (tab: string): void => {
     if (tab === "team-overview" && !teamOverviewMounted) {
@@ -219,6 +224,10 @@ function shell(): void {
     if (context?.access.captain_plus && tab === "broadcast-rulebook" && !broadcastRulebookMounted) {
       const panel = document.querySelector<HTMLElement>("#broadcast-rulebook-panel");
       if (panel) { mountRulebookPanel(panel, api, setStatus, "broadcast"); broadcastRulebookMounted = true; }
+    }
+    if (context?.access.gm_plus && tab === "admin" && !adminMounted) {
+      const panel = document.querySelector<HTMLElement>("#admin-panel");
+      if (panel) { mountAdminPanel(panel, api, setStatus); adminMounted = true; }
     }
   };
 
