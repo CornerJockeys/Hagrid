@@ -151,28 +151,44 @@ async function reconcileCurrentTarget(
 
   const roles = roleSet(member);
 
-  // Competitive players should have exactly one managed division role.
-  for (const divisionRoleId of Object.values(DIVISION_ROLE_IDS)) {
-    if (divisionRoleId === target.divisionRoleId || !roles.has(divisionRoleId)) continue;
+  if (target.divisionRoleId) {
+    // Competitive players should have exactly one managed division role. This
+    // corrects promotions/demotions even on Hagrid's first reconciliation.
+    for (const divisionRoleId of Object.values(DIVISION_ROLE_IDS)) {
+      if (divisionRoleId === target.divisionRoleId || !roles.has(divisionRoleId)) continue;
+      await removeMemberRole(
+        env,
+        guildId,
+        target.discordUserId,
+        divisionRoleId,
+        "Hagrid roster division reconciliation",
+      );
+      roles.delete(divisionRoleId);
+    }
+
+    if (!roles.has(target.divisionRoleId)) {
+      await addMemberRole(
+        env,
+        guildId,
+        target.discordUserId,
+        target.divisionRoleId,
+        "Hagrid roster division reconciliation",
+      );
+      roles.add(target.divisionRoleId);
+    }
+  } else if (
+    previous?.division_role_id &&
+    roles.has(previous.division_role_id)
+  ) {
+    // A player who becomes non-playing staff loses only the division role that
+    // Hagrid had previously managed. Existing manual staff roles are untouched.
     await removeMemberRole(
       env,
       guildId,
       target.discordUserId,
-      divisionRoleId,
+      previous.division_role_id,
       "Hagrid roster division reconciliation",
     );
-    roles.delete(divisionRoleId);
-  }
-
-  if (target.divisionRoleId && !roles.has(target.divisionRoleId)) {
-    await addMemberRole(
-      env,
-      guildId,
-      target.discordUserId,
-      target.divisionRoleId,
-      "Hagrid roster division reconciliation",
-    );
-    roles.add(target.divisionRoleId);
   }
 
   if (target.captain) {
