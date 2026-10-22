@@ -7,3 +7,8 @@ export function isHourlyRefreshTime(timestamp: number): boolean {
 export function isRulebookWatchTime(timestamp: number): boolean {
   return new Date(timestamp).getUTCMinutes() === 20;
 }
+
+
+export function isRosterRoleReconcileTime(timestamp: number): boolean {
+  return new Date(timestamp).getUTCMinutes() === 30;
+}
