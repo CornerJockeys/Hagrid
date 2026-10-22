@@ -17,6 +17,7 @@ type Division = "FL" | "AL" | "CL" | "ML";
 interface TeamOverviewRow {
   division: Division;
   roster_count: number;
+  roster_limit: number;
   eligibility: {
     eligible: number;
     attention: number;
@@ -199,7 +200,7 @@ export function mountTeamOverviewPanel(
         <article class="team-overview-card">
           <div class="team-overview-card-title">
             <div><div class="eyebrow">${escapeHtml(overview?.franchise ?? "")}</div><h3>${team.division}</h3></div>
-            <span class="team-roster-count">${team.roster_count} player${team.roster_count === 1 ? "" : "s"}</span>
+            <span class="team-roster-count">${team.roster_count}/${team.roster_limit} players</span>
           </div>
           <div class="team-overview-metrics">
             <button data-open-team-page="eligibility">
