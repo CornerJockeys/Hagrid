@@ -150,7 +150,7 @@ Because Hagrid runs as a Cloudflare Worker rather than a continuously connected 
 - members still completing Discord Membership Screening are held for a later pass,
 - failed role assignments keep the old cutoff so Hagrid retries instead of losing the join.
 
-The first production run establishes a baseline and does **not** retroactively role every existing member.
+The first production run establishes a baseline one ten-minute scheduler interval in the past. That catches anyone who joins between deployment and Hagrid's first scan without retroactively assigning the role across the existing server population. If Discord permissions or intents are not ready yet, Hagrid keeps that original cutoff and retries rather than losing those joins.
 
 Discord requirements:
 - enable the Hagrid application's **Server Members Intent**,
