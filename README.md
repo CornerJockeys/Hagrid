@@ -104,7 +104,7 @@ The remaining shared match-data work should be built around the features that ac
 - **Usage and participation reconciliation:** where player/game participation is available, cross-check published slot usage against who actually played.
 - **Weekly automation:** the locally stored schedule now provides the real Match Week/date calendar (including byes), so dump/checkpoint timing no longer needs to wait on live fixtures.
 
-The Activity tab order is **Team Overview → Standings → Schedule → Stats → Scouting → League Rulebook → Broadcast Rulebook**. Team Overview contains its own **Overview / Eligibility / Availability** navigation, replacing the four former top-level personal/team eligibility and availability tabs.
+The Activity tab order is **Team Overview → Standings → Schedule → Stats → Scouting → League Rulebook → Broadcast Rulebook**, with an additional **Admin** tab for GM/FM users. Team Overview contains its own **Overview / Eligibility / Availability** navigation, replacing the four former top-level personal/team eligibility and availability tabs.
 
 ### Standings
 
@@ -141,7 +141,7 @@ When `status` is omitted the command includes both FA and PEND players, grouped 
 
 ## Automatic new-member access role
 
-Hagrid can provide the server's baseline access role to newly joined human members. The default production role is `490569480473149453`; forks can override it with `DISCORD_AUTO_ROLE_ID`.
+Hagrid can provide the server's baseline access role(s) to newly joined human members. The default production role is `490569480473149453`; `DISCORD_AUTO_ROLE_ID` remains an optional deployment default until GM/FM save an Activity configuration. The Activity **Admin → Role Automation** panel becomes authoritative after it is saved.
 
 Because Hagrid runs as a Cloudflare Worker rather than a continuously connected Gateway process, it reconciles new joins on the existing **ten-minute master clock**. It records the last successful scan in D1 and only considers members who joined after that cutoff. This means:
 
@@ -162,9 +162,15 @@ Discord requirements:
 
 Hagrid also reconciles selected **team-centric** Discord roles from the current Sprocket roster snapshot. This is intentionally narrower than Discord administration.
 
-Managed roles:
-- FL / AL / CL / ML division roles,
+Managed circumstances:
+- New Member,
+- FL Player,
+- AL Player,
+- CL Player,
+- ML Player,
 - Rocket League Captain.
+
+Each circumstance can map to **one or several Discord role IDs**. GM/FM configure them in the Activity Admin panel using comma-separated IDs, for example `123456789012345678, 987654321098765432`. Hagrid normalizes whitespace and duplicate IDs. AGM/GM/FM role IDs are rejected from automation even if entered manually.
 
 Protected/manual roles:
 - AGM,
@@ -184,7 +190,7 @@ Examples:
 - a playing AGM/GM/FM can still receive the correct player division role, but Hagrid never assigns or removes the AGM/GM/FM Discord role itself,
 - non-playing staff do not gain a player division role merely because their record contains a skill-group value.
 
-Hagrid persists which roster roles it manages in D1. That state is what allows releases/transfers to be cleaned up without stripping similarly named/manual roles from unrelated server members.
+Hagrid persists both the GM/FM role mappings and the exact roster-role assignments it manages in D1. That state lets mapping changes, promotions/demotions, releases/transfers, and Discord-account relinks clean up stale automated roles before applying the new set. New Member mappings apply to future joins; roster mappings reconcile the current roster hourly.
 
 ## Hagrid Activity
 
@@ -202,6 +208,14 @@ The Activity verifies the Discord user and server, then links that Discord ID to
 - Users who are neither linked to the franchise nor authorized franchise staff receive a clear access error.
 
 Staff-only/high-volume panels remain lazy-loaded so opening Hagrid does not trigger every backend request at startup.
+
+### Admin
+
+The **Admin** tab is visible only to GM/FM Discord roles. Its Role Automation panel controls the role IDs Hagrid assigns for **New Member, FL, AL, CL, ML, and RL Captain** circumstances.
+
+A field may contain one role ID or multiple comma-separated role IDs. For example, an FL field containing two IDs causes an FL player to receive both roles. Saving validates numeric Discord snowflakes, removes duplicates, rejects AGM/GM/FM roles, and stores the normalized mapping in D1.
+
+The existing MLE division/Captain IDs are prefilled as defaults. These are also the canonical permission roles used by Hagrid's current Discord command authorization, so they should normally remain in their corresponding mappings when adding supplemental roles.
 
 ### Team Overview
 
@@ -529,7 +543,8 @@ Implemented through **Pass 3 wiring**:
 - production D1 provisioning/migrations
 - production Worker/Activity deployment workflow
 - automatic new-member baseline access role reconciliation
-- roster-driven FL/AL/CL/ML + RL Captain Discord role reconciliation
+- roster-driven configurable FL/AL/CL/ML + RL Captain Discord role reconciliation
+- GM/FM Activity Admin panel for single- or multi-role automation mappings
 - deployed `/health` + `/ready` smoke validation
 
 Live-source validation currently confirms the Wizards source path resolves a current six-player franchise roster with linked Discord IDs and competitive slots, plus current role usage, standings, FA/PEND identities, and 984 usable scouting rows.
