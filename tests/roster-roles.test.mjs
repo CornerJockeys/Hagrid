@@ -5,7 +5,7 @@ import {DIVISION_ROLE_IDS} from "../src/discord-roles.ts";
 import {
   isCaptainPosition,
   rosterRoleTarget,
-} from "../src/roster-roles.ts";
+} from "../src/roster-role-policy.ts";
 
 function player(overrides = {}) {
   return {
