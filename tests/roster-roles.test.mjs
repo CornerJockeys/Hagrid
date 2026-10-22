@@ -1,7 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import {DIVISION_ROLE_IDS} from "../src/discord-roles.ts";
 import {
   isCaptainPosition,
   rosterRoleTarget,
@@ -18,17 +17,17 @@ function player(overrides = {}) {
   };
 }
 
-test("competitive players map to their current division role", () => {
+test("competitive players map to their current division circumstance", () => {
   assert.deepEqual(rosterRoleTarget(player()), {
     sprocketPlayerId: "123",
     discordUserId: "443544081696686080",
-    divisionRoleId: DIVISION_ROLE_IDS.ML,
+    division: "ML",
     captain: false,
   });
 
   assert.equal(
-    rosterRoleTarget(player({skill_group: "Champion League"}))?.divisionRoleId,
-    DIVISION_ROLE_IDS.CL,
+    rosterRoleTarget(player({skill_group: "Champion League"}))?.division,
+    "CL",
   );
 });
 
@@ -39,7 +38,7 @@ test("playing captains receive Captain plus their division role", () => {
     slot: "PLAYERB",
   }));
 
-  assert.equal(target?.divisionRoleId, DIVISION_ROLE_IDS.AL);
+  assert.equal(target?.division, "AL");
   assert.equal(target?.captain, true);
   assert.equal(isCaptainPosition("Team Captain"), true);
   assert.equal(isCaptainPosition("CAPT"), true);
@@ -52,7 +51,7 @@ test("AGM+ positions are never converted into Hagrid-managed staff roles", () =>
     slot: "PLAYERC",
   }));
 
-  assert.equal(target?.divisionRoleId, DIVISION_ROLE_IDS.FL);
+  assert.equal(target?.division, "FL");
   assert.equal(target?.captain, false);
 });
 
@@ -63,7 +62,7 @@ test("non-playing staff do not receive a division or Captain role from roster da
     slot: null,
   }));
 
-  assert.equal(target?.divisionRoleId, null);
+  assert.equal(target?.division, null);
   assert.equal(target?.captain, false);
 });
 
