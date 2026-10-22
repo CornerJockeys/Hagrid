@@ -2,7 +2,9 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  formerRoleFlags,
   isCaptainPosition,
+  isFranchiseStaffPosition,
   rosterRoleTarget,
 } from "../src/roster-role-policy.ts";
 
@@ -68,4 +70,79 @@ test("non-playing staff do not receive a division or Captain role from roster da
 
 test("players without a usable Discord link cannot be reconciled", () => {
   assert.equal(rosterRoleTarget(player({discord_id: null})), null);
+});
+
+
+test("former franchise staff excludes Captains and recognizes AGM/GM/FM", () => {
+  assert.equal(isFranchiseStaffPosition("Captain"), false);
+  assert.equal(isFranchiseStaffPosition("AGM"), true);
+  assert.equal(isFranchiseStaffPosition("Assistant General Manager"), true);
+  assert.equal(isFranchiseStaffPosition("GM"), true);
+  assert.equal(isFranchiseStaffPosition("Franchise Manager"), true);
+});
+
+test("former-player and former-staff states are independent", () => {
+  assert.deepEqual(
+    formerRoleFlags({
+      wasPlayer: true,
+      wasFranchiseStaff: false,
+      currentKnown: true,
+      currentSameFranchise: false,
+      currentCompetitive: true,
+      currentFranchiseStaff: false,
+    }),
+    {formerPlayer: true, formerFranchiseStaff: false},
+  );
+
+  assert.deepEqual(
+    formerRoleFlags({
+      wasPlayer: true,
+      wasFranchiseStaff: true,
+      currentKnown: true,
+      currentSameFranchise: false,
+      currentCompetitive: true,
+      currentFranchiseStaff: false,
+    }),
+    {formerPlayer: true, formerFranchiseStaff: true},
+  );
+});
+
+test("missing current player data does not falsely mark former franchise staff", () => {
+  assert.deepEqual(
+    formerRoleFlags({
+      wasPlayer: true,
+      wasFranchiseStaff: true,
+      currentKnown: false,
+      currentSameFranchise: false,
+      currentCompetitive: false,
+      currentFranchiseStaff: false,
+    }),
+    {formerPlayer: true, formerFranchiseStaff: false},
+  );
+});
+
+test("staying with the franchise in a different capacity can create one former state", () => {
+  assert.deepEqual(
+    formerRoleFlags({
+      wasPlayer: true,
+      wasFranchiseStaff: true,
+      currentKnown: true,
+      currentSameFranchise: true,
+      currentCompetitive: false,
+      currentFranchiseStaff: true,
+    }),
+    {formerPlayer: true, formerFranchiseStaff: false},
+  );
+
+  assert.deepEqual(
+    formerRoleFlags({
+      wasPlayer: true,
+      wasFranchiseStaff: true,
+      currentKnown: true,
+      currentSameFranchise: true,
+      currentCompetitive: true,
+      currentFranchiseStaff: false,
+    }),
+    {formerPlayer: false, formerFranchiseStaff: true},
+  );
 });
