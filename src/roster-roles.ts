@@ -6,6 +6,7 @@ import {
 } from "./auto-role";
 import {getCachedGuildConfig} from "./config-cache";
 import {getCurrentLeagueSnapshot, snapshotTeamPlayers} from "./league/cache";
+import {isCompetitiveSlot} from "./league/view";
 import {
   getRoleAutomationConfig,
   type StoredRoleAutomationConfig,
@@ -14,7 +15,12 @@ import type {
   RoleAutomationCircumstance,
   RoleAutomationConfig,
 } from "./role-automation-policy";
-import {rosterRoleTarget, type RosterRoleTarget} from "./roster-role-policy";
+import {
+  formerRoleFlags,
+  isFranchiseStaffPosition,
+  rosterRoleTarget,
+  type RosterRoleTarget,
+} from "./roster-role-policy";
 import {isRosterRoleReconcileTime} from "./scheduler";
 import type {Env, ScheduledEventLike} from "./types";
 
@@ -23,6 +29,26 @@ interface RosterRoleAssignmentRow {
   discord_user_id: string;
   circumstance: string;
   role_id: string;
+}
+
+interface FranchiseHistoryRow {
+  sprocket_player_id: string;
+  discord_id: string | null;
+  slot: string | null;
+  staff_position: string | null;
+  valid_from: string;
+}
+
+interface HistoricalProfile {
+  sprocketPlayerId: string;
+  discordUserId: string | null;
+  wasPlayer: boolean;
+  wasFranchiseStaff: boolean;
+}
+
+interface ReconciliationTarget extends RosterRoleTarget {
+  formerPlayer: boolean;
+  formerFranchiseStaff: boolean;
 }
 
 interface DesiredRole {
@@ -35,8 +61,17 @@ function configuredGuildId(env: Env): string | null {
   return /^\d{10,25}$/.test(value) ? value : null;
 }
 
+function normalize(value: string | null | undefined): string {
+  return (value ?? "").trim().replace(/\s+/g, " ").toLocaleLowerCase("en-US");
+}
+
+function usableDiscordId(value: string | null | undefined): string | null {
+  const discordId = value?.trim() ?? "";
+  return /^\d{10,25}$/.test(discordId) ? discordId : null;
+}
+
 function desiredRoles(
-  target: RosterRoleTarget,
+  target: ReconciliationTarget,
   mappings: RoleAutomationConfig,
 ): DesiredRole[] {
   const roles: DesiredRole[] = [];
@@ -55,6 +90,10 @@ function desiredRoles(
 
   if (target.division) add(target.division, mappings[target.division]);
   if (target.captain) add("captain", mappings.captain);
+  if (target.formerPlayer) add("former_player", mappings.former_player);
+  if (target.formerFranchiseStaff) {
+    add("former_franchise_staff", mappings.former_franchise_staff);
+  }
   return roles;
 }
 
@@ -67,6 +106,8 @@ function configuredRosterRoleIds(
     ...config.mappings.CL,
     ...config.mappings.ML,
     ...config.mappings.captain,
+    ...config.mappings.former_player,
+    ...config.mappings.former_franchise_staff,
   ]);
 }
 
@@ -82,10 +123,44 @@ async function getAssignments(
   return result.results;
 }
 
+async function getFranchiseHistory(
+  env: Env,
+  franchiseName: string,
+): Promise<HistoricalProfile[]> {
+  const result = await env.DB.prepare(
+    `SELECT sprocket_player_id, discord_id, slot, staff_position, valid_from
+     FROM league_player_history
+     WHERE LOWER(franchise_name) = LOWER(?)
+     ORDER BY sprocket_player_id, valid_from DESC`,
+  ).bind(franchiseName).all<FranchiseHistoryRow>();
+
+  const profiles = new Map<string, HistoricalProfile>();
+
+  for (const row of result.results) {
+    let profile = profiles.get(row.sprocket_player_id);
+    if (!profile) {
+      profile = {
+        sprocketPlayerId: row.sprocket_player_id,
+        discordUserId: usableDiscordId(row.discord_id),
+        wasPlayer: false,
+        wasFranchiseStaff: false,
+      };
+      profiles.set(row.sprocket_player_id, profile);
+    } else if (!profile.discordUserId) {
+      profile.discordUserId = usableDiscordId(row.discord_id);
+    }
+
+    profile.wasPlayer ||= isCompetitiveSlot(row.slot);
+    profile.wasFranchiseStaff ||= isFranchiseStaffPosition(row.staff_position);
+  }
+
+  return [...profiles.values()];
+}
+
 async function upsertAssignment(
   env: Env,
   guildId: string,
-  target: RosterRoleTarget,
+  target: ReconciliationTarget,
   desired: DesiredRole,
 ): Promise<void> {
   const result = await env.DB.prepare(
@@ -137,6 +212,103 @@ async function removeRoleIfPresent(
   await removeMemberRole(env, guildId, discordUserId, roleId, reason);
 }
 
+function reconciliationTargets(input: {
+  franchiseName: string;
+  snapshotPlayers: Array<{
+    sprocket_player_id: string;
+    discord_id: string | null;
+    franchise_name: string;
+    skill_group: string | null;
+    staff_position: string | null;
+    slot: string | null;
+  }>;
+  currentFranchisePlayers: Array<{
+    sprocket_player_id: string;
+    discord_id: string | null;
+    skill_group: string | null;
+    staff_position: string | null;
+    slot: string | null;
+  }>;
+  history: HistoricalProfile[];
+}): ReconciliationTarget[] {
+  const targetMap = new Map<string, ReconciliationTarget>();
+  const currentByPlayer = new Map(
+    input.snapshotPlayers.map(player => [player.sprocket_player_id, player]),
+  );
+  const historyByPlayer = new Map(
+    input.history.map(profile => [profile.sprocketPlayerId, profile]),
+  );
+
+  for (const player of input.currentFranchisePlayers) {
+    const target = rosterRoleTarget(player);
+    if (!target) continue;
+    const history = historyByPlayer.get(target.sprocketPlayerId);
+    const current = currentByPlayer.get(target.sprocketPlayerId);
+    const currentSameFranchise =
+      Boolean(current) &&
+      normalize(current?.franchise_name) === normalize(input.franchiseName);
+    const flags = formerRoleFlags({
+      wasPlayer: history?.wasPlayer ?? false,
+      wasFranchiseStaff: history?.wasFranchiseStaff ?? false,
+      currentKnown: Boolean(current),
+      currentSameFranchise,
+      currentCompetitive: Boolean(current && isCompetitiveSlot(current.slot)),
+      currentFranchiseStaff: Boolean(
+        current && isFranchiseStaffPosition(current.staff_position)
+      ),
+    });
+
+    targetMap.set(target.sprocketPlayerId, {
+      ...target,
+      ...flags,
+    });
+  }
+
+  for (const history of input.history) {
+    const current = currentByPlayer.get(history.sprocketPlayerId);
+    const currentSameFranchise =
+      Boolean(current) &&
+      normalize(current?.franchise_name) === normalize(input.franchiseName);
+    const flags = formerRoleFlags({
+      wasPlayer: history.wasPlayer,
+      wasFranchiseStaff: history.wasFranchiseStaff,
+      currentKnown: Boolean(current),
+      currentSameFranchise,
+      currentCompetitive: Boolean(current && isCompetitiveSlot(current.slot)),
+      currentFranchiseStaff: Boolean(
+        current && isFranchiseStaffPosition(current.staff_position)
+      ),
+    });
+
+    if (!flags.formerPlayer && !flags.formerFranchiseStaff) continue;
+
+    const existing = targetMap.get(history.sprocketPlayerId);
+    if (existing) {
+      existing.formerPlayer = flags.formerPlayer;
+      existing.formerFranchiseStaff = flags.formerFranchiseStaff;
+      continue;
+    }
+
+    // If Sprocket still has a current row, trust its Discord link. When the row
+    // is absent, fall back to the most recent linked Discord ID in franchise history.
+    const discordUserId = current
+      ? usableDiscordId(current.discord_id)
+      : history.discordUserId;
+    if (!discordUserId) continue;
+
+    targetMap.set(history.sprocketPlayerId, {
+      sprocketPlayerId: history.sprocketPlayerId,
+      discordUserId,
+      division: null,
+      captain: false,
+      formerPlayer: flags.formerPlayer,
+      formerFranchiseStaff: flags.formerFranchiseStaff,
+    });
+  }
+
+  return [...targetMap.values()];
+}
+
 export async function reconcileRosterRoles(env: Env): Promise<{
   franchise: string;
   targets: number;
@@ -148,14 +320,8 @@ export async function reconcileRosterRoles(env: Env): Promise<{
     return {franchise: "", targets: 0, managedRoles: 0, cleanedRoles: 0};
   }
 
-  const [config, snapshot, members, assignments, automation] = await Promise.all([
-    getCachedGuildConfig(env, guildId),
-    getCurrentLeagueSnapshot(env),
-    listGuildMembers(env, guildId),
-    getAssignments(env, guildId),
-    getRoleAutomationConfig(env, guildId),
-  ]);
-
+  const config = await getCachedGuildConfig(env, guildId);
+  const snapshot = await getCurrentLeagueSnapshot(env);
   if (!config || !snapshot) {
     return {
       franchise: config?.franchise_name ?? "",
@@ -165,23 +331,31 @@ export async function reconcileRosterRoles(env: Env): Promise<{
     };
   }
 
+  const [members, assignments, automation, history] = await Promise.all([
+    listGuildMembers(env, guildId),
+    getAssignments(env, guildId),
+    getRoleAutomationConfig(env, guildId),
+    getFranchiseHistory(env, config.franchise_name),
+  ]);
+
   const memberById = new Map(
     members
       .filter(member => Boolean(member.user?.id))
       .map(member => [member.user!.id!, member]),
   );
 
-  const targets = snapshotTeamPlayers(snapshot, config.franchise_name)
-    .map(rosterRoleTarget)
-    .filter((target): target is RosterRoleTarget => target !== null);
+  const targets = reconciliationTargets({
+    franchiseName: config.franchise_name,
+    snapshotPlayers: snapshot.players,
+    currentFranchisePlayers: snapshotTeamPlayers(snapshot, config.franchise_name),
+    history,
+  });
   const targetByPlayer = new Map(targets.map(target => [target.sprocketPlayerId, target]));
   const managedRosterRoles = configuredRosterRoleIds(automation);
   const baselineRoles = new Set(automation.mappings.new_member);
 
   let cleanedRoles = 0;
 
-  // Remove roles that Hagrid had adopted previously when a player is released,
-  // transferred, relinked, promoted/demoted, or when GM/FM changes a mapping.
   for (const assignment of assignments) {
     const target = targetByPlayer.get(assignment.sprocket_player_id);
     const desired = target
@@ -223,10 +397,6 @@ export async function reconcileRosterRoles(env: Env): Promise<{
     const desired = desiredRoles(target, automation.mappings);
     const desiredIds = new Set(desired.map(value => value.roleId));
 
-    // Once a role ID is configured in this Admin panel it is part of Hagrid's
-    // roster-role domain. Remove stale configured roles even if an older bot or
-    // a human originally assigned them, which makes first-run promotions and
-    // demotions self-healing.
     for (const roleId of managedRosterRoles) {
       if (baselineRoles.has(roleId) || desiredIds.has(roleId) || !roles.has(roleId)) continue;
       await removeMemberRole(
