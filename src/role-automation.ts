@@ -4,7 +4,7 @@ import {
   ROLE_AUTOMATION_CIRCUMSTANCES,
   type RoleAutomationCircumstance,
   type RoleAutomationConfig,
-} from "./role-automation-policy";
+} from "./role-automation-policy.ts";
 
 interface RoleAutomationRow {
   circumstance: string;
