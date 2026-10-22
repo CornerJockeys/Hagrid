@@ -519,3 +519,69 @@ select:focus, input:focus { border-color: #7b838f; }
   font-size: 11px;
 }
 .rulebook-sync strong { color: #c7cbd1; }
+
+
+/* GM/FM role automation admin */
+.admin-role-card {
+  margin-top: 4px;
+  border: 1px solid #2d323b;
+  border-radius: 12px;
+  background: #14171c;
+  overflow: hidden;
+}
+.admin-role-intro {
+  display: grid;
+  gap: 5px;
+  padding: 14px 16px;
+  border-bottom: 1px solid #292e37;
+}
+.admin-role-intro strong { font-size: 15px; }
+.admin-role-intro span {
+  color: #9da4ae;
+  font-size: 12px;
+  line-height: 1.45;
+}
+.admin-role-form { padding: 16px; }
+.admin-role-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(260px, 1fr));
+  gap: 14px;
+}
+.admin-role-field {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+.admin-role-label {
+  color: #e1e4e8;
+  font-size: 12px;
+  font-weight: 750;
+}
+.admin-role-field input {
+  width: 100%;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+}
+.admin-role-field small {
+  color: #858d98;
+  font-size: 11px;
+  line-height: 1.4;
+}
+.admin-role-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 14px;
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid #292e37;
+}
+.admin-role-meta {
+  color: #858d98;
+  font-size: 11px;
+}
+@media (max-width: 720px) {
+  .admin-role-fields { grid-template-columns: 1fr; }
+  .admin-role-footer { align-items: stretch; flex-direction: column; }
+  .admin-role-footer .primary-button { width: 100%; }
+}
