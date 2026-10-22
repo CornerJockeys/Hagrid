@@ -11,6 +11,11 @@ import {getCurrentLeagueSnapshot, snapshotTeamPlayers} from "./league/cache";
 import {isRosterRoleReconcileTime} from "./scheduler";
 import type {Env, ScheduledEventLike} from "./types";
 
+function configuredGuildId(env: Env): string | null {
+  const value = env.DISCORD_GUILD_ID?.trim() ?? "";
+  return /^\d{10,25}$/.test(value) ? value : null;
+}
+
 interface RosterRoleStateRow {
   sprocket_player_id: string;
   discord_user_id: string;
