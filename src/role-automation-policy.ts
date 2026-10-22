@@ -7,6 +7,8 @@ export const ROLE_AUTOMATION_CIRCUMSTANCES = [
   "CL",
   "ML",
   "captain",
+  "former_player",
+  "former_franchise_staff",
 ] as const;
 
 export type RoleAutomationCircumstance =
@@ -21,6 +23,8 @@ export const DEFAULT_ROLE_AUTOMATION_CONFIG: RoleAutomationConfig = {
   CL: [DIVISION_ROLE_IDS.CL],
   ML: [DIVISION_ROLE_IDS.ML],
   captain: [STAFF_ROLE_IDS.RL_CAPTAIN],
+  former_player: [],
+  former_franchise_staff: [],
 };
 
 const PROTECTED_ADMIN_ROLE_IDS = new Set<string>([
@@ -80,6 +84,8 @@ export function parseRoleAutomationPayload(
     CL: parseRoleIdList(record.CL ?? ""),
     ML: parseRoleIdList(record.ML ?? ""),
     captain: parseRoleIdList(record.captain ?? ""),
+    former_player: parseRoleIdList(record.former_player ?? ""),
+    former_franchise_staff: parseRoleIdList(record.former_franchise_staff ?? ""),
   };
 }
 

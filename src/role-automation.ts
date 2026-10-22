@@ -29,6 +29,8 @@ function cloneDefaults(env: Env): RoleAutomationConfig {
     CL: [...DEFAULT_ROLE_AUTOMATION_CONFIG.CL],
     ML: [...DEFAULT_ROLE_AUTOMATION_CONFIG.ML],
     captain: [...DEFAULT_ROLE_AUTOMATION_CONFIG.captain],
+    former_player: [...DEFAULT_ROLE_AUTOMATION_CONFIG.former_player],
+    former_franchise_staff: [...DEFAULT_ROLE_AUTOMATION_CONFIG.former_franchise_staff],
   };
 }
 

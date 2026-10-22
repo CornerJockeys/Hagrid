@@ -46,6 +46,8 @@ test("full admin payload preserves each automation circumstance", () => {
     CL: "100000000000000004",
     ML: "100000000000000005",
     captain: "100000000000000006,100000000000000007",
+    former_player: "100000000000000008",
+    former_franchise_staff: "100000000000000009,100000000000000010",
   });
 
   assert.deepEqual(mappings.new_member, [
@@ -58,4 +60,9 @@ test("full admin payload preserves each automation circumstance", () => {
     "100000000000000007",
   ]);
   assert.equal(commaRoleList(mappings.FL), "100000000000000003");
+  assert.deepEqual(mappings.former_player, ["100000000000000008"]);
+  assert.deepEqual(mappings.former_franchise_staff, [
+    "100000000000000009",
+    "100000000000000010",
+  ]);
 });

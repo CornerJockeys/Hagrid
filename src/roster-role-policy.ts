@@ -13,6 +13,19 @@ export function isCaptainPosition(value: string | null): boolean {
   return /(^|\b)(captain|capt)(\b|$)/.test(normalized);
 }
 
+export function isFranchiseStaffPosition(value: string | null): boolean {
+  if (!value) return false;
+  const normalized = value.trim().toLocaleLowerCase("en-US");
+  return (
+    normalized === "agm" ||
+    normalized === "gm" ||
+    normalized === "fm" ||
+    normalized.includes("assistant general manager") ||
+    normalized.includes("general manager") ||
+    normalized.includes("franchise manager")
+  );
+}
+
 export function rosterRoleTarget(player: {
   sprocket_player_id: string;
   discord_id: string | null;
@@ -31,5 +44,33 @@ export function rosterRoleTarget(player: {
     discordUserId,
     division,
     captain: competitive && isCaptainPosition(player.staff_position),
+  };
+}
+
+
+export interface FormerRoleFlags {
+  formerPlayer: boolean;
+  formerFranchiseStaff: boolean;
+}
+
+export function formerRoleFlags(input: {
+  wasPlayer: boolean;
+  wasFranchiseStaff: boolean;
+  currentKnown: boolean;
+  currentSameFranchise: boolean;
+  currentCompetitive: boolean;
+  currentFranchiseStaff: boolean;
+}): FormerRoleFlags {
+  const currentPlayer = input.currentSameFranchise && input.currentCompetitive;
+  const currentStaff = input.currentSameFranchise && input.currentFranchiseStaff;
+
+  return {
+    formerPlayer: input.wasPlayer && !currentPlayer,
+    // A missing player-feed row can mean someone became non-playing staff.
+    // Require positive current data before calling them former franchise staff.
+    formerFranchiseStaff:
+      input.wasFranchiseStaff &&
+      input.currentKnown &&
+      !currentStaff,
   };
 }
