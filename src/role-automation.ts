@@ -19,9 +19,11 @@ export interface StoredRoleAutomationConfig {
   updatedByDiscordId: string | null;
 }
 
-function cloneDefaults(): RoleAutomationConfig {
+function cloneDefaults(env: Env): RoleAutomationConfig {
   return {
-    new_member: [...DEFAULT_ROLE_AUTOMATION_CONFIG.new_member],
+    new_member: /^\d{10,25}$/.test(env.DISCORD_AUTO_ROLE_ID?.trim() ?? "")
+      ? [env.DISCORD_AUTO_ROLE_ID!.trim()]
+      : [...DEFAULT_ROLE_AUTOMATION_CONFIG.new_member],
     FL: [...DEFAULT_ROLE_AUTOMATION_CONFIG.FL],
     AL: [...DEFAULT_ROLE_AUTOMATION_CONFIG.AL],
     CL: [...DEFAULT_ROLE_AUTOMATION_CONFIG.CL],
@@ -57,7 +59,7 @@ export async function getRoleAutomationConfig(
      WHERE guild_id = ?`,
   ).bind(guildId).all<RoleAutomationRow>();
 
-  const mappings = cloneDefaults();
+  const mappings = cloneDefaults(env);
   let updatedAt: string | null = null;
   let updatedByDiscordId: string | null = null;
 
