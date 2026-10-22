@@ -20,6 +20,7 @@ Hagrid V1 is intentionally limited to the data and workflows that can be built a
 - hourly Scouting refresh with source-change detection
 - division-scoped FA/PEND pool lookup
 - automatic new-member Discord access-role assignment
+- roster-driven Discord division/Captain role reconciliation
 
 Features that depend on Season 20-specific datasets or schemas are deferred to V1+ until those sources are published and can be validated rather than guessed.
 
@@ -156,6 +157,34 @@ Discord requirements:
 - enable the Hagrid application's **Server Members Intent**,
 - give Hagrid **Manage Roles** in the server,
 - place Hagrid's bot role above the access role in the Discord role hierarchy.
+
+## Roster-driven Discord roles
+
+Hagrid also reconciles selected **team-centric** Discord roles from the current Sprocket roster snapshot. This is intentionally narrower than Discord administration.
+
+Managed roles:
+- FL / AL / CL / ML division roles,
+- Rocket League Captain.
+
+Protected/manual roles:
+- AGM,
+- GM,
+- FM,
+- every unrelated Discord role.
+
+The hourly league snapshot refresh runs at **:20**. Roster-role reconciliation runs at **:30**, giving the source refresh time to finish before Discord roles are changed.
+
+Examples:
+- a newly signed player joins Discord, receives the baseline server-access role, then receives the correct division role once the player appears in the current roster snapshot,
+- an ML → CL promotion removes ML and adds CL,
+- a CL → AL demotion removes CL and adds AL,
+- a release or transfer removes only the division/Captain roles Hagrid previously managed; the baseline server-access role remains,
+- a playing Captain receives the RL Captain role when the roster source explicitly identifies them as Captain,
+- a Captain demotion removes that role after Hagrid has previously observed/managed the Captain state,
+- a playing AGM/GM/FM can still receive the correct player division role, but Hagrid never assigns or removes the AGM/GM/FM Discord role itself,
+- non-playing staff do not gain a player division role merely because their record contains a skill-group value.
+
+Hagrid persists which roster roles it manages in D1. That state is what allows releases/transfers to be cleaned up without stripping similarly named/manual roles from unrelated server members.
 
 ## Hagrid Activity
 
@@ -353,7 +382,7 @@ The league and HCPB/pool snapshots still refresh at **:20 past every hour**. The
 
 The live League Rulebook watcher runs once per hour on the **:20** master-clock tick. It checks the public Google Doc, ignores formatting-only equivalents, keeps a last-known-good snapshot in KV/D1, and notifies the configured Discord channel only when accepted rulebook content changes.
 
-The new-member access-role reconciler runs on each ten-minute master-clock tick so newly joined members are not left outside the server's general-access channels for long.
+The new-member access-role reconciler runs on each ten-minute master-clock tick so newly joined members are not left outside the server's general-access channels for long. Roster-driven division/Captain reconciliation runs hourly at **:30**, after the **:20** league snapshot refresh.
 
 ## Architecture
 
@@ -364,7 +393,7 @@ Initial hosting target:
 - **Workers KV** — current derived scouting/pool snapshot and source hash used by the Activity and pool lookups
 - **D1** — durable franchise state, history, configuration, availability, reminders, daily scouting history, and sync metadata
 - **R2 (optional)** — source archives/replay retention if later needed
-- **Cron Triggers** — one ten-minute master clock dispatching new-member access roles, Monday sync, weekly dumps/reminders, hourly scouting/league refresh, and hourly rulebook checks
+- **Cron Triggers** — one ten-minute master clock dispatching new-member access roles, hourly roster-role reconciliation, Monday sync, weekly dumps/reminders, hourly scouting/league refresh, and hourly rulebook checks
 
 Hagrid does not mirror the entire MLE database.
 
@@ -500,6 +529,7 @@ Implemented through **Pass 3 wiring**:
 - production D1 provisioning/migrations
 - production Worker/Activity deployment workflow
 - automatic new-member baseline access role reconciliation
+- roster-driven FL/AL/CL/ML + RL Captain Discord role reconciliation
 - deployed `/health` + `/ready` smoke validation
 
 Live-source validation currently confirms the Wizards source path resolves a current six-player franchise roster with linked Discord IDs and competitive slots, plus current role usage, standings, FA/PEND identities, and 984 usable scouting rows.
