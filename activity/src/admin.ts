@@ -12,6 +12,8 @@ interface RoleAutomationResponse {
     CL: string;
     ML: string;
     captain: string;
+    former_player: string;
+    former_franchise_staff: string;
   };
   updated_at: string | null;
   updated_by_discord_id: string | null;
@@ -53,6 +55,16 @@ const FIELDS: RoleField[] = [
     key: "captain",
     label: "RL Captain",
     description: "Applied in addition to the player's division roles when Sprocket identifies them as Captain.",
+  },
+  {
+    key: "former_player",
+    label: "Former Player",
+    description: "Applied after someone previously held a competitive roster slot for this franchise and no longer does.",
+  },
+  {
+    key: "former_franchise_staff",
+    label: "Former Franchise Staff",
+    description: "Applied after someone previously held AGM/GM/FM-type franchise staff status and current data positively shows that status has ended.",
   },
 ];
 
