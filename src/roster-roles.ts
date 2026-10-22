@@ -1,217 +1,167 @@
-import {getCachedGuildConfig} from "./config-cache";
-import {DIVISION_ROLE_IDS, STAFF_ROLE_IDS} from "./discord-roles";
-import {rosterRoleTarget, type RosterRoleTarget} from "./roster-role-policy";
 import {
   addMemberRole,
   listGuildMembers,
   removeMemberRole,
   type DiscordGuildMember,
 } from "./auto-role";
+import {getCachedGuildConfig} from "./config-cache";
 import {getCurrentLeagueSnapshot, snapshotTeamPlayers} from "./league/cache";
+import {
+  getRoleAutomationConfig,
+  type StoredRoleAutomationConfig,
+} from "./role-automation";
+import type {
+  RoleAutomationCircumstance,
+  RoleAutomationConfig,
+} from "./role-automation-policy";
+import {rosterRoleTarget, type RosterRoleTarget} from "./roster-role-policy";
 import {isRosterRoleReconcileTime} from "./scheduler";
 import type {Env, ScheduledEventLike} from "./types";
+
+interface RosterRoleAssignmentRow {
+  sprocket_player_id: string;
+  discord_user_id: string;
+  circumstance: string;
+  role_id: string;
+}
+
+interface DesiredRole {
+  circumstance: RoleAutomationCircumstance;
+  roleId: string;
+}
 
 function configuredGuildId(env: Env): string | null {
   const value = env.DISCORD_GUILD_ID?.trim() ?? "";
   return /^\d{10,25}$/.test(value) ? value : null;
 }
 
-interface RosterRoleStateRow {
-  sprocket_player_id: string;
-  discord_user_id: string;
-  division_role_id: string | null;
-  captain_managed: number;
+function desiredRoles(
+  target: RosterRoleTarget,
+  mappings: RoleAutomationConfig,
+): DesiredRole[] {
+  const roles: DesiredRole[] = [];
+  const seen = new Set<string>();
+
+  const add = (
+    circumstance: RoleAutomationCircumstance,
+    roleIds: readonly string[],
+  ): void => {
+    for (const roleId of roleIds) {
+      if (seen.has(roleId)) continue;
+      seen.add(roleId);
+      roles.push({circumstance, roleId});
+    }
+  };
+
+  if (target.division) add(target.division, mappings[target.division]);
+  if (target.captain) add("captain", mappings.captain);
+  return roles;
 }
 
-async function getRoleState(env: Env, guildId: string): Promise<RosterRoleStateRow[]> {
+function configuredRosterRoleIds(
+  config: StoredRoleAutomationConfig,
+): Set<string> {
+  return new Set([
+    ...config.mappings.FL,
+    ...config.mappings.AL,
+    ...config.mappings.CL,
+    ...config.mappings.ML,
+    ...config.mappings.captain,
+  ]);
+}
+
+async function getAssignments(
+  env: Env,
+  guildId: string,
+): Promise<RosterRoleAssignmentRow[]> {
   const result = await env.DB.prepare(
-    "SELECT sprocket_player_id, discord_user_id, division_role_id, captain_managed " +
-    "FROM roster_role_state WHERE guild_id = ?",
-  ).bind(guildId).all<RosterRoleStateRow>();
+    `SELECT sprocket_player_id, discord_user_id, circumstance, role_id
+     FROM roster_role_assignments
+     WHERE guild_id = ?`,
+  ).bind(guildId).all<RosterRoleAssignmentRow>();
   return result.results;
 }
 
-async function upsertRoleState(
+async function upsertAssignment(
   env: Env,
   guildId: string,
   target: RosterRoleTarget,
+  desired: DesiredRole,
 ): Promise<void> {
   const result = await env.DB.prepare(
-    "INSERT INTO roster_role_state (" +
-      "guild_id, sprocket_player_id, discord_user_id, division_role_id, captain_managed, updated_at" +
-    ") VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP) " +
-    "ON CONFLICT(guild_id, sprocket_player_id) DO UPDATE SET " +
-      "discord_user_id = excluded.discord_user_id, " +
-      "division_role_id = excluded.division_role_id, " +
-      "captain_managed = excluded.captain_managed, " +
-      "updated_at = CURRENT_TIMESTAMP",
+    `INSERT INTO roster_role_assignments (
+       guild_id, sprocket_player_id, discord_user_id, circumstance, role_id, updated_at
+     ) VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+     ON CONFLICT(guild_id, sprocket_player_id, role_id) DO UPDATE SET
+       discord_user_id = excluded.discord_user_id,
+       circumstance = excluded.circumstance,
+       updated_at = CURRENT_TIMESTAMP`,
   ).bind(
     guildId,
     target.sprocketPlayerId,
     target.discordUserId,
-    target.divisionRoleId,
-    target.captain ? 1 : 0,
+    desired.circumstance,
+    desired.roleId,
   ).run();
 
-  if (!result.success) throw new Error("Failed to persist roster role state.");
+  if (!result.success) throw new Error("Failed to persist roster role assignment.");
 }
 
-async function deleteRoleState(
+async function deleteAssignment(
   env: Env,
   guildId: string,
-  sprocketPlayerId: string,
+  playerId: string,
+  roleId: string,
 ): Promise<void> {
   const result = await env.DB.prepare(
-    "DELETE FROM roster_role_state WHERE guild_id = ? AND sprocket_player_id = ?",
-  ).bind(guildId, sprocketPlayerId).run();
+    `DELETE FROM roster_role_assignments
+     WHERE guild_id = ? AND sprocket_player_id = ? AND role_id = ?`,
+  ).bind(guildId, playerId, roleId).run();
 
-  if (!result.success) throw new Error("Failed to remove stale roster role state.");
+  if (!result.success) throw new Error("Failed to delete stale roster role assignment.");
 }
 
 function roleSet(member: DiscordGuildMember | undefined): Set<string> {
   return new Set(member?.roles ?? []);
 }
 
-async function cleanupManagedRoles(
+async function removeRoleIfPresent(
   env: Env,
   guildId: string,
-  state: RosterRoleStateRow,
+  discordUserId: string,
+  roleId: string,
   member: DiscordGuildMember | undefined,
+  reason: string,
 ): Promise<void> {
-  if (!member?.user?.id) return;
-  const roles = roleSet(member);
-
-  if (state.division_role_id && roles.has(state.division_role_id)) {
-    await removeMemberRole(
-      env,
-      guildId,
-      state.discord_user_id,
-      state.division_role_id,
-      "Hagrid roster transaction cleanup",
-    );
-  }
-
-  if (state.captain_managed === 1 && roles.has(STAFF_ROLE_IDS.RL_CAPTAIN)) {
-    await removeMemberRole(
-      env,
-      guildId,
-      state.discord_user_id,
-      STAFF_ROLE_IDS.RL_CAPTAIN,
-      "Hagrid roster transaction cleanup",
-    );
-  }
-}
-
-async function reconcileCurrentTarget(
-  env: Env,
-  guildId: string,
-  target: RosterRoleTarget,
-  previous: RosterRoleStateRow | undefined,
-  member: DiscordGuildMember | undefined,
-): Promise<void> {
-  // Record the desired state even if the player has not joined the server yet.
-  if (!member?.user?.id || member.pending) {
-    await upsertRoleState(env, guildId, target);
-    return;
-  }
-
-  const roles = roleSet(member);
-
-  if (target.divisionRoleId) {
-    // Competitive players should have exactly one managed division role. This
-    // corrects promotions/demotions even on Hagrid's first reconciliation.
-    for (const divisionRoleId of Object.values(DIVISION_ROLE_IDS)) {
-      if (divisionRoleId === target.divisionRoleId || !roles.has(divisionRoleId)) continue;
-      await removeMemberRole(
-        env,
-        guildId,
-        target.discordUserId,
-        divisionRoleId,
-        "Hagrid roster division reconciliation",
-      );
-      roles.delete(divisionRoleId);
-    }
-
-    if (!roles.has(target.divisionRoleId)) {
-      await addMemberRole(
-        env,
-        guildId,
-        target.discordUserId,
-        target.divisionRoleId,
-        "Hagrid roster division reconciliation",
-      );
-      roles.add(target.divisionRoleId);
-    }
-  } else if (
-    previous?.division_role_id &&
-    roles.has(previous.division_role_id)
-  ) {
-    // A player who becomes non-playing staff loses only the division role that
-    // Hagrid had previously managed. Existing manual staff roles are untouched.
-    await removeMemberRole(
-      env,
-      guildId,
-      target.discordUserId,
-      previous.division_role_id,
-      "Hagrid roster division reconciliation",
-    );
-  }
-
-  if (target.captain) {
-    if (!roles.has(STAFF_ROLE_IDS.RL_CAPTAIN)) {
-      await addMemberRole(
-        env,
-        guildId,
-        target.discordUserId,
-        STAFF_ROLE_IDS.RL_CAPTAIN,
-        "Hagrid roster Captain reconciliation",
-      );
-    }
-  } else if (
-    previous?.captain_managed === 1 &&
-    roles.has(STAFF_ROLE_IDS.RL_CAPTAIN)
-  ) {
-    await removeMemberRole(
-      env,
-      guildId,
-      target.discordUserId,
-      STAFF_ROLE_IDS.RL_CAPTAIN,
-      "Hagrid roster Captain reconciliation",
-    );
-  }
-
-  if (!target.divisionRoleId && !target.captain) {
-    if (previous) await deleteRoleState(env, guildId, target.sprocketPlayerId);
-    return;
-  }
-
-  await upsertRoleState(env, guildId, target);
+  if (!member?.user?.id || !(member.roles ?? []).includes(roleId)) return;
+  await removeMemberRole(env, guildId, discordUserId, roleId, reason);
 }
 
 export async function reconcileRosterRoles(env: Env): Promise<{
   franchise: string;
   targets: number;
-  managed: number;
-  cleaned: number;
+  managedRoles: number;
+  cleanedRoles: number;
 }> {
   const guildId = configuredGuildId(env);
   if (!guildId || !env.DISCORD_BOT_TOKEN) {
-    return {franchise: "", targets: 0, managed: 0, cleaned: 0};
+    return {franchise: "", targets: 0, managedRoles: 0, cleanedRoles: 0};
   }
 
-  const [config, snapshot, members, states] = await Promise.all([
+  const [config, snapshot, members, assignments, automation] = await Promise.all([
     getCachedGuildConfig(env, guildId),
     getCurrentLeagueSnapshot(env),
     listGuildMembers(env, guildId),
-    getRoleState(env, guildId),
+    getAssignments(env, guildId),
+    getRoleAutomationConfig(env, guildId),
   ]);
 
   if (!config || !snapshot) {
     return {
       franchise: config?.franchise_name ?? "",
       targets: 0,
-      managed: 0,
-      cleaned: 0,
+      managedRoles: 0,
+      cleanedRoles: 0,
     };
   }
 
@@ -220,54 +170,100 @@ export async function reconcileRosterRoles(env: Env): Promise<{
       .filter(member => Boolean(member.user?.id))
       .map(member => [member.user!.id!, member]),
   );
-  const stateByPlayer = new Map(states.map(state => [state.sprocket_player_id, state]));
 
   const targets = snapshotTeamPlayers(snapshot, config.franchise_name)
     .map(rosterRoleTarget)
     .filter((target): target is RosterRoleTarget => target !== null);
   const targetByPlayer = new Map(targets.map(target => [target.sprocketPlayerId, target]));
+  const managedRosterRoles = configuredRosterRoleIds(automation);
 
-  let cleaned = 0;
+  let cleanedRoles = 0;
 
-  // Releases, transfers, and Discord-account relinks only remove roles Hagrid
-  // previously recorded as managed. AGM/GM/FM are never part of this state.
-  for (const state of states) {
-    const current = targetByPlayer.get(state.sprocket_player_id);
-    if (current && current.discordUserId === state.discord_user_id) continue;
+  // Remove roles that Hagrid had adopted previously when a player is released,
+  // transferred, relinked, promoted/demoted, or when GM/FM changes a mapping.
+  for (const assignment of assignments) {
+    const target = targetByPlayer.get(assignment.sprocket_player_id);
+    const desired = target
+      ? new Set(desiredRoles(target, automation.mappings).map(value => value.roleId))
+      : new Set<string>();
+    const stillDesired =
+      target &&
+      target.discordUserId === assignment.discord_user_id &&
+      desired.has(assignment.role_id);
 
-    await cleanupManagedRoles(
+    if (stillDesired) continue;
+
+    await removeRoleIfPresent(
       env,
       guildId,
-      state,
-      memberById.get(state.discord_user_id),
+      assignment.discord_user_id,
+      assignment.role_id,
+      memberById.get(assignment.discord_user_id),
+      "Hagrid roster role cleanup",
     );
-    await deleteRoleState(env, guildId, state.sprocket_player_id);
-    stateByPlayer.delete(state.sprocket_player_id);
-    cleaned += 1;
+    await deleteAssignment(
+      env,
+      guildId,
+      assignment.sprocket_player_id,
+      assignment.role_id,
+    );
+    cleanedRoles += 1;
   }
 
-  let managed = 0;
+  let managedRoles = 0;
+
   for (const target of targets) {
-    await reconcileCurrentTarget(
-      env,
-      guildId,
-      target,
-      stateByPlayer.get(target.sprocketPlayerId),
-      memberById.get(target.discordUserId),
-    );
-    if (target.divisionRoleId || target.captain) managed += 1;
+    const member = memberById.get(target.discordUserId);
+    if (!member?.user?.id || member.pending) continue;
+
+    const roles = roleSet(member);
+    const desired = desiredRoles(target, automation.mappings);
+    const desiredIds = new Set(desired.map(value => value.roleId));
+
+    // Once a role ID is configured in this Admin panel it is part of Hagrid's
+    // roster-role domain. Remove stale configured roles even if an older bot or
+    // a human originally assigned them, which makes first-run promotions and
+    // demotions self-healing.
+    for (const roleId of managedRosterRoles) {
+      if (desiredIds.has(roleId) || !roles.has(roleId)) continue;
+      await removeMemberRole(
+        env,
+        guildId,
+        target.discordUserId,
+        roleId,
+        "Hagrid roster role redistribution",
+      );
+      roles.delete(roleId);
+      cleanedRoles += 1;
+    }
+
+    for (const role of desired) {
+      if (!roles.has(role.roleId)) {
+        await addMemberRole(
+          env,
+          guildId,
+          target.discordUserId,
+          role.roleId,
+          "Hagrid roster role reconciliation",
+        );
+        roles.add(role.roleId);
+      }
+
+      await upsertAssignment(env, guildId, target, role);
+      managedRoles += 1;
+    }
   }
 
   console.log(
-    "Roster role reconciliation for " + config.franchise_name + ": " +
-    managed + " managed player(s), " + cleaned + " stale assignment(s) cleaned.",
+    `Roster role reconciliation for ${config.franchise_name}: ` +
+    `${managedRoles} managed role assignment(s), ${cleanedRoles} cleanup(s).`,
   );
 
   return {
     franchise: config.franchise_name,
     targets: targets.length,
-    managed,
-    cleaned,
+    managedRoles,
+    cleanedRoles,
   };
 }
 
