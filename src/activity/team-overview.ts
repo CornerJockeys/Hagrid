@@ -6,7 +6,7 @@ import {
   getCurrentLeagueSnapshot,
   snapshotFranchiseRoleUsages,
 } from "../league/cache";
-import {usagePolicyForDivision, type TeamDivision} from "../league/view";
+import type {TeamDivision} from "../league/view";
 import {applyNcpToRoleUsage} from "../ncp/usage";
 import {buildUsageAlerts} from "../reminders/usage-summary";
 import {easternDate} from "../reminders/logic";
@@ -140,6 +140,7 @@ export async function getTeamOverview(request: Request, env: Env): Promise<Respo
     return {
       division,
       roster_count: roster.length,
+      roster_limit: policy.rosterSlots,
       eligibility: {
         eligible: eligibleCount,
         attention: Math.max(0, roster.length - eligibleCount),
@@ -159,7 +160,7 @@ export async function getTeamOverview(request: Request, env: Env): Promise<Respo
         data_available: divisionUsages.length > 0,
         warning_slots: usageAlerts.length,
         tracked_slots: divisionUsages.length,
-        roster_slots: usagePolicyForDivision(division).rosterSlots,
+        roster_slots: policy.rosterSlots,
         starts_on: S20_USAGE_REPORT_START_DATE,
       },
       availability: {
