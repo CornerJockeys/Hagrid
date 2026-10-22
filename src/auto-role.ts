@@ -1,4 +1,4 @@
-import {roleIdsForCircumstance} from "./role-automation";
+import {roleIdsForCircumstance} from "./role-automation.ts";
 import type {Env, ScheduledEventLike} from "./types";
 
 export const DEFAULT_MEMBER_ACCESS_ROLE_ID = "490569480473149453";
