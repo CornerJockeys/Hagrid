@@ -19,6 +19,7 @@ Hagrid V1 is intentionally limited to the data and workflows that can be built a
 - Scouting calculations and filtered Activity UI
 - hourly Scouting refresh with source-change detection
 - division-scoped FA/PEND pool lookup
+- automatic new-member Discord access-role assignment
 
 Features that depend on Season 20-specific datasets or schemas are deferred to V1+ until those sources are published and can be validated rather than guessed.
 
@@ -136,6 +137,25 @@ The parser currently uses replay-header data rather than full network-frame deco
 `division` is deliberately required. Hagrid will not dump every division's player pool into one Discord response. Supported divisions are FL, AL, CL, ML, and PL.
 
 When `status` is omitted the command includes both FA and PEND players, grouped by status. The pool snapshot is stored separately from HCPB stat rows so a player remains visible even when they do not yet have a usable scouting sample.
+
+## Automatic new-member access role
+
+Hagrid can provide the server's baseline access role to newly joined human members. The default production role is `490569480473149453`; forks can override it with `DISCORD_AUTO_ROLE_ID`.
+
+Because Hagrid runs as a Cloudflare Worker rather than a continuously connected Gateway process, it reconciles new joins on the existing **ten-minute master clock**. It records the last successful scan in D1 and only considers members who joined after that cutoff. This means:
+
+- new human members receive the access role within roughly ten minutes,
+- bots are ignored,
+- existing members who intentionally had the role removed do not get it silently restored,
+- members still completing Discord Membership Screening are held for a later pass,
+- failed role assignments keep the old cutoff so Hagrid retries instead of losing the join.
+
+The first production run establishes a baseline one ten-minute scheduler interval in the past. That catches anyone who joins between deployment and Hagrid's first scan without retroactively assigning the role across the existing server population. If Discord permissions or intents are not ready yet, Hagrid keeps that original cutoff and retries rather than losing those joins.
+
+Discord requirements:
+- enable the Hagrid application's **Server Members Intent**,
+- give Hagrid **Manage Roles** in the server,
+- place Hagrid's bot role above the access role in the Discord role hierarchy.
 
 ## Hagrid Activity
 
@@ -333,6 +353,8 @@ The league and HCPB/pool snapshots still refresh at **:20 past every hour**. The
 
 The live League Rulebook watcher runs once per hour on the **:20** master-clock tick. It checks the public Google Doc, ignores formatting-only equivalents, keeps a last-known-good snapshot in KV/D1, and notifies the configured Discord channel only when accepted rulebook content changes.
 
+The new-member access-role reconciler runs on each ten-minute master-clock tick so newly joined members are not left outside the server's general-access channels for long.
+
 ## Architecture
 
 Initial hosting target:
@@ -342,7 +364,7 @@ Initial hosting target:
 - **Workers KV** — current derived scouting/pool snapshot and source hash used by the Activity and pool lookups
 - **D1** — durable franchise state, history, configuration, availability, reminders, daily scouting history, and sync metadata
 - **R2 (optional)** — source archives/replay retention if later needed
-- **Cron Triggers** — one ten-minute master clock dispatching Monday sync, weekly dumps/reminders, hourly scouting/league refresh, and hourly rulebook checks
+- **Cron Triggers** — one ten-minute master clock dispatching new-member access roles, Monday sync, weekly dumps/reminders, hourly scouting/league refresh, and hourly rulebook checks
 
 Hagrid does not mirror the entire MLE database.
 
@@ -382,6 +404,7 @@ CLOUDFLARE_D1_DATABASE_ID   # workflow otherwise finds/creates a DB named hagrid
 CLOUDFLARE_KV_NAMESPACE_ID   # workflow otherwise finds/creates a KV namespace named hagrid-cache
 HAGRID_BASE_URL             # workflow otherwise derives hagrid.<account>.workers.dev
 HAGRID_SMOKE_FRANCHISE      # defaults to Wizards
+DISCORD_AUTO_ROLE_ID         # optional; defaults to 490569480473149453
 ```
 
 For a completely new Cloudflare deployment, the API token must have permission to create/deploy the Worker and create/manage D1. Once those resources exist, the token can be narrowed if desired.
@@ -396,7 +419,8 @@ Before launching the Activity in Discord:
 2. Set the application's **Interactions Endpoint URL** to `https://<hagrid-host>/interactions`.
 3. Add an Activity URL Mapping for `/` to the deployed Hagrid host.
 4. Confirm the OAuth/application settings expose the Activity scopes used by Hagrid (`identify`, `applications.commands`, and `guilds.members.read`).
-5. Invite/install the application in the test server if it is not there already.
+5. Enable the **Server Members Intent** on the Bot page so scheduled new-member reconciliation can list server members.
+6. Invite/install the application in the test server if it is not there already, grant **Manage Roles**, and keep Hagrid's bot role above the configured access role.
 
 The deploy workflow prints the resolved Hagrid workers.dev URL so the portal mapping can be filled in after the first deployment.
 
@@ -475,6 +499,7 @@ Implemented through **Pass 3 wiring**:
 - automated live-source smoke validation
 - production D1 provisioning/migrations
 - production Worker/Activity deployment workflow
+- automatic new-member baseline access role reconciliation
 - deployed `/health` + `/ready` smoke validation
 
 Live-source validation currently confirms the Wizards source path resolves a current six-player franchise roster with linked Discord IDs and competitive slots, plus current role usage, standings, FA/PEND identities, and 984 usable scouting rows.

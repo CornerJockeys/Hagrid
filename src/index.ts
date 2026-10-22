@@ -1,4 +1,5 @@
 import {handleActivityApi} from "./activity/http";
+import {runScheduledAutoRole} from "./auto-role";
 import {handleFranchiseCommand} from "./commands/franchise";
 import {handleFaCommand, handleFaComponent} from "./commands/pool";
 import {handlePlayerAutocomplete, handlePlayerCommand} from "./commands/player";
@@ -170,6 +171,7 @@ export default {
       runScheduledLeagueRefresh(env, event),
       runScheduledReminders(env, event),
       runScheduledRulebookWatch(env, event),
+      runScheduledAutoRole(env, event),
     ]));
   },
 };

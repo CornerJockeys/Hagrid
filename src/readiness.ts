@@ -13,6 +13,7 @@ const REQUIRED_TABLES = [
   "league_scrim_stats_current",
   "player_profile_metadata",
   "ncp_records",
+  "auto_role_state",
 ] as const;
 
 interface TableRow {
