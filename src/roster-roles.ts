@@ -1,5 +1,6 @@
 import {getCachedGuildConfig} from "./config-cache";
 import {DIVISION_ROLE_IDS, STAFF_ROLE_IDS} from "./discord-roles";
+import {rosterRoleTarget, type RosterRoleTarget} from "./roster-role-policy";
 import {
   addMemberRole,
   listGuildMembers,
@@ -16,45 +17,6 @@ interface RosterRoleStateRow {
   discord_user_id: string;
   division_role_id: string | null;
   captain_managed: number;
-}
-
-export interface RosterRoleTarget {
-  sprocketPlayerId: string;
-  discordUserId: string;
-  divisionRoleId: string | null;
-  captain: boolean;
-}
-
-function configuredGuildId(env: Env): string | null {
-  const value = env.DISCORD_GUILD_ID?.trim() ?? "";
-  return /^\d{10,25}$/.test(value) ? value : null;
-}
-
-export function isCaptainPosition(value: string | null): boolean {
-  if (!value) return false;
-  const normalized = value.trim().toLocaleLowerCase("en-US");
-  return /(^|\b)(captain|capt)(\b|$)/.test(normalized);
-}
-
-export function rosterRoleTarget(player: {
-  sprocket_player_id: string;
-  discord_id: string | null;
-  skill_group: string | null;
-  staff_position: string | null;
-  slot: string | null;
-}): RosterRoleTarget | null {
-  const discordUserId = player.discord_id?.trim() ?? "";
-  if (!/^\d{10,25}$/.test(discordUserId)) return null;
-
-  const competitive = isCompetitiveSlot(player.slot);
-  const division = competitive ? teamDivision(player.skill_group) : null;
-
-  return {
-    sprocketPlayerId: player.sprocket_player_id,
-    discordUserId,
-    divisionRoleId: division ? DIVISION_ROLE_IDS[division] : null,
-    captain: competitive && isCaptainPosition(player.staff_position),
-  };
 }
 
 async function getRoleState(env: Env, guildId: string): Promise<RosterRoleStateRow[]> {
