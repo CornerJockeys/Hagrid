@@ -373,9 +373,10 @@ Waivers
 
    9. Teams are given a Priority Order for waiver claims according to criteria that differ based on the current point in the season.
    1. For all leagues, the following waiver claim order shall be
-   1. Match Week 4: Starts Inverse Combined Standings
-   2. Match Week 6: Starts Inverse Combined Standings
-   3. Match Week 8: Starts Inverse Combined Standings
+   1. Match Week 1: Starts Inverse Draft Order
+   2. Match Week 4: Starts Inverse Combined Standings
+   3. Match Week 6: Starts Inverse Combined Standings
+   4. Match Week 8: Starts Inverse Combined Standings
    2. Ties will be broken using the Draft/Waivers tiebreakers. Starting at rule 1.12.
    3. If a team makes a successful waiver claim, they will be sent to the end of the Priority Order until the next time waivers are reset according to rule 5.8.1
 
