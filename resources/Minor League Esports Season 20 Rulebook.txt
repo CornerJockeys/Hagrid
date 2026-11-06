@@ -766,7 +766,6 @@ League Operations
 
          18. Restricted Free Agent — (RFA) a Free Agent who is prohibited from signing with a new team for a certain period of time, referred to as a “cooldown”. Upon RFA status ending, players will be entered into Waivers.
          1. The RFA cooldown is 4 weeks. One week elapses after each New Week Deadline.
-         2. Players with an active RFA status will receive a scrim ban until the RFA status resolves.
 
 
          19. Roster Lock — The time at which voluntary roster moves cannot be requested without League Operations approval.
