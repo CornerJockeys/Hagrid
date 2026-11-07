@@ -434,7 +434,7 @@ General
    2. Players are required to join the correct team.
    3. Players may not leave the field of play to swap kickoff positions.
    4. Lobby settings must be default, with no mutators and no bots.
-   5. All series must be played on US East servers.
+   5. All match series and scrims must be played on US East servers.
    1. The server may be changed to US Central (or another region) only with the agreement of both teams. Any agreed change must be discussed and confirmed in the League Operations scheduling channels.
    2. If a lobby is found to be on a server other than the one agreed upon or default, the game must still be played out and then reported to the mailbox. The GM of the offending team will receive a zero-point warning for the first offense.
    6. Lobby details should include at least one unique identifier in the name or password.
