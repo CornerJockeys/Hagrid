@@ -1,4 +1,4 @@
-import {parseCsv, type CsvRecord} from "./csv";
+import {parseCsv, type CsvRecord} from "./csv.ts";
 import type {Env} from "../types";
 
 // The public repository builds datasets under public/data, but the live CDN currently
