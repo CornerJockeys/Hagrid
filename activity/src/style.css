@@ -704,7 +704,10 @@ select:focus, input:focus { border-color: #7b838f; }
   overflow: hidden;
   color: #9098a3;
   font-size: 10px;
+  font-weight: 500;
+  letter-spacing: normal;
   text-overflow: ellipsis;
+  text-transform: none;
   white-space: nowrap;
 }
 .overview-slot-usage-modes {
