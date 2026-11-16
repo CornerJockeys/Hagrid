@@ -230,7 +230,7 @@ export function mountStatsPanel(panel: HTMLElement, api: StatsApi, setStatus: St
       return;
     }
 
-    const secondaryMetric = source === "matches" ? "GPI" : "Sprocket";
+    const secondaryMetric = "Sprocket";
     const body = data.rows.flatMap(player => {
       const lines = player.stats.length > 0 ? player.stats : [null];
       return lines.map((stat, index) => {
@@ -249,7 +249,7 @@ export function mountStatsPanel(panel: HTMLElement, api: StatsApi, setStatus: St
             <td>${stat ? escapeHtml(modeLabel(stat.mode)) : "—"}</td>
             <td class="numeric">${stat?.games ?? "—"}</td>
             <td class="numeric">${stat ? percent(stat.win_pct) : "—"}</td>
-            <td class="numeric">${stat ? number(source === "matches" ? stat.gpi : stat.sprocket) : "—"}</td>
+            <td class="numeric">${stat ? number(stat.sprocket) : "—"}</td>
             <td class="numeric">${stat ? number(stat.opi) : "—"}</td>
             <td class="numeric">${stat ? number(stat.dpi) : "—"}</td>
             <td class="numeric">${stat ? number(stat.score) : "—"}</td>
