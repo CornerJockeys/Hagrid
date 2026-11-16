@@ -125,9 +125,9 @@ export function buildUsageAlerts(
 }
 
 
-export interface HighUsagePlayer {
+export interface UsagePlayer {
   slot: string;
-  player: FranchisePlayer | null;
+  player: FranchisePlayer;
   doublesUses: number;
   doublesLimit: number;
   doublesRemaining: number;
@@ -137,33 +137,61 @@ export interface HighUsagePlayer {
   totalUses: number;
   combinedLimit: number;
   combinedRemaining: number;
+  highUsage: boolean;
 }
 
-export function buildHighUsagePlayers(
+export function buildUsagePlayers(
   division: TeamDivision,
   players: FranchisePlayer[],
   usages: RoleUsage[],
-): HighUsagePlayer[] {
-  const roster = players.filter(player =>
-    player.slot &&
-    /^PLAYER[A-Z0-9]+$/i.test(player.slot.trim()) &&
-    normalizeDivision(player.skillGroup) === division,
+): UsagePlayer[] {
+  const roster = players
+    .filter(player =>
+      player.slot &&
+      /^PLAYER[A-Z0-9]+$/i.test(player.slot.trim()) &&
+      normalizeDivision(player.skillGroup) === division,
+    )
+    .sort((a, b) =>
+      slotSortLabel(a.slot ?? "").localeCompare(
+        slotSortLabel(b.slot ?? ""),
+        "en-US",
+        {numeric: true},
+      ) ||
+      a.name.localeCompare(b.name),
+    );
+
+  const usageBySlot = new Map(
+    usages
+      .filter(usage => normalizeDivision(usage.league) === division)
+      .map(usage => [roleKey(usage.role), usage]),
   );
-  const bySlot = new Map(roster.map(player => [roleKey(player.slot), player]));
   const extendedFl = division === "FL" && flFiveSlotUsageActive(
     roster.map(player => ({slot: player.slot, skillGroup: player.skillGroup})),
     usages,
   );
   const policy = usagePolicyForDivision(division, extendedFl);
 
-  return usages
-    .filter(usage => normalizeDivision(usage.league) === division)
-    .map(usage => {
-      const slot = roleKey(usage.role);
+  return roster
+    .map(player => {
+      const slot = roleKey(player.slot);
+      const usage = usageBySlot.get(slot) ?? {
+        doublesUses: 0,
+        standardUses: 0,
+        totalUses: 0,
+        seasonNumber: 20,
+        teamName: player.franchise,
+        league: player.skillGroup ?? division,
+        role: slot,
+        sourceAsOf: null,
+      };
       const remaining = effectiveRemaining(usage, division, extendedFl);
+      const highUsage =
+        remaining.doubles <= 2 ||
+        remaining.standard <= 2;
+
       return {
         slot,
-        player: bySlot.get(slot) ?? null,
+        player,
         doublesUses: usage.doublesUses,
         doublesLimit: policy.doublesLimit,
         doublesRemaining: remaining.doubles,
@@ -173,15 +201,26 @@ export function buildHighUsagePlayers(
         totalUses: usage.totalUses,
         combinedLimit: policy.combinedLimit,
         combinedRemaining: remaining.combined,
+        highUsage,
       };
     })
-    .filter(value =>
-      value.player !== null &&
-      (value.doublesRemaining <= 2 || value.standardRemaining <= 2),
-    )
     .sort((a, b) =>
-      Math.min(a.doublesRemaining, a.standardRemaining) -
-        Math.min(b.doublesRemaining, b.standardRemaining) ||
+      Number(b.highUsage) - Number(a.highUsage) ||
+      (a.highUsage && b.highUsage
+        ? Math.min(a.doublesRemaining, a.standardRemaining) -
+          Math.min(b.doublesRemaining, b.standardRemaining)
+        : 0) ||
       slotSortLabel(a.slot).localeCompare(slotSortLabel(b.slot), "en-US", {numeric: true}),
     );
+}
+
+export type HighUsagePlayer = UsagePlayer;
+
+export function buildHighUsagePlayers(
+  division: TeamDivision,
+  players: FranchisePlayer[],
+  usages: RoleUsage[],
+): HighUsagePlayer[] {
+  return buildUsagePlayers(division, players, usages)
+    .filter(value => value.highUsage);
 }
