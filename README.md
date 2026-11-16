@@ -97,7 +97,7 @@ Sprocket's public schedule and Season 20 stat publications now provide the share
 
 Hagrid's **Stats** tab now opens on official Season 20 Match Stats. It aggregates the per-game rows by player and mode while preserving participation rather than assuming a player appeared in every game of a series. Clicking a player opens their individual 2s/3s series history with opponent, result, games actually played, GPI/OPI/DPI, score, and box-score totals. The Scrims toggle remains available for current scrim performance. The Discord `/player stats:Game` path uses the same official S20 source.
 
-The official `role_usages` publication remains the source of truth for slot usage. Team Overview surfaces roster capacity as **Slots** and adds **High Usage**: a player appears when they have **2 or fewer uses remaining in either 2s or 3s**, and the drill-down shows their 2s/3s/combined used, maximum, and remaining values.
+The official `role_usages` publication remains the source of truth for slot usage. Team Overview surfaces roster capacity as **Slots** and includes a **High Usage** section that lists every current roster slot's separate 2s and 3s used/max values. Players with **2 or fewer uses remaining in either 2s or 3s** are marked High Usage and pinned to the top; all other players follow in normal slot order. Clicking the section opens the full 2s/3s/combined used, maximum, and remaining drill-down.
 
 Remaining shared match-data work:
 - **Playoff eligibility:** the S20 stat source now contains per-game participation, so Hagrid can eventually count the 15-game requirement accurately, including mid-series substitutions. The special NCP playoff-credit exception still needs to be reconciled with approved NCP records rather than inferred.
@@ -228,7 +228,8 @@ The existing MLE division/Captain IDs are prefilled as defaults. Former Player a
 Each visible divisional card summarizes:
 
 - current-week eligibility and how many players need attention,
-- role usage once Season 20 usage reporting begins,
+- roster capacity under **Slots**,
+- per-slot 2s/3s usage under **High Usage**, with near-limit players pinned first,
 - Team Salary, salary cap, and plain numeric cap space (including negative values),
 - current-week availability submissions and missing players.
 
