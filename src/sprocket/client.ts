@@ -180,9 +180,9 @@ export async function fetchCsvDatasetCandidates(
 ): Promise<CsvRecord[]> {
   const bases = [
     env.SPROCKET_DATASET_BASE_URL,
-    DEFAULT_PUBLIC_QUERY_DATASET_BASE_URL,
     env.SPROCKET_LEGACY_DATASET_BASE_URL,
     DEFAULT_LEGACY_DATASET_BASE_URL,
+    DEFAULT_PUBLIC_QUERY_DATASET_BASE_URL,
   ]
     .filter((value): value is string => Boolean(value?.trim()))
     .map(value => value.replace(/\/+$/, ""));
