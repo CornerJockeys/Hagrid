@@ -17,7 +17,7 @@ function slotSortLabel(value: string): string {
 }
 
 function effectiveRemaining(
-  usage: RoleUsage,
+  usage: Pick<RoleUsage, "doublesUses" | "standardUses" | "totalUses">,
   division: TeamDivision,
   flFiveSlotActive = false,
 ): {doubles: number; standard: number; combined: number} {
@@ -174,7 +174,7 @@ export function buildSlotUsagePlayers(
           doublesUses: usage.doublesUses,
           standardUses: usage.standardUses,
           totalUses: usage.totalUses,
-        } as RoleUsage,
+        },
         division,
         extendedFl,
       );
