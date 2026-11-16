@@ -51,8 +51,10 @@ const match = {
 
 test("match mode normalization handles Sprocket descriptions and codes", () => {
   assert.equal(normalizeMatchMode("Doubles"), "2s");
+  assert.equal(normalizeMatchMode("RL_DOUBLES"), "2s");
   assert.equal(normalizeMatchMode("2v2"), "2s");
   assert.equal(normalizeMatchMode("Standard"), "3s");
+  assert.equal(normalizeMatchMode("RL_STANDARD"), "3s");
   assert.equal(normalizeMatchMode("3s"), "3s");
   assert.equal(normalizeMatchMode("Hoops"), null);
 });
