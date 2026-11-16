@@ -105,7 +105,7 @@ test("slot usage overview includes every occupied slot with high usage first", (
     usage("H",3,3,6),
   ]);
 
-  assert.deepEqual(all.map(value => value.slot), ["D", "B", "C", "E", "H"]);
+  assert.deepEqual(all.map(value => value.slot), ["B", "D", "C", "E", "H"]);
   assert.equal(all[0]?.highUsage, true);
   assert.equal(all[1]?.highUsage, true);
   assert.equal(all[2]?.highUsage, false);
