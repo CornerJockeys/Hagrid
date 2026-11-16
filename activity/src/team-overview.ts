@@ -288,8 +288,14 @@ export function mountTeamOverviewPanel(
                 <span>${escapeHtml(player.name)}</span>
               </div>
               <div class="overview-slot-usage-modes">
-                <span>2s <strong>${player.doubles.used}/${player.doubles.limit}</strong></span>
-                <span>3s <strong>${player.standard.used}/${player.standard.limit}</strong></span>
+                <div class="overview-slot-usage-mode usage-2s">
+                  <span>2s</span>
+                  <strong>${player.doubles.used}/${player.doubles.limit}</strong>
+                </div>
+                <div class="overview-slot-usage-mode usage-3s">
+                  <span>3s</span>
+                  <strong>${player.standard.used}/${player.standard.limit}</strong>
+                </div>
               </div>
             </div>`).join("")
         : "";
