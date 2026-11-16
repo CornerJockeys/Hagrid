@@ -97,7 +97,8 @@ export function normalizeMatchMode(value: string | null): MatchStatMode | null {
     normalized === "2s" ||
     normalized === "2v2" ||
     normalized === "doubles" ||
-    normalized === "double"
+    normalized === "double" ||
+    normalized === "rl_doubles"
   ) {
     return "2s";
   }
@@ -105,7 +106,8 @@ export function normalizeMatchMode(value: string | null): MatchStatMode | null {
     normalized === "3s" ||
     normalized === "3v3" ||
     normalized === "standard" ||
-    normalized === "standard3v3"
+    normalized === "standard3v3" ||
+    normalized === "rl_standard"
   ) {
     return "3s";
   }
