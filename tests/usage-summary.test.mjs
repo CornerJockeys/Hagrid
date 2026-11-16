@@ -67,7 +67,7 @@ test("High Usage includes players with two or fewer mode uses remaining", () => 
   const high = buildHighUsagePlayers("ML", players, [
     usage("B",4,4,8),
     usage("C",3,5,8),
-    usage("D",2,5,7),
+    usage("D",2,6,8),
   ]);
   const bySlot = new Map(high.map(value => [value.slot, value]));
 
