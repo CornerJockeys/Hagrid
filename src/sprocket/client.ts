@@ -9,6 +9,8 @@ const DEFAULT_DATASET_BASE_URL =
   "https://sprocket-public-datasets.nyc3.cdn.digitaloceanspaces.com/datasets";
 const DEFAULT_LEGACY_DATASET_BASE_URL =
   "https://sprocket-public-datasets.nyc3.cdn.digitaloceanspaces.com/datasets";
+const DEFAULT_PUBLIC_QUERY_DATASET_BASE_URL =
+  "https://sprocket-public-datasets.nyc3.cdn.digitaloceanspaces.com/datasets/public/data";
 
 export class DatasetFetchError extends Error {
   readonly dataset: string;
@@ -161,5 +163,54 @@ export async function fetchLegacyCsvDataset(env: Env, dataset: string): Promise<
   return fetchCsvAtBase(
     dataset,
     env.SPROCKET_LEGACY_DATASET_BASE_URL ?? DEFAULT_LEGACY_DATASET_BASE_URL,
+  );
+}
+
+
+/**
+ * Fetch one of Sprocket's query-directory publications.
+ *
+ * The datasets repository publishes these under /public/data/<path>.csv while
+ * some production/legacy mirrors expose the same file from the root dataset
+ * path. Try both forms so Hagrid is not coupled to one publication layout.
+ */
+export async function fetchCsvDatasetCandidates(
+  env: Env,
+  datasets: readonly string[],
+): Promise<CsvRecord[]> {
+  const bases = [
+    env.SPROCKET_DATASET_BASE_URL,
+    DEFAULT_PUBLIC_QUERY_DATASET_BASE_URL,
+    env.SPROCKET_LEGACY_DATASET_BASE_URL,
+    DEFAULT_LEGACY_DATASET_BASE_URL,
+  ]
+    .filter((value): value is string => Boolean(value?.trim()))
+    .map(value => value.replace(/\/+$/, ""));
+
+  const uniqueBases = [...new Set(bases)];
+  let lastError: unknown = null;
+
+  for (const dataset of datasets) {
+    validateDatasetPath(dataset);
+    for (const base of uniqueBases) {
+      try {
+        return await fetchCsvAtBase(dataset, base);
+      } catch (error) {
+        lastError = error;
+        if (
+          error instanceof DatasetFetchError &&
+          error.status !== null &&
+          ![403, 404].includes(error.status)
+        ) {
+          throw error;
+        }
+      }
+    }
+  }
+
+  if (lastError instanceof Error) throw lastError;
+  throw new DatasetFetchError(
+    datasets.join(" | "),
+    "No Sprocket dataset candidate could be loaded.",
   );
 }
