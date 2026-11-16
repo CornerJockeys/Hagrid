@@ -14,6 +14,21 @@ export type TeamOverviewStatus = (
 
 type Division = "FL" | "AL" | "CL" | "ML";
 
+interface UsageBand {
+  used: number;
+  limit: number;
+  remaining: number;
+}
+
+interface HighUsagePlayer {
+  sprocket_player_id: string | null;
+  name: string;
+  slot: string;
+  doubles: UsageBand;
+  standard: UsageBand;
+  combined: UsageBand;
+}
+
 interface TeamOverviewRow {
   division: Division;
   roster_count: number;
@@ -29,13 +44,16 @@ interface TeamOverviewRow {
     counted_players: number;
     salary_player_limit: number;
   };
-  usage: {
+  slots: {
+    filled: number;
+    limit: number;
+    open: number;
+  };
+  high_usage: {
     active: boolean;
     data_available: boolean;
-    warning_slots: number;
-    tracked_slots: number;
-    roster_slots: number;
     starts_on: string;
+    players: HighUsagePlayer[];
   };
   availability: {
     week_start: string;
@@ -76,6 +94,10 @@ function shortDate(value: string): string {
     day: "numeric",
     timeZone: "UTC",
   }).format(date);
+}
+
+function usageLine(label: string, value: UsageBand): string {
+  return `${label} ${value.used}/${value.limit} · ${value.remaining} left`;
 }
 
 export function mountTeamOverviewPanel(
@@ -123,10 +145,74 @@ export function mountTeamOverviewPanel(
         <div id="combined-my-availability"></div>
         <div id="combined-team-availability"></div>
       </div>
-    </section>`;
+    </section>
+    <div id="high-usage-modal"></div>`;
 
   const cards = panel.querySelector<HTMLElement>("#team-overview-cards");
-  if (!cards) return;
+  const modalRoot = panel.querySelector<HTMLElement>("#high-usage-modal");
+  if (!cards || !modalRoot) return;
+
+  const closeHighUsage = (): void => {
+    modalRoot.innerHTML = "";
+    document.body.classList.remove("modal-open");
+  };
+
+  const openHighUsage = (team: TeamOverviewRow): void => {
+    const status = !team.high_usage.active
+      ? `Usage tracking begins ${shortDate(team.high_usage.starts_on)}.`
+      : !team.high_usage.data_available
+        ? "Hagrid is awaiting current slot-usage data for this team."
+        : team.high_usage.players.length === 0
+          ? "No players are within two uses of a 2s or 3s maximum."
+          : "";
+
+    const rows = team.high_usage.players.map(player => `
+      <div class="usage-detail-player">
+        <div class="usage-detail-player-heading">
+          <strong>${escapeHtml(player.name)}</strong>
+          <span>Slot ${escapeHtml(player.slot)}</span>
+        </div>
+        <div class="usage-detail-grid">
+          <div class="detail-metric">
+            <span>2s</span>
+            <strong>${player.doubles.used}/${player.doubles.limit}</strong>
+            <small>${player.doubles.remaining} remaining</small>
+          </div>
+          <div class="detail-metric">
+            <span>3s</span>
+            <strong>${player.standard.used}/${player.standard.limit}</strong>
+            <small>${player.standard.remaining} remaining</small>
+          </div>
+          <div class="detail-metric">
+            <span>Combined</span>
+            <strong>${player.combined.used}/${player.combined.limit}</strong>
+            <small>${player.combined.remaining} remaining</small>
+          </div>
+        </div>
+      </div>`).join("");
+
+    modalRoot.innerHTML = `
+      <div class="prospect-modal" role="dialog" aria-modal="true" aria-label="${team.division} high usage">
+        <button class="modal-backdrop" data-close-high-usage aria-label="Close"></button>
+        <div class="prospect-modal-card usage-modal-card">
+          <div class="modal-heading">
+            <div>
+              <div class="eyebrow">${escapeHtml(overview?.franchise ?? "")} · ${team.division}</div>
+              <h2>High Usage</h2>
+              <p class="usage-modal-help">Players appear here when they have two or fewer uses remaining in either 2s or 3s.</p>
+            </div>
+            <button class="icon-button" data-close-high-usage aria-label="Close">×</button>
+          </div>
+          ${status
+            ? `<div class="notice-card"><p>${escapeHtml(status)}</p></div>`
+            : `<div class="usage-detail-list">${rows}</div>`}
+        </div>
+      </div>`;
+    document.body.classList.add("modal-open");
+    modalRoot.querySelectorAll<HTMLElement>("[data-close-high-usage]").forEach(element => {
+      element.addEventListener("click", closeHighUsage);
+    });
+  };
 
   const mountEligibility = (): void => {
     if (eligibilityMounted) return;
@@ -134,8 +220,6 @@ export function mountTeamOverviewPanel(
     const playerRoot = panel.querySelector<HTMLElement>("#combined-player-eligibility");
     if (!teamRoot || !playerRoot) return;
     mountTeamEligibilityPanel(teamRoot, api, setStatus);
-    // Every roster member can browse the eligibility of players in the team(s)
-    // exposed by the backend. The backend remains authoritative for scope.
     mountEligibilityPanel(playerRoot, api, setStatus, true, ownPlayerId);
     eligibilityMounted = true;
   };
@@ -189,13 +273,21 @@ export function mountTeamOverviewPanel(
     }
 
     cards.innerHTML = overview.teams.map(team => {
-      const usageText = !team.usage.active
-        ? `Begins ${shortDate(team.usage.starts_on)}`
-        : !team.usage.data_available
+      const highUsageText = !team.high_usage.active
+        ? `Begins ${shortDate(team.high_usage.starts_on)}`
+        : !team.high_usage.data_available
           ? "Awaiting usage data"
-          : team.usage.warning_slots === 0
-            ? "No slots near limits"
-            : `${team.usage.warning_slots} slot${team.usage.warning_slots === 1 ? "" : "s"} near limits`;
+          : team.high_usage.players.length === 0
+            ? "No players near mode limits"
+            : team.high_usage.players
+              .map(player => player.name)
+              .slice(0, 3)
+              .join(", ") +
+              (team.high_usage.players.length > 3 ? ` +${team.high_usage.players.length - 3}` : "");
+      const slotsText = team.slots.open === 0
+        ? "Roster full"
+        : `${team.slots.open} open slot${team.slots.open === 1 ? "" : "s"}`;
+
       return `
         <article class="team-overview-card">
           <div class="team-overview-card-title">
@@ -209,10 +301,15 @@ export function mountTeamOverviewPanel(
               <small>${team.eligibility.attention === 0 ? "Everyone eligible" : `${team.eligibility.attention} need attention`}</small>
             </button>
             <div>
-              <span>Usage</span>
-              <strong>${team.usage.active && team.usage.data_available ? `${team.usage.tracked_slots}/${team.usage.roster_slots}` : "—"}</strong>
-              <small>${escapeHtml(usageText)}</small>
+              <span>Slots</span>
+              <strong>${team.slots.filled}/${team.slots.limit}</strong>
+              <small>${escapeHtml(slotsText)}</small>
             </div>
+            <button class="team-high-usage" data-open-high-usage="${team.division}">
+              <span>High Usage</span>
+              <strong>${team.high_usage.active && team.high_usage.data_available ? team.high_usage.players.length : "—"}</strong>
+              <small>${escapeHtml(highUsageText)}</small>
+            </button>
             <div>
               <span>Team Salary</span>
               <strong>${number(team.salary.team_salary)} / ${number(team.salary.cap)}</strong>
@@ -229,6 +326,13 @@ export function mountTeamOverviewPanel(
 
     cards.querySelectorAll<HTMLButtonElement>("[data-open-team-page]").forEach(button => {
       button.addEventListener("click", () => switchPage(button.dataset.openTeamPage ?? "overview"));
+    });
+    cards.querySelectorAll<HTMLButtonElement>("[data-open-high-usage]").forEach(button => {
+      button.addEventListener("click", () => {
+        const division = button.dataset.openHighUsage as Division | undefined;
+        const team = overview?.teams.find(value => value.division === division);
+        if (team) openHighUsage(team);
+      });
     });
   };
 
@@ -252,6 +356,9 @@ export function mountTeamOverviewPanel(
     button.addEventListener("click", () => switchPage(button.dataset.teamPage ?? "overview"));
   });
   panel.querySelector("#team-overview-refresh")?.addEventListener("click", () => void load());
+  panel.addEventListener("keydown", event => {
+    if (event.key === "Escape" && modalRoot.innerHTML) closeHighUsage();
+  });
 
   void load();
 }
