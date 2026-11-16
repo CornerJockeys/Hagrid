@@ -9,15 +9,23 @@ import {
 } from "../league/cache";
 import {getCachedScoutingSnapshot} from "../scouting/cache";
 import {
+  flFiveSlotUsageActive,
   formatEasternTimestamp,
   formatSalary,
   remainingUsage,
   slotLabel,
   teamDivision,
   usageForPlayer,
+  usagePolicyForDivision,
 } from "../league/view";
 import {CURRENT_MLE_SEASON, SCRIM_STATS_START_DATE} from "../season-policy";
 import {applyNcpToLeagueUsage} from "../ncp/usage";
+import {
+  aggregateMatchStatLines,
+  getScheduleMatches,
+  getSeason20PlayerMatchGames,
+  type MatchStatLine,
+} from "../sprocket/match-stats";
 import {getRocketLeaguePlayers} from "../sprocket/players";
 import {getProspectIdentities, getScoutingStatLines} from "../sprocket/scouting";
 import {getFranchiseRoleUsagesForSeason} from "../sprocket/role-usages";
@@ -68,6 +76,15 @@ function scrimLine(stat: LeagueScrimStatRow): string[] {
     `G ${metric(stat.goals)} · A ${metric(stat.assists)} · Sv ${metric(stat.saves)} · Sh ${metric(stat.shots)} · Demos ${metric(stat.demos)}`,
   ];
 }
+
+function gameLine(stat: MatchStatLine): string[] {
+  return [
+    `**${stat.mode} — ${stat.games} games**`,
+    `GPI ${metric(stat.gpi)} · OPI ${metric(stat.opi)} · DPI ${metric(stat.dpi)} · Win ${pct(stat.winPct)}`,
+    `Score ${metric(stat.score)} · G ${metric(stat.goals)} · A ${metric(stat.assists)} · Sv ${metric(stat.saves)} · Sh ${metric(stat.shots)} · Demos ${metric(stat.demos)}`,
+  ];
+}
+
 
 function profileLines(player: LeaguePlayerRow, weekStart: string, rostered: boolean): string[] {
   const division = teamDivision(player.skill_group) ?? player.skill_group ?? "Unknown division";
@@ -227,9 +244,19 @@ async function fetchAndRespond(
         const usage = usageForPlayer(player, usages);
         if (usage) {
           const division = teamDivision(player.skill_group)!;
-          const remaining = remainingUsage(usage, division);
+          const extendedFl = division === "FL" && flFiveSlotUsageActive(
+            current.players
+              .filter(value =>
+                current.rosteredIds.has(value.sprocket_player_id) &&
+                value.franchise_name.localeCompare(player.franchise_name, "en-US", {sensitivity: "base"}) === 0
+              )
+              .map(value => ({slot: value.slot, skill_group: value.skill_group})),
+            usages,
+          );
+          const policy = usagePolicyForDivision(division, extendedFl);
+          const remaining = remainingUsage(usage, division, extendedFl);
           lines.push(
-            `Current slot usage: 2s ${usage.doubles_uses}/6 (${remaining.doubles} left) · 3s ${usage.standard_uses}/8 (${remaining.standard} left) · total ${usage.total_uses}/12${remaining.combined === 0 ? " · ⛔ exhausted" : ""}`,
+            `Current slot usage: 2s ${usage.doubles_uses}/${policy.doublesLimit} (${remaining.doubles} left) · 3s ${usage.standard_uses}/${policy.standardLimit} (${remaining.standard} left) · total ${usage.total_uses}/${policy.combinedLimit} (${remaining.combined} left)${remaining.combined === 0 ? " · ⛔ exhausted" : ""}`,
           );
         } else {
           lines.push(`Current slot usage: no S${CURRENT_MLE_SEASON} usage recorded for this slot.`);
@@ -239,10 +266,28 @@ async function fetchAndRespond(
 
     lines.push("");
     if (stats === "Game") {
-      lines.push(
-        `**S${CURRENT_MLE_SEASON} Game Stats**`,
-        `Awaiting the S${CURRENT_MLE_SEASON} official player game-stat dataset. Older-season game data is intentionally not used.`,
-      );
+      lines.push(`**S${CURRENT_MLE_SEASON} Game Stats**`);
+      if (!player.member_id) {
+        lines.push("This player does not have a Sprocket member ID linked to their current profile.");
+      } else {
+        const [matchGames, matches] = await Promise.all([
+          getSeason20PlayerMatchGames(env),
+          getScheduleMatches(env),
+        ]);
+        const selected = aggregateMatchStatLines(
+          matchGames.filter(game => game.memberId === player.member_id),
+          matches,
+        ).filter(stat => mode === "Both" || stat.mode === mode);
+
+        if (selected.length === 0) {
+          lines.push(`No ${mode === "Both" ? "2s/3s" : mode} Season 20 match stats were found for this player.`);
+        } else {
+          for (const stat of selected) {
+            lines.push(...gameLine(stat), "");
+          }
+          if (lines.at(-1) === "") lines.pop();
+        }
+      }
     } else {
       let scrimStats: LeagueScrimStatRow[] = [];
       if (rostered && current.leagueSnapshot) {

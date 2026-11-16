@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  flFiveSlotUsageActive,
   formatSalary,
   isCompetitiveSlot,
   remainingUsage,
@@ -56,12 +57,18 @@ test("usage resolves by current division and slot", () => {
 });
 
 
-test("S20 usage policy applies FL four-slot and expanded usage rules", () => {
+test("S20 usage policy keeps four-slot FL limits but reduces usage when slot E is active", () => {
   assert.deepEqual(usagePolicyForDivision("FL"), {
-    rosterSlots: 4,
+    rosterSlots: 5,
     doublesLimit: 6,
     standardLimit: 9,
     combinedLimit: 15,
+  });
+  assert.deepEqual(usagePolicyForDivision("FL", true), {
+    rosterSlots: 5,
+    doublesLimit: 6,
+    standardLimit: 8,
+    combinedLimit: 12,
   });
   assert.deepEqual(usagePolicyForDivision("CL"), {
     rosterSlots: 8,
@@ -88,4 +95,29 @@ test("combined cap constrains otherwise-remaining mode usage", () => {
     standard: 0,
     combined: 0,
   });
+});
+
+
+test("FL five-slot usage activates from current slot E or historical role E usage", () => {
+  assert.equal(
+    flFiveSlotUsageActive([
+      {slot: "PLAYERA", skill_group: "Foundation League"},
+      {slot: "PLAYERE", skill_group: "Foundation League"},
+    ]),
+    true,
+  );
+  assert.equal(
+    flFiveSlotUsageActive(
+      [{slot: "PLAYERA", skill_group: "Foundation League"}],
+      [{role: "PLAYERE", league: "Foundation League"}],
+    ),
+    true,
+  );
+  assert.equal(
+    flFiveSlotUsageActive(
+      [{slot: "PLAYERD", skill_group: "Foundation League"}],
+      [{role: "PLAYERD", league: "Foundation League"}],
+    ),
+    false,
+  );
 });

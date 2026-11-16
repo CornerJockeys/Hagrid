@@ -4,6 +4,10 @@ import {fetchLegacyCsvDataset} from "../src/sprocket/client.ts";
 import {CURRENT_MLE_SEASON} from "../src/season-policy.ts";
 import {getFranchises} from "../src/sprocket/franchises.ts";
 import {getEligibilityEvents, getLeagueEligibilityRules} from "../src/sprocket/eligibility-data.ts";
+import {
+  getScheduleMatches,
+  getSeason20PlayerMatchGames,
+} from "../src/sprocket/match-stats.ts";
 import {getFranchisePlayers, getRocketLeaguePlayers} from "../src/sprocket/players.ts";
 import {
   getLatestFranchiseRoleUsages,
@@ -33,7 +37,7 @@ const franchise = franchises.find(value =>
 assert.ok(franchise, `Could not resolve smoke franchise ${requestedFranchise}`);
 log("Smoke franchise", `${franchise.name}${franchise.code ? ` (${franchise.code})` : ""}`);
 
-const [players, allPlayers, usages, seasonUsages, standings, prospects, scoutingLines, eligibilityEvents, eligibilityRules] = await Promise.all([
+const [players, allPlayers, usages, seasonUsages, standings, prospects, scoutingLines, eligibilityEvents, eligibilityRules, matchGames, scheduleMatches] = await Promise.all([
   getFranchisePlayers(env, franchise.name),
   getRocketLeaguePlayers(env),
   getLatestFranchiseRoleUsages(env, franchise.name),
@@ -43,6 +47,8 @@ const [players, allPlayers, usages, seasonUsages, standings, prospects, scouting
   getScoutingStatLines(env),
   getEligibilityEvents(env),
   getLeagueEligibilityRules(env),
+  getSeason20PlayerMatchGames(env),
+  getScheduleMatches(env),
 ]);
 
 assert.ok(allPlayers.length > 0, "players dataset produced zero Rocket League players league-wide");
@@ -60,6 +66,8 @@ assert.ok(standings.length > 0, "standings dataset produced zero current rows");
 assert.ok(prospects.length > 0, "legacy players dataset produced zero FA/PEND prospects");
 assert.ok(eligibilityEvents.length > 0, "eligibility_data produced zero usable events");
 assert.ok(eligibilityRules.length > 0, "leagues produced zero eligibility rules");
+assert.ok(matchGames.length > 0, "S20 player_stats_s20 produced zero usable match-game rows");
+assert.ok(scheduleMatches.length > 0, "schedules/matches produced zero usable match rows");
 assert.ok(
   eligibilityRules.every(rule => rule.requirement >= 0),
   "league eligibility requirements must be non-negative",
@@ -95,6 +103,8 @@ log("Current standing rows", standings.length);
 log("FA/PEND prospects", prospects.length);
 log("Usable scouting rows", scoutingLines.length);
 log("Eligibility events", eligibilityEvents.length);
+log("S20 player match-game rows", matchGames.length);
+log("Schedule match rows", scheduleMatches.length);
 log(
   "Eligibility requirements",
   eligibilityRules.map(rule => `${rule.leagueCode}=${rule.requirement}`).join(" | "),

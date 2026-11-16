@@ -1,4 +1,4 @@
-import type {CsvRecord} from "./csv";
+import type {CsvRecord} from "./csv.ts";
 
 export function field(row: CsvRecord, ...keys: string[]): string | null {
   for (const key of keys) {

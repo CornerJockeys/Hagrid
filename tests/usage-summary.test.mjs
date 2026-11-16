@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import {buildUsageAlerts} from "../src/reminders/usage-summary.ts";
+import {buildHighUsagePlayers, buildUsageAlerts} from "../src/reminders/usage-summary.ts";
 
 const players = [
   {sprocketPlayerId:"b",memberId:null,discordId:"1",name:"B",salary:0,skillGroup:"Master League",gameId:null,gameTitle:"Rocket League",franchise:"Wizards",staffPosition:null,slot:"PLAYERB",currentScrimPoints:0,eligibleThrough:null,sourceAsOf:null},
@@ -35,7 +35,7 @@ test("usage reminder omits healthy slots", () => {
 });
 
 
-test("FL reminders use the 6/9/15 Season 20 usage policy", () => {
+test("four-slot FL reminders retain the 6/9/15 Season 20 usage policy", () => {
   const flPlayers = [
     {sprocketPlayerId:"a",memberId:null,discordId:"10",name:"A",salary:0,skillGroup:"Foundation League",gameId:null,gameTitle:"Rocket League",franchise:"Wizards",staffPosition:null,slot:"PLAYERA",currentScrimPoints:0,eligibleThrough:null,sourceAsOf:null},
   ];
@@ -45,4 +45,52 @@ test("FL reminders use the 6/9/15 Season 20 usage policy", () => {
   assert.equal(alerts[0]?.doublesRemaining, 2);
   assert.equal(alerts[0]?.standardRemaining, 1);
   assert.equal(alerts[0]?.combinedRemaining, 3);
+});
+
+
+test("five-slot FL reminders use reduced 6/8/12 limits once slot E is active", () => {
+  const flPlayers = [
+    {sprocketPlayerId:"a",memberId:null,discordId:"10",name:"A",salary:0,skillGroup:"Foundation League",gameId:null,gameTitle:"Rocket League",franchise:"Wizards",staffPosition:null,slot:"PLAYERA",currentScrimPoints:0,eligibleThrough:null,sourceAsOf:null},
+    {sprocketPlayerId:"e",memberId:null,discordId:"11",name:"E",salary:0,skillGroup:"Foundation League",gameId:null,gameTitle:"Rocket League",franchise:"Wizards",staffPosition:null,slot:"PLAYERE",currentScrimPoints:0,eligibleThrough:null,sourceAsOf:null},
+  ];
+  const alerts = buildUsageAlerts("FL", flPlayers, [
+    {doublesUses:4,standardUses:7,totalUses:10,seasonNumber:20,teamName:"Wizards",league:"Foundation League",role:"PLAYERA",sourceAsOf:null},
+    {doublesUses:0,standardUses:0,totalUses:0,seasonNumber:20,teamName:"Wizards",league:"Foundation League",role:"PLAYERE",sourceAsOf:null},
+  ]);
+  const a = alerts.find(value => value.slot === "A");
+  assert.equal(a?.doublesRemaining, 2);
+  assert.equal(a?.standardRemaining, 1);
+  assert.equal(a?.combinedRemaining, 2);
+});
+
+test("High Usage includes players with two or fewer mode uses remaining", () => {
+  const high = buildHighUsagePlayers("ML", players, [
+    usage("B",4,4,8),
+    usage("C",3,5,8),
+    usage("D",2,6,8),
+  ]);
+  const bySlot = new Map(high.map(value => [value.slot, value]));
+
+  assert.equal(bySlot.has("B"), true);
+  assert.equal(bySlot.get("B")?.doublesRemaining, 2);
+  assert.equal(bySlot.has("C"), false);
+  assert.equal(bySlot.get("D")?.standardRemaining, 2);
+});
+
+test("High Usage shows exact five-slot FL limits", () => {
+  const flPlayers = [
+    {sprocketPlayerId:"a",memberId:null,discordId:"10",name:"A",salary:0,skillGroup:"Foundation League",gameId:null,gameTitle:"Rocket League",franchise:"Wizards",staffPosition:null,slot:"PLAYERA",currentScrimPoints:0,eligibleThrough:null,sourceAsOf:null},
+    {sprocketPlayerId:"e",memberId:null,discordId:"11",name:"E",salary:0,skillGroup:"Foundation League",gameId:null,gameTitle:"Rocket League",franchise:"Wizards",staffPosition:null,slot:"PLAYERE",currentScrimPoints:0,eligibleThrough:null,sourceAsOf:null},
+  ];
+  const high = buildHighUsagePlayers("FL", flPlayers, [
+    {doublesUses:4,standardUses:6,totalUses:9,seasonNumber:20,teamName:"Wizards",league:"Foundation League",role:"PLAYERA",sourceAsOf:null},
+    {doublesUses:0,standardUses:0,totalUses:0,seasonNumber:20,teamName:"Wizards",league:"Foundation League",role:"PLAYERE",sourceAsOf:null},
+  ]);
+  const a = high.find(value => value.slot === "A");
+  assert.equal(a?.doublesLimit, 6);
+  assert.equal(a?.standardLimit, 8);
+  assert.equal(a?.combinedLimit, 12);
+  assert.equal(a?.doublesRemaining, 2);
+  assert.equal(a?.standardRemaining, 2);
+  assert.equal(a?.combinedRemaining, 3);
 });

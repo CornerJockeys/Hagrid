@@ -8,7 +8,7 @@ import {
 } from "../league/cache";
 import type {TeamDivision} from "../league/view";
 import {applyNcpToRoleUsage} from "../ncp/usage";
-import {buildUsageAlerts} from "../reminders/usage-summary";
+import {buildHighUsagePlayers} from "../reminders/usage-summary";
 import {easternDate} from "../reminders/logic";
 import {
   CURRENT_MLE_SEASON,
@@ -128,8 +128,8 @@ export async function getTeamOverview(request: Request, env: Env): Promise<Respo
       const code = divisionCode(usage.league);
       return code === division;
     });
-    const usageAlerts = usageActive
-      ? buildUsageAlerts(division, roster, divisionUsages)
+    const highUsage = usageActive
+      ? buildHighUsagePlayers(division, roster, divisionUsages)
       : [];
 
     const linked = roster.filter(player => Boolean(player.discordId)).length;
@@ -155,13 +155,35 @@ export async function getTeamOverview(request: Request, env: Env): Promise<Respo
         ),
         salary_player_limit: policy.teamSalaryPlayers,
       },
-      usage: {
+      slots: {
+        filled: roster.length,
+        limit: policy.rosterSlots,
+        open: Math.max(0, policy.rosterSlots - roster.length),
+      },
+      high_usage: {
         active: usageActive,
         data_available: divisionUsages.length > 0,
-        warning_slots: usageAlerts.length,
-        tracked_slots: divisionUsages.length,
-        roster_slots: policy.rosterSlots,
         starts_on: S20_USAGE_REPORT_START_DATE,
+        players: highUsage.map(value => ({
+          sprocket_player_id: value.player?.sprocketPlayerId ?? null,
+          name: value.player?.name ?? `Slot ${value.slot}`,
+          slot: value.slot,
+          doubles: {
+            used: value.doublesUses,
+            limit: value.doublesLimit,
+            remaining: value.doublesRemaining,
+          },
+          standard: {
+            used: value.standardUses,
+            limit: value.standardLimit,
+            remaining: value.standardRemaining,
+          },
+          combined: {
+            used: value.totalUses,
+            limit: value.combinedLimit,
+            remaining: value.combinedRemaining,
+          },
+        })),
       },
       availability: {
         week_start: weekStart,
