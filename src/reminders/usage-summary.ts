@@ -1,4 +1,4 @@
-import {usagePolicyForDivision, type TeamDivision} from "../league/view.ts";
+import {flFiveSlotUsageActive, usagePolicyForDivision, type TeamDivision} from "../league/view.ts";
 import type {FranchisePlayer} from "../sprocket/players";
 import type {RoleUsage} from "../sprocket/role-usages";
 
@@ -19,8 +19,9 @@ function slotSortLabel(value: string): string {
 function effectiveRemaining(
   usage: RoleUsage,
   division: TeamDivision,
+  flFiveSlotActive = false,
 ): {doubles: number; standard: number; combined: number} {
-  const policy = usagePolicyForDivision(division);
+  const policy = usagePolicyForDivision(division, flFiveSlotActive);
   const combined = Math.max(0, policy.combinedLimit - usage.totalUses);
   return {
     doubles: Math.max(0, Math.min(policy.doublesLimit - usage.doublesUses, combined)),
@@ -99,12 +100,16 @@ export function buildUsageAlerts(
   );
 
   const bySlot = new Map(roster.map(player => [roleKey(player.slot), player]));
+  const extendedFl = division === "FL" && flFiveSlotUsageActive(
+    roster.map(player => ({slot: player.slot, skillGroup: player.skillGroup})),
+    usages,
+  );
 
   return usages
     .filter(usage => normalizeDivision(usage.league) === division)
     .map(usage => {
       const slot = roleKey(usage.role);
-      const remaining = effectiveRemaining(usage, division);
+      const remaining = effectiveRemaining(usage, division, extendedFl);
       const text = sentenceForRemaining(remaining.doubles, remaining.standard, remaining.combined);
       return {
         slot,
@@ -117,4 +122,66 @@ export function buildUsageAlerts(
     })
     .filter((value): value is UsageAlert => Boolean(value.text))
     .sort((a, b) => slotSortLabel(a.slot).localeCompare(slotSortLabel(b.slot), "en-US", {numeric: true}));
+}
+
+
+export interface HighUsagePlayer {
+  slot: string;
+  player: FranchisePlayer | null;
+  doublesUses: number;
+  doublesLimit: number;
+  doublesRemaining: number;
+  standardUses: number;
+  standardLimit: number;
+  standardRemaining: number;
+  totalUses: number;
+  combinedLimit: number;
+  combinedRemaining: number;
+}
+
+export function buildHighUsagePlayers(
+  division: TeamDivision,
+  players: FranchisePlayer[],
+  usages: RoleUsage[],
+): HighUsagePlayer[] {
+  const roster = players.filter(player =>
+    player.slot &&
+    /^PLAYER[A-Z0-9]+$/i.test(player.slot.trim()) &&
+    normalizeDivision(player.skillGroup) === division,
+  );
+  const bySlot = new Map(roster.map(player => [roleKey(player.slot), player]));
+  const extendedFl = division === "FL" && flFiveSlotUsageActive(
+    roster.map(player => ({slot: player.slot, skillGroup: player.skillGroup})),
+    usages,
+  );
+  const policy = usagePolicyForDivision(division, extendedFl);
+
+  return usages
+    .filter(usage => normalizeDivision(usage.league) === division)
+    .map(usage => {
+      const slot = roleKey(usage.role);
+      const remaining = effectiveRemaining(usage, division, extendedFl);
+      return {
+        slot,
+        player: bySlot.get(slot) ?? null,
+        doublesUses: usage.doublesUses,
+        doublesLimit: policy.doublesLimit,
+        doublesRemaining: remaining.doubles,
+        standardUses: usage.standardUses,
+        standardLimit: policy.standardLimit,
+        standardRemaining: remaining.standard,
+        totalUses: usage.totalUses,
+        combinedLimit: policy.combinedLimit,
+        combinedRemaining: remaining.combined,
+      };
+    })
+    .filter(value =>
+      value.player !== null &&
+      (value.doublesRemaining <= 2 || value.standardRemaining <= 2),
+    )
+    .sort((a, b) =>
+      Math.min(a.doublesRemaining, a.standardRemaining) -
+        Math.min(b.doublesRemaining, b.standardRemaining) ||
+      slotSortLabel(a.slot).localeCompare(slotSortLabel(b.slot), "en-US", {numeric: true}),
+    );
 }
