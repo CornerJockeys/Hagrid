@@ -671,3 +671,73 @@ select:focus, input:focus { border-color: #7b838f; }
 .stats-player-table { min-width: 1250px; }
 .match-result.win { color: #9cc5a6; }
 .match-result.loss { color: #e39a9a; }
+
+
+/* Full roster-slot usage summary inside Team Overview */
+.overview-slot-usage-list {
+  display: grid;
+  gap: 7px;
+  margin-top: 8px;
+}
+.overview-slot-usage {
+  display: grid;
+  gap: 5px;
+  padding: 8px 9px;
+  border: 1px solid #2a3039;
+  border-radius: 8px;
+  background: #12151a;
+}
+.overview-slot-usage.high {
+  border-color: #66562d;
+  background: #211d14;
+}
+.overview-slot-usage-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+.overview-slot-usage-heading > strong {
+  font-size: 12px;
+}
+.overview-slot-usage-heading > span {
+  overflow: hidden;
+  color: #9098a3;
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: normal;
+  text-overflow: ellipsis;
+  text-transform: none;
+  white-space: nowrap;
+}
+.overview-slot-usage-modes {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+}
+.team-overview-metrics .overview-slot-usage-modes > span {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 6px;
+  padding: 5px 7px;
+  border-radius: 6px;
+  background: #191d23;
+  color: #9da5af;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .02em;
+  text-transform: none;
+}
+.team-overview-metrics .overview-slot-usage-modes strong {
+  color: #eef0f3;
+  font-size: 12px;
+}
+.team-overview-metrics .usage-click-hint {
+  margin-top: 3px;
+  color: #7f8792;
+  font-size: 10px;
+}
+.usage-detail-player.high-usage-player {
+  border-color: #66562d;
+}

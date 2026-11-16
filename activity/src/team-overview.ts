@@ -24,6 +24,7 @@ interface HighUsagePlayer {
   sprocket_player_id: string | null;
   name: string;
   slot: string;
+  high_usage: boolean;
   doubles: UsageBand;
   standard: UsageBand;
   combined: UsageBand;
@@ -162,15 +163,13 @@ export function mountTeamOverviewPanel(
       ? `Usage tracking begins ${shortDate(team.high_usage.starts_on)}.`
       : !team.high_usage.data_available
         ? "Hagrid is awaiting current slot-usage data for this team."
-        : team.high_usage.players.length === 0
-          ? "No players are within two uses of a 2s or 3s maximum."
-          : "";
+        : "";
 
     const rows = team.high_usage.players.map(player => `
-      <div class="usage-detail-player">
+      <div class="usage-detail-player${player.high_usage ? " high-usage-player" : ""}">
         <div class="usage-detail-player-heading">
           <strong>${escapeHtml(player.name)}</strong>
-          <span>Slot ${escapeHtml(player.slot)}</span>
+          <span>Slot ${escapeHtml(player.slot)}${player.high_usage ? " · High Usage" : ""}</span>
         </div>
         <div class="usage-detail-grid">
           <div class="detail-metric">
@@ -198,8 +197,8 @@ export function mountTeamOverviewPanel(
           <div class="modal-heading">
             <div>
               <div class="eyebrow">${escapeHtml(overview?.franchise ?? "")} · ${team.division}</div>
-              <h2>High Usage</h2>
-              <p class="usage-modal-help">Players appear here when they have two or fewer uses remaining in either 2s or 3s.</p>
+              <h2>Slot Usage</h2>
+              <p class="usage-modal-help">All occupied slots are listed. Players with two or fewer uses remaining in either 2s or 3s are moved to the top.</p>
             </div>
             <button class="icon-button" data-close-high-usage aria-label="Close">×</button>
           </div>
@@ -273,17 +272,27 @@ export function mountTeamOverviewPanel(
     }
 
     cards.innerHTML = overview.teams.map(team => {
+      const highUsagePlayers = team.high_usage.players.filter(player => player.high_usage);
       const highUsageText = !team.high_usage.active
         ? `Begins ${shortDate(team.high_usage.starts_on)}`
         : !team.high_usage.data_available
           ? "Awaiting usage data"
-          : team.high_usage.players.length === 0
+          : highUsagePlayers.length === 0
             ? "No players near mode limits"
-            : team.high_usage.players
-              .map(player => player.name)
-              .slice(0, 3)
-              .join(", ") +
-              (team.high_usage.players.length > 3 ? ` +${team.high_usage.players.length - 3}` : "");
+            : `${highUsagePlayers.length} player${highUsagePlayers.length === 1 ? "" : "s"} near a mode limit`;
+      const usageRows = team.high_usage.active && team.high_usage.data_available
+        ? team.high_usage.players.map(player => `
+            <div class="overview-slot-usage${player.high_usage ? " high" : ""}">
+              <div class="overview-slot-usage-heading">
+                <strong>Slot ${escapeHtml(player.slot)}</strong>
+                <span>${escapeHtml(player.name)}</span>
+              </div>
+              <div class="overview-slot-usage-modes">
+                <span>2s <strong>${player.doubles.used}/${player.doubles.limit}</strong></span>
+                <span>3s <strong>${player.standard.used}/${player.standard.limit}</strong></span>
+              </div>
+            </div>`).join("")
+        : "";
       const slotsText = team.slots.open === 0
         ? "Roster full"
         : `${team.slots.open} open slot${team.slots.open === 1 ? "" : "s"}`;
@@ -307,8 +316,10 @@ export function mountTeamOverviewPanel(
             </div>
             <button class="team-high-usage" data-open-high-usage="${team.division}">
               <span>High Usage</span>
-              <strong>${team.high_usage.active && team.high_usage.data_available ? team.high_usage.players.length : "—"}</strong>
+              <strong>${team.high_usage.active && team.high_usage.data_available ? highUsagePlayers.length : "—"}</strong>
               <small>${escapeHtml(highUsageText)}</small>
+              ${usageRows ? `<div class="overview-slot-usage-list">${usageRows}</div>` : ""}
+              ${usageRows ? '<small class="usage-click-hint">Click for combined usage and remaining totals.</small>' : ""}
             </button>
             <div>
               <span>Team Salary</span>
