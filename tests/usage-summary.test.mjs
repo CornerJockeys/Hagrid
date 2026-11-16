@@ -99,7 +99,7 @@ test("High Usage shows exact five-slot FL limits", () => {
 test("Overview usage lists every current roster slot and pins high usage first", () => {
   const rosterUsage = buildUsagePlayers("ML", players, [
     usage("B",1,2,3),
-    usage("C",4,4,8),
+    usage("C",3,4,7),
     usage("D",2,7,9),
     usage("E",5,3,8),
   ]);
