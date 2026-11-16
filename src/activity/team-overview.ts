@@ -8,7 +8,7 @@ import {
 } from "../league/cache";
 import type {TeamDivision} from "../league/view";
 import {applyNcpToRoleUsage} from "../ncp/usage";
-import {buildHighUsagePlayers} from "../reminders/usage-summary";
+import {buildUsagePlayers} from "../reminders/usage-summary";
 import {easternDate} from "../reminders/logic";
 import {
   CURRENT_MLE_SEASON,
@@ -128,8 +128,8 @@ export async function getTeamOverview(request: Request, env: Env): Promise<Respo
       const code = divisionCode(usage.league);
       return code === division;
     });
-    const highUsage = usageActive
-      ? buildHighUsagePlayers(division, roster, divisionUsages)
+    const usagePlayers = usageActive
+      ? buildUsagePlayers(division, roster, divisionUsages)
       : [];
 
     const linked = roster.filter(player => Boolean(player.discordId)).length;
@@ -164,7 +164,7 @@ export async function getTeamOverview(request: Request, env: Env): Promise<Respo
         active: usageActive,
         data_available: divisionUsages.length > 0,
         starts_on: S20_USAGE_REPORT_START_DATE,
-        players: highUsage.map(value => ({
+        players: usagePlayers.map(value => ({
           sprocket_player_id: value.player?.sprocketPlayerId ?? null,
           name: value.player?.name ?? `Slot ${value.slot}`,
           slot: value.slot,
@@ -178,6 +178,7 @@ export async function getTeamOverview(request: Request, env: Env): Promise<Respo
             limit: value.standardLimit,
             remaining: value.standardRemaining,
           },
+          high_usage: value.highUsage,
           combined: {
             used: value.totalUses,
             limit: value.combinedLimit,
