@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import {buildHighUsagePlayers, buildUsageAlerts} from "../src/reminders/usage-summary.ts";
+import {buildHighUsagePlayers, buildUsageAlerts, buildUsagePlayers} from "../src/reminders/usage-summary.ts";
 
 const players = [
   {sprocketPlayerId:"b",memberId:null,discordId:"1",name:"B",salary:0,skillGroup:"Master League",gameId:null,gameTitle:"Rocket League",franchise:"Wizards",staffPosition:null,slot:"PLAYERB",currentScrimPoints:0,eligibleThrough:null,sourceAsOf:null},
@@ -93,4 +93,36 @@ test("High Usage shows exact five-slot FL limits", () => {
   assert.equal(a?.doublesRemaining, 2);
   assert.equal(a?.standardRemaining, 2);
   assert.equal(a?.combinedRemaining, 3);
+});
+
+
+test("Overview usage lists every current roster slot and pins high usage first", () => {
+  const rosterUsage = buildUsagePlayers("ML", players, [
+    usage("B",1,2,3),
+    usage("C",4,4,8),
+    usage("D",2,7,9),
+    usage("E",5,3,8),
+  ]);
+
+  assert.deepEqual(
+    rosterUsage.map(value => value.slot),
+    ["D", "E", "B", "C", "H"],
+  );
+  assert.equal(rosterUsage[0]?.highUsage, true);
+  assert.equal(rosterUsage[1]?.highUsage, true);
+  assert.equal(rosterUsage[2]?.highUsage, false);
+  assert.equal(rosterUsage.find(value => value.slot === "H")?.doublesUses, 0);
+  assert.equal(rosterUsage.find(value => value.slot === "H")?.standardUses, 0);
+});
+
+test("Overview usage preserves separate 2s and 3s used/max values for every slot", () => {
+  const rosterUsage = buildUsagePlayers("ML", players, [
+    usage("B",4,6,10),
+  ]);
+  const b = rosterUsage.find(value => value.slot === "B");
+  assert.equal(b?.doublesUses, 4);
+  assert.equal(b?.doublesLimit, 6);
+  assert.equal(b?.standardUses, 6);
+  assert.equal(b?.standardLimit, 8);
+  assert.equal(b?.combinedLimit, 12);
 });
