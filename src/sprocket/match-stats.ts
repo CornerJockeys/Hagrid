@@ -1,6 +1,6 @@
-import {fetchCsvDatasetCandidates} from "./client";
-import {field, integerField, numberField, sameText} from "./fields";
-import type {CsvRecord} from "./csv";
+import {fetchCsvDatasetCandidates} from "./client.ts";
+import {field, integerField, numberField, sameText} from "./fields.ts";
+import type {CsvRecord} from "./csv.ts";
 import type {Env} from "../types";
 
 export type MatchStatMode = "2s" | "3s";
