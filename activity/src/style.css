@@ -637,3 +637,37 @@ select:focus, input:focus { border-color: #7b838f; }
 @media (max-width: 560px) {
   .usage-detail-grid { grid-template-columns: 1fr; }
 }
+
+
+/* Official match stats drill-down */
+.stats-player-link {
+  display: grid;
+  gap: 2px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+}
+.stats-player-link strong { color: #eef0f3; }
+.stats-player-link small {
+  color: #818994;
+  font-size: 9px;
+}
+.stats-clickable-row { cursor: pointer; }
+.stats-clickable-row:hover td { background: #20252c; }
+.stats-player-modal-card { width: min(1180px, 100%); }
+.stats-player-help {
+  margin: 6px 0 0;
+  color: #aeb4bd;
+  line-height: 1.45;
+}
+.stats-player-scroll {
+  margin-top: 16px;
+  max-height: calc(100vh - 190px);
+  border: 1px solid #292e37;
+  border-radius: 9px;
+}
+.stats-player-table { min-width: 1250px; }
+.match-result.win { color: #9cc5a6; }
+.match-result.loss { color: #e39a9a; }
