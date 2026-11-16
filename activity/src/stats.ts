@@ -50,8 +50,6 @@ interface PlayerSeries {
   team_wins: number | null;
   opponent_wins: number | null;
   games_played: number;
-  game_wins: number | null;
-  game_losses: number | null;
   win_pct: number | null;
   score: number | null;
   gpi: number | null;
@@ -61,7 +59,6 @@ interface PlayerSeries {
   assists: number;
   saves: number;
   shots: number;
-  demos: number;
 }
 
 interface PlayerSeriesResponse {
@@ -166,7 +163,6 @@ export function mountStatsPanel(panel: HTMLElement, api: StatsApi, setStatus: St
           <td>${escapeHtml(match.opponent ?? "Unknown")}</td>
           <td><strong class="match-result ${match.result === "W" ? "win" : match.result === "L" ? "loss" : ""}">${escapeHtml(resultLabel(match))}</strong></td>
           <td class="numeric">${match.games_played}</td>
-          <td class="numeric">${match.game_wins === null || match.game_losses === null ? "—" : `${match.game_wins}-${match.game_losses}`}</td>
           <td class="numeric">${number(match.gpi)}</td>
           <td class="numeric">${number(match.opi)}</td>
           <td class="numeric">${number(match.dpi)}</td>
@@ -175,7 +171,6 @@ export function mountStatsPanel(panel: HTMLElement, api: StatsApi, setStatus: St
           <td class="numeric">${match.assists}</td>
           <td class="numeric">${match.saves}</td>
           <td class="numeric">${match.shots}</td>
-          <td class="numeric">${match.demos}</td>
         </tr>`).join("");
 
       modalRoot.innerHTML = `
@@ -194,7 +189,7 @@ export function mountStatsPanel(panel: HTMLElement, api: StatsApi, setStatus: St
               ? `<div class="notice-card"><p>No Season 20 match games were found for this player yet.</p></div>`
               : `<div class="prospect-table-scroll stats-player-scroll">
                   <table class="prospect-table stats-player-table">
-                    <thead><tr><th>Date</th><th>Mode</th><th>Opponent</th><th>Series</th><th>Games</th><th>Game Rec.</th><th>GPI</th><th>OPI</th><th>DPI</th><th>Score</th><th>Goals</th><th>Assists</th><th>Saves</th><th>Shots</th><th>Demos</th></tr></thead>
+                    <thead><tr><th>Date</th><th>Mode</th><th>Opponent</th><th>Series</th><th>Games</th><th>GPI</th><th>OPI</th><th>DPI</th><th>Score</th><th>Goals</th><th>Assists</th><th>Saves</th><th>Shots</th></tr></thead>
                     <tbody>${rows}</tbody>
                   </table>
                 </div>`}
@@ -257,7 +252,7 @@ export function mountStatsPanel(panel: HTMLElement, api: StatsApi, setStatus: St
             <td class="numeric">${stat ? number(stat.assists) : "—"}</td>
             <td class="numeric">${stat ? number(stat.saves) : "—"}</td>
             <td class="numeric">${stat ? number(stat.shots) : "—"}</td>
-            <td class="numeric">${stat ? number(stat.demos) : "—"}</td>
+            ${source === "scrims" ? `<td class="numeric">${stat ? number(stat.demos) : "—"}</td>` : ""}
           </tr>`;
       });
     }).join("");
@@ -268,7 +263,7 @@ export function mountStatsPanel(panel: HTMLElement, api: StatsApi, setStatus: St
         <span>${data.rows.length} roster player${data.rows.length === 1 ? "" : "s"}</span>
       </div>
       <div class="prospect-table-scroll"><table class="prospect-table stats-table">
-        <thead><tr><th>Player</th><th>Div.</th><th>Slot</th><th>Salary</th><th>Mode</th><th>Games</th><th>Win%</th><th>${secondaryMetric}</th><th>OPI</th><th>DPI</th><th>Score</th><th>Goals</th><th>Assists</th><th>Saves</th><th>Shots</th><th>Demos</th></tr></thead>
+        <thead><tr><th>Player</th><th>Div.</th><th>Slot</th><th>Salary</th><th>Mode</th><th>Games</th><th>Win%</th><th>${secondaryMetric}</th><th>OPI</th><th>DPI</th><th>Score</th><th>Goals</th><th>Assists</th><th>Saves</th><th>Shots</th>${source === "scrims" ? "<th>Demos</th>" : ""}</tr></thead>
         <tbody>${body}</tbody>
       </table></div>`;
 
