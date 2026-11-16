@@ -22,7 +22,7 @@ Hagrid V1 is intentionally limited to the data and workflows that can be built a
 - automatic new-member Discord access-role assignment
 - roster-driven Discord division/Captain role reconciliation
 
-Features that depend on Season 20-specific datasets or schemas are deferred to V1+ until those sources are published and can be validated rather than guessed.
+Season 20 official player match stats and schedule match metadata are now published and consumed directly. Remaining deferred items are limited to workflows that still need additional operational decisions or validation, such as automatic playoff-credit handling for NCP exceptions.
 
 ## Discord commands
 
@@ -74,7 +74,7 @@ The regular `/remind` command keeps its zero-option guided entry point. Reminder
 
 Hagrid centralizes the current Season 20 rules instead of duplicating limits in commands and reports:
 
-- **FL:** 4 active slots, Team Salary uses the top 4 salaries, cap **34.5**, usage **6 Doubles / 9 Standard / 15 combined**
+- **FL:** up to **5 active slots**, Team Salary still uses the top 4 salaries, cap **34.5**. Four-slot teams retain **6 Doubles / 9 Standard / 15 combined** usage; once slot E is active, the five-slot team uses the reduced **6 / 8 / 12** limits.
 - **AL:** 8 active slots, Team Salary uses the top 5 salaries, cap **62.5**, usage **6 / 8 / 12**
 - **CL:** 8 active slots, Team Salary uses the top 5 salaries, cap **74.5**, usage **6 / 8 / 12**
 - **ML:** 8 active slots, Team Salary uses the top 5 salaries, cap **86.5**, usage **6 / 8 / 12**
@@ -88,23 +88,25 @@ Season 20 operational cutoffs are also centralized: Eligibility/Salaries lock Ja
 
 The official Season 20 schedule supplied to Hagrid is stored directly in the repo and drives the Activity **Schedule** tab. It contains all 10 Match Weeks, date windows, Division/Conference labels, home/away assignments, holiday bye periods, and the "Home Team Chooses Map" rule. Because this schedule is now a maintained local source, Hagrid does **not** need a live fixtures pull just to render the Schedule tab or resolve the basic Match Week calendar.
 
-Sprocket's public schedule publications have distinct jobs:
+Sprocket's public schedule and Season 20 stat publications now provide the shared match layer Hagrid needs:
 
 - **fixtures** are the franchise-vs-franchise pairings. Each row has a `fixture_id`, `match_group_id`, home franchise, and away franchise.
 - **match_groups** are the week containers. They provide the group ID, start/end dates, the week title, and the parent season/group.
-- **matches** are the league + game-mode series underneath a fixture. They carry `match_id`, fixture/group IDs, scheduling window, scheduled time, home/away, league, game mode, series wins, and winner. They do **not** provide per-player game statistics.
-- **player match stats / round participation** are therefore still required separately for individual game counts and official player performance.
+- **matches** are the league + game-mode series underneath a fixture. They carry `match_id`, fixture/group IDs, scheduling window, scheduled time, home/away, league, game mode, series wins, and winner.
+- **s20/player_stats_s20** provides one row per player per official game/round with the Sprocket member ID, team, league, mode, match/round IDs, win context, GPI/OPI/DPI, score, goals, assists, saves, shots, and demos.
 
-The remaining shared match-data work should be built around the features that actually need it:
+Hagrid's **Stats** tab now opens on official Season 20 Match Stats. It aggregates the per-game rows by player and mode while preserving participation rather than assuming a player appeared in every game of a series. Clicking a player opens their individual 2s/3s series history with opponent, result, games actually played, GPI/OPI/DPI, score, and box-score totals. The Scrims toggle remains available for current scrim performance. The Discord `/player stats:Game` path uses the same official S20 source.
 
-- **Playoff eligibility:** count the individual regular-season games a player actually participated in toward the 15-game requirement, including mid-series substitutions and the NCP exception rules. This requires player/game participation, not merely the `matches` table.
-- **Official match stats:** the Activity Stats tab opens on Match stats by default, with a Scrims toggle. The Match view remains unavailable until the S20 per-game/player stat source exists.
-- **NCP match picker:** use the real S20 match identity when available so an approved manual NCP can be attached to the exact league/game-mode series. The locally stored schedule can supply week/opponent/home-away context in the meantime.
-- **Standings validation/result context:** Hagrid can continue using the published standings table for display; `matches` can later provide result-level validation and drill-down.
-- **Usage and participation reconciliation:** where player/game participation is available, cross-check published slot usage against who actually played.
-- **Weekly automation:** the locally stored schedule now provides the real Match Week/date calendar (including byes), so dump/checkpoint timing no longer needs to wait on live fixtures.
+The official `role_usages` publication remains the source of truth for slot usage. Team Overview surfaces roster capacity as **Slots** and adds **High Usage**: a player appears when they have **2 or fewer uses remaining in either 2s or 3s**, and the drill-down shows their 2s/3s/combined used, maximum, and remaining values.
 
-The Activity tab order is **Team Overview → Standings → Schedule → Stats → Scouting → League Rulebook → Broadcast Rulebook**, with an additional **Admin** tab for GM/FM users. Team Overview contains its own **Overview / Eligibility / Availability** navigation, replacing the four former top-level personal/team eligibility and availability tabs.
+Remaining shared match-data work:
+- **Playoff eligibility:** the S20 stat source now contains per-game participation, so Hagrid can eventually count the 15-game requirement accurately, including mid-series substitutions. The special NCP playoff-credit exception still needs to be reconciled with approved NCP records rather than inferred.
+- **NCP match picker:** attach approved manual NCPs to the exact published S20 match identity.
+- **Standings validation/result context:** published `matches` can be used to cross-check standings and add result drill-down where useful.
+- **Usage reconciliation:** official per-game participation can be compared against published slot usage as a consistency check.
+- **Weekly automation:** the locally stored schedule continues to provide the Match Week/date calendar (including byes), so dump/checkpoint timing does not depend on live fixtures.
+
+The Activity tab order is **Team Overview → Standings → Schedule → Stats → Scouting → League Rulebook → Broadcast Rulebook**, with an additional **Admin** tab for GM/FM users. Team Overview contains its own **Overview / Eligibility / Availability** navigation. The Overview card shows **Slots** as filled/max roster capacity and a clickable **High Usage** area with player-level usage details.
 
 ### Standings
 
