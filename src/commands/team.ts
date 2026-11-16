@@ -16,6 +16,7 @@ import {
   snapshotTeamUsage,
 } from "../league/cache";
 import {
+  flFiveSlotUsageActive,
   formatEasternTimestamp,
   formatSalary,
   isCompetitiveSlot,
@@ -57,12 +58,12 @@ function selectedDivision(interaction: DiscordInteraction): TeamDivision | null 
   return DIVISIONS.has(normalized) ? normalized : "invalid";
 }
 
-function usageText(usage: LeagueUsageRow | null): string {
+function usageText(usage: LeagueUsageRow | null, flFiveSlotActive = false): string {
   if (!usage) return "U —";
   const division = teamDivision(usage.league);
   if (!division) return `U 2s ${usage.doubles_uses} · 3s ${usage.standard_uses} · T ${usage.total_uses}`;
-  const policy = usagePolicyForDivision(division);
-  const remaining = remainingUsage(usage, division);
+  const policy = usagePolicyForDivision(division, flFiveSlotActive);
+  const remaining = remainingUsage(usage, division, flFiveSlotActive);
   const exhausted = remaining.combined === 0 ? " · ⛔ exhausted" : "";
   return `U 2s ${usage.doubles_uses}/${policy.doublesLimit} (${remaining.doubles} left) · 3s ${usage.standard_uses}/${policy.standardLimit} (${remaining.standard} left) · T ${usage.total_uses}/${policy.combinedLimit}${exhausted}`;
 }
@@ -93,6 +94,7 @@ function playerLine(
   scrimStats: LeagueScrimStatRow[] = [],
   includeScrims = false,
   nextWeek: NextWeekProjection | null = null,
+  flFiveSlotActive = false,
 ): string {
   const eligible = isEligibleForWeek(player.eligible_through, weekStart);
   const usage = usageAvailable ? usageForPlayer(player, usages) : null;
@@ -108,7 +110,7 @@ function playerLine(
           : `Next wk ⚠️ ${nextWeek.points}/${nextWeek.requirement}`]
       : []),
   ];
-  if (usageAvailable) parts.push(usageText(usage));
+  if (usageAvailable) parts.push(usageText(usage, flFiveSlotActive));
   if (includeScrims) parts.push(scrimText(scrimStats));
   return parts.join(" · ");
 }
@@ -166,6 +168,10 @@ function teamContent(
   for (const key of (["ML", "CL", "AL", "FL"] as TeamDivision[])) {
     const values = grouped.get(key);
     if (!values?.length) continue;
+    const extendedFl = key === "FL" && flFiveSlotUsageActive(
+      values.map(player => ({slot: player.slot, skill_group: player.skill_group})),
+      usages,
+    );
     lines.push("", `**${key}**`);
     for (const player of values) {
       lines.push(playerLine(
@@ -176,6 +182,7 @@ function teamContent(
         scrimStats.get(player.sprocket_player_id) ?? [],
         includeScrims,
         nextWeek.get(player.sprocket_player_id) ?? null,
+        extendedFl,
       ));
     }
   }
