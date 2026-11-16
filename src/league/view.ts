@@ -1,4 +1,4 @@
-import {divisionPolicy} from "../season-policy.ts";
+import {divisionPolicy, S20_FL_FIVE_SLOT_USAGE} from "../season-policy.ts";
 import type {LeaguePlayerRow, LeagueUsageRow} from "./db";
 
 export type TeamDivision = "FL" | "AL" | "CL" | "ML";
@@ -18,8 +18,19 @@ export interface UsageRemaining {
   combined: number;
 }
 
-export function usagePolicyForDivision(division: TeamDivision): UsagePolicy {
+export function usagePolicyForDivision(
+  division: TeamDivision,
+  flFiveSlotActive = false,
+): UsagePolicy {
   const policy = divisionPolicy(division);
+  if (division === "FL" && flFiveSlotActive) {
+    return {
+      rosterSlots: policy.rosterSlots,
+      doublesLimit: S20_FL_FIVE_SLOT_USAGE.doublesLimit,
+      standardLimit: S20_FL_FIVE_SLOT_USAGE.standardLimit,
+      combinedLimit: S20_FL_FIVE_SLOT_USAGE.combinedLimit,
+    };
+  }
   return {
     rosterSlots: policy.rosterSlots,
     doublesLimit: policy.doublesLimit,
@@ -28,11 +39,31 @@ export function usagePolicyForDivision(division: TeamDivision): UsagePolicy {
   };
 }
 
+function usageRoleKey(value: string): string {
+  return value.trim().replace(/^PLAYER/i, "").toLocaleUpperCase("en-US");
+}
+
+export function flFiveSlotUsageActive(
+  players: Array<{slot: string | null; skill_group?: string | null; skillGroup?: string | null}>,
+  usages: Array<{role: string; league: string}> = [],
+): boolean {
+  const hasSlotE = players.some(player => {
+    const division = teamDivision(player.skill_group ?? player.skillGroup ?? null);
+    return division === "FL" && usageRoleKey(player.slot ?? "") === "E";
+  });
+  if (hasSlotE) return true;
+
+  return usages.some(usage =>
+    teamDivision(usage.league) === "FL" && usageRoleKey(usage.role) === "E"
+  );
+}
+
 export function remainingUsage(
   usage: LeagueUsageRow,
   division: TeamDivision,
+  flFiveSlotActive = false,
 ): UsageRemaining {
-  const policy = usagePolicyForDivision(division);
+  const policy = usagePolicyForDivision(division, flFiveSlotActive);
   const combined = Math.max(0, policy.combinedLimit - usage.total_uses);
   return {
     doubles: Math.max(0, Math.min(policy.doublesLimit - usage.doubles_uses, combined)),
@@ -67,10 +98,6 @@ export function slotLabel(value: string | null): string {
 export function formatSalary(value: number | null): string {
   if (value === null || !Number.isFinite(value)) return "—";
   return Number.isInteger(value) ? value.toFixed(0) : value.toFixed(1);
-}
-
-function usageRoleKey(value: string): string {
-  return value.trim().replace(/^PLAYER/i, "").toLocaleUpperCase("en-US");
 }
 
 export function usageForPlayer(
