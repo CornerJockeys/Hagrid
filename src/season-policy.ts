@@ -27,8 +27,8 @@ export const S20_DIVISION_POLICY: Record<MleDivision, DivisionPolicy> = {
 };
 
 export const S20_FL_FIVE_SLOT_USAGE = {
-  doublesLimit: 5,
-  standardLimit: 7,
+  doublesLimit: 6,
+  standardLimit: 8,
   combinedLimit: 12,
 } as const;
 
