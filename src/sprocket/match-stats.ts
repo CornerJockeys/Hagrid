@@ -201,11 +201,7 @@ export async function getFranchiseSeason20MatchData(
 
   const games = allGames.filter(game => sameText(game.teamName, franchiseName));
   const matchIds = new Set(games.map(game => game.matchId));
-  const matches = allMatches.filter(match =>
-    matchIds.has(match.matchId) ||
-    sameText(match.home, franchiseName) ||
-    sameText(match.away, franchiseName),
-  );
+  const matches = allMatches.filter(match => matchIds.has(match.matchId));
   return {games, matches};
 }
 
