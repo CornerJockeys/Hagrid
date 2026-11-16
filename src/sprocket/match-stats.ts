@@ -172,8 +172,8 @@ function scheduleMatchFromRow(row: CsvRecord): ScheduleMatch | null {
 
 export async function getSeason20PlayerMatchGames(env: Env): Promise<PlayerMatchGame[]> {
   const rows = await fetchCsvDatasetCandidates(env, [
-    "s20/player_stats_s20",
     "player_stats_s20",
+    "s20/player_stats_s20",
   ]);
   return rows
     .map(playerGameFromRow)
@@ -182,8 +182,8 @@ export async function getSeason20PlayerMatchGames(env: Env): Promise<PlayerMatch
 
 export async function getScheduleMatches(env: Env): Promise<ScheduleMatch[]> {
   const rows = await fetchCsvDatasetCandidates(env, [
-    "schedules/matches",
     "matches",
+    "schedules/matches",
   ]);
   return rows
     .map(scheduleMatchFromRow)
