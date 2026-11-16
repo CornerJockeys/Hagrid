@@ -10,7 +10,7 @@ import {getActivityEligibility} from "./eligibility";
 import {getTeamEligibility} from "./team-eligibility";
 import {getTeamAvailability} from "./team-availability";
 import {getTeamOverview} from "./team-overview";
-import {getActivityStats} from "./stats";
+import {getActivityStats, getActivityStatsPlayer} from "./stats";
 import {getActivityStandings} from "./standings";
 import {getActivitySchedule} from "./schedule";
 import {getActivityRulebook} from "./rulebook";
@@ -75,6 +75,12 @@ export async function handleActivityApi(request: Request, env: Env): Promise<Res
   if (url.pathname === "/api/activity/stats") {
     return request.method === "GET"
       ? getActivityStats(request, env)
+      : methodNotAllowed();
+  }
+
+  if (url.pathname === "/api/activity/stats/player") {
+    return request.method === "GET"
+      ? getActivityStatsPlayer(request, env)
       : methodNotAllowed();
   }
 
