@@ -47,7 +47,7 @@ function matchStatJson(stat: MatchStatLine) {
     games: stat.games,
     win_pct: stat.winPct,
     score: stat.score,
-    sprocket: null,
+    sprocket: stat.gpi,
     gpi: stat.gpi,
     dpi: stat.dpi,
     opi: stat.opi,
