@@ -47,10 +47,13 @@ export function flFiveSlotUsageActive(
   players: Array<{slot: string | null; skill_group?: string | null; skillGroup?: string | null}>,
   usages: Array<{role: string; league: string}> = [],
 ): boolean {
-  const hasSlotE = players.some(player => {
-    const division = teamDivision(player.skill_group ?? player.skillGroup ?? null);
-    return division === "FL" && usageRoleKey(player.slot ?? "") === "E";
-  });
+  const flPlayers = players.filter(player =>
+    teamDivision(player.skill_group ?? player.skillGroup ?? null) === "FL" &&
+    isCompetitiveSlot(player.slot ?? null)
+  );
+  if (flPlayers.length >= 5) return true;
+
+  const hasSlotE = flPlayers.some(player => usageRoleKey(player.slot ?? "") === "E");
   if (hasSlotE) return true;
 
   return usages.some(usage =>
