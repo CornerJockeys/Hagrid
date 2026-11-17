@@ -5,6 +5,7 @@ import {
   aggregateMatchStatLines,
   aggregatePlayerSeries,
   normalizeMatchMode,
+  playerMatchGamesForMode,
 } from "../src/sprocket/match-stats.ts";
 
 function game(overrides = {}) {
@@ -128,4 +129,20 @@ test("away-team round outcomes are inverted correctly", () => {
   ], [awayMatch]);
 
   assert.equal(lines[0].winPct, 2 / 3);
+});
+
+
+test("player match popup filtering excludes the other mode", () => {
+  const games = [
+    game({memberId: "100", mode: "2s", matchId: "1", roundId: "1"}),
+    game({memberId: "100", mode: "2s", matchId: "2", roundId: "2"}),
+    game({memberId: "100", mode: "3s", matchId: "3", roundId: "3"}),
+    game({memberId: "200", mode: "2s", matchId: "4", roundId: "4"}),
+  ];
+
+  const doubles = playerMatchGamesForMode(games, "100", "2s");
+  const standard = playerMatchGamesForMode(games, "100", "3s");
+
+  assert.deepEqual(doubles.map(value => value.matchId), ["1", "2"]);
+  assert.deepEqual(standard.map(value => value.matchId), ["3"]);
 });
