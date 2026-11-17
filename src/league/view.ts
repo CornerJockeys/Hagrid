@@ -1,4 +1,4 @@
-import {divisionPolicy, S20_FL_FIVE_SLOT_USAGE} from "../season-policy.ts";
+import {divisionPolicy} from "../season-policy.ts";
 import type {LeaguePlayerRow, LeagueUsageRow} from "./db";
 
 export type TeamDivision = "FL" | "AL" | "CL" | "ML";
@@ -20,17 +20,9 @@ export interface UsageRemaining {
 
 export function usagePolicyForDivision(
   division: TeamDivision,
-  flFiveSlotActive = false,
+  _flFiveSlotActive = false,
 ): UsagePolicy {
   const policy = divisionPolicy(division);
-  if (division === "FL" && flFiveSlotActive) {
-    return {
-      rosterSlots: policy.rosterSlots,
-      doublesLimit: S20_FL_FIVE_SLOT_USAGE.doublesLimit,
-      standardLimit: S20_FL_FIVE_SLOT_USAGE.standardLimit,
-      combinedLimit: S20_FL_FIVE_SLOT_USAGE.combinedLimit,
-    };
-  }
   return {
     rosterSlots: policy.rosterSlots,
     doublesLimit: policy.doublesLimit,
