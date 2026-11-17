@@ -48,7 +48,7 @@ test("four-slot FL reminders retain the 6/9/15 Season 20 usage policy", () => {
 });
 
 
-test("five-slot FL reminders use reduced 6/8/12 limits once slot E is active", () => {
+test("five-slot FL reminders keep 6/9/15 limits when slot E is active", () => {
   const flPlayers = [
     {sprocketPlayerId:"a",memberId:null,discordId:"10",name:"A",salary:0,skillGroup:"Foundation League",gameId:null,gameTitle:"Rocket League",franchise:"Wizards",staffPosition:null,slot:"PLAYERA",currentScrimPoints:0,eligibleThrough:null,sourceAsOf:null},
     {sprocketPlayerId:"e",memberId:null,discordId:"11",name:"E",salary:0,skillGroup:"Foundation League",gameId:null,gameTitle:"Rocket League",franchise:"Wizards",staffPosition:null,slot:"PLAYERE",currentScrimPoints:0,eligibleThrough:null,sourceAsOf:null},
@@ -59,8 +59,8 @@ test("five-slot FL reminders use reduced 6/8/12 limits once slot E is active", (
   ]);
   const a = alerts.find(value => value.slot === "A");
   assert.equal(a?.doublesRemaining, 2);
-  assert.equal(a?.standardRemaining, 1);
-  assert.equal(a?.combinedRemaining, 2);
+  assert.equal(a?.standardRemaining, 2);
+  assert.equal(a?.combinedRemaining, 5);
 });
 
 test("High Usage includes players with two or fewer mode uses remaining", () => {
@@ -77,7 +77,7 @@ test("High Usage includes players with two or fewer mode uses remaining", () => 
   assert.equal(bySlot.get("D")?.standardRemaining, 2);
 });
 
-test("High Usage shows exact five-slot FL limits", () => {
+test("High Usage shows exact 6/9/15 limits for five-slot FL", () => {
   const flPlayers = [
     {sprocketPlayerId:"a",memberId:null,discordId:"10",name:"A",salary:0,skillGroup:"Foundation League",gameId:null,gameTitle:"Rocket League",franchise:"Wizards",staffPosition:null,slot:"PLAYERA",currentScrimPoints:0,eligibleThrough:null,sourceAsOf:null},
     {sprocketPlayerId:"e",memberId:null,discordId:"11",name:"E",salary:0,skillGroup:"Foundation League",gameId:null,gameTitle:"Rocket League",franchise:"Wizards",staffPosition:null,slot:"PLAYERE",currentScrimPoints:0,eligibleThrough:null,sourceAsOf:null},
@@ -88,11 +88,11 @@ test("High Usage shows exact five-slot FL limits", () => {
   ]);
   const a = high.find(value => value.slot === "A");
   assert.equal(a?.doublesLimit, 6);
-  assert.equal(a?.standardLimit, 8);
-  assert.equal(a?.combinedLimit, 12);
+  assert.equal(a?.standardLimit, 9);
+  assert.equal(a?.combinedLimit, 15);
   assert.equal(a?.doublesRemaining, 2);
-  assert.equal(a?.standardRemaining, 2);
-  assert.equal(a?.combinedRemaining, 3);
+  assert.equal(a?.standardRemaining, 3);
+  assert.equal(a?.combinedRemaining, 6);
 });
 
 
