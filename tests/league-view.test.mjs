@@ -121,3 +121,22 @@ test("FL five-slot usage activates from current slot E or historical role E usag
     false,
   );
 });
+
+
+test("five-player FL roster activates 6/8/12 even without a literal slot E label", () => {
+  const players = [
+    {slot: "PLAYERA", skill_group: "Foundation League"},
+    {slot: "PLAYERB", skill_group: "Foundation League"},
+    {slot: "PLAYERC", skill_group: "Foundation League"},
+    {slot: "PLAYERD", skill_group: "Foundation League"},
+    {slot: "PLAYERF", skill_group: "Foundation League"},
+  ];
+
+  assert.equal(flFiveSlotUsageActive(players), true);
+  assert.deepEqual(usagePolicyForDivision("FL", flFiveSlotUsageActive(players)), {
+    rosterSlots: 5,
+    doublesLimit: 6,
+    standardLimit: 8,
+    combinedLimit: 12,
+  });
+});
