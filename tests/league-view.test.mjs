@@ -57,7 +57,7 @@ test("usage resolves by current division and slot", () => {
 });
 
 
-test("S20 usage policy keeps four-slot FL limits but reduces usage when slot E is active", () => {
+test("S20 FL usage stays 6/9/15 regardless of five-slot roster activation", () => {
   assert.deepEqual(usagePolicyForDivision("FL"), {
     rosterSlots: 5,
     doublesLimit: 6,
@@ -67,8 +67,8 @@ test("S20 usage policy keeps four-slot FL limits but reduces usage when slot E i
   assert.deepEqual(usagePolicyForDivision("FL", true), {
     rosterSlots: 5,
     doublesLimit: 6,
-    standardLimit: 8,
-    combinedLimit: 12,
+    standardLimit: 9,
+    combinedLimit: 15,
   });
   assert.deepEqual(usagePolicyForDivision("CL"), {
     rosterSlots: 8,
@@ -123,7 +123,7 @@ test("FL five-slot usage activates from current slot E or historical role E usag
 });
 
 
-test("five-player FL roster activates 6/8/12 even without a literal slot E label", () => {
+test("five-player FL roster detection does not change the 6/9/15 limits", () => {
   const players = [
     {slot: "PLAYERA", skill_group: "Foundation League"},
     {slot: "PLAYERB", skill_group: "Foundation League"},
@@ -136,7 +136,7 @@ test("five-player FL roster activates 6/8/12 even without a literal slot E label
   assert.deepEqual(usagePolicyForDivision("FL", flFiveSlotUsageActive(players)), {
     rosterSlots: 5,
     doublesLimit: 6,
-    standardLimit: 8,
-    combinedLimit: 12,
+    standardLimit: 9,
+    combinedLimit: 15,
   });
 });
