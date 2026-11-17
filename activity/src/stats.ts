@@ -149,11 +149,11 @@ export function mountStatsPanel(panel: HTMLElement, api: StatsApi, setStatus: St
     document.body.classList.remove("modal-open");
   };
 
-  const openPlayer = async (player: StatsPlayer): Promise<void> => {
+  const openPlayer = async (player: StatsPlayer, mode: "2s" | "3s"): Promise<void> => {
     try {
-      setStatus(`Loading ${player.name}'s match history…`);
+      setStatus(`Loading ${player.name}'s ${mode} match history…`);
       const detail = await api<PlayerSeriesResponse>(
-        `/api/activity/stats/player?player_id=${encodeURIComponent(player.sprocket_player_id)}`,
+        `/api/activity/stats/player?player_id=${encodeURIComponent(player.sprocket_player_id)}&mode=${encodeURIComponent(mode)}`,
       );
 
       const rows = detail.matches.map(match => `
@@ -180,8 +180,8 @@ export function mountStatsPanel(panel: HTMLElement, api: StatsApi, setStatus: St
             <div class="modal-heading">
               <div>
                 <div class="eyebrow">${escapeHtml(detail.player.division ?? player.division)} · Slot ${escapeHtml(detail.player.slot)}</div>
-                <h2>${escapeHtml(detail.player.name)}</h2>
-                <p class="stats-player-help">Season 20 official match series. Performance values are aggregated from the games this player actually appeared in.</p>
+                <h2>${escapeHtml(detail.player.name)} · ${escapeHtml(modeLabel(mode))}</h2>
+                <p class="stats-player-help">Season 20 official ${escapeHtml(modeLabel(mode))} match series only. Performance values are aggregated from the games this player actually appeared in.</p>
               </div>
               <button class="icon-button" data-close-stats-player aria-label="Close">×</button>
             </div>
@@ -200,7 +200,7 @@ export function mountStatsPanel(panel: HTMLElement, api: StatsApi, setStatus: St
       modalRoot.querySelectorAll<HTMLElement>("[data-close-stats-player]").forEach(element => {
         element.addEventListener("click", closePlayer);
       });
-      setStatus(`Loaded ${detail.matches.length} match series for ${detail.player.name}.`, "success");
+      setStatus(`Loaded ${detail.matches.length} ${mode} match series for ${detail.player.name}.`, "success");
     } catch (error) {
       setStatus(error instanceof Error ? error.message : String(error), "error");
     }
@@ -230,13 +230,14 @@ export function mountStatsPanel(panel: HTMLElement, api: StatsApi, setStatus: St
       const lines = player.stats.length > 0 ? player.stats : [null];
       return lines.map((stat, index) => {
         const first = index === 0;
+        const rowMode = stat?.mode === "2s" || stat?.mode === "3s" ? stat.mode : null;
         const playerCell = first
-          ? source === "matches"
-            ? `<button class="stats-player-link" data-stats-player="${escapeHtml(player.sprocket_player_id)}"><strong>${escapeHtml(player.name)}</strong><small>View matches</small></button>`
+          ? source === "matches" && rowMode
+            ? `<button class="stats-player-link" data-stats-player="${escapeHtml(player.sprocket_player_id)}" data-stats-mode="${rowMode}"><strong>${escapeHtml(player.name)}</strong><small>View ${rowMode} matches</small></button>`
             : `<strong>${escapeHtml(player.name)}</strong>`
           : "";
         return `
-          <tr class="${source === "matches" && first ? "stats-clickable-row" : ""}" data-row-player="${first ? escapeHtml(player.sprocket_player_id) : ""}">
+          <tr class="${source === "matches" && rowMode ? "stats-clickable-row" : ""}" data-row-player="${source === "matches" && rowMode ? escapeHtml(player.sprocket_player_id) : ""}" data-row-mode="${rowMode ?? ""}">
             <td class="prospect-name">${playerCell}</td>
             <td>${first ? escapeHtml(player.division) : ""}</td>
             <td>${first ? escapeHtml(player.slot) : ""}</td>
@@ -273,15 +274,17 @@ export function mountStatsPanel(panel: HTMLElement, api: StatsApi, setStatus: St
         element.addEventListener("click", event => {
           event.stopPropagation();
           const player = byId.get(element.dataset.statsPlayer ?? "");
-          if (player) void openPlayer(player);
+          const mode = element.dataset.statsMode;
+          if (player && (mode === "2s" || mode === "3s")) void openPlayer(player, mode);
         });
       });
       output.querySelectorAll<HTMLElement>("[data-row-player]").forEach(row => {
         const id = row.dataset.rowPlayer ?? "";
-        if (!id) return;
+        const mode = row.dataset.rowMode;
+        if (!id || (mode !== "2s" && mode !== "3s")) return;
         row.addEventListener("click", () => {
           const player = byId.get(id);
-          if (player) void openPlayer(player);
+          if (player) void openPlayer(player, mode);
         });
       });
     }
