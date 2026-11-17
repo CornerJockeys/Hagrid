@@ -6,6 +6,7 @@ import {
   aggregateMatchStatLines,
   aggregatePlayerSeries,
   getFranchiseSeason20MatchData,
+  playerMatchGamesForMode,
   type MatchStatLine,
 } from "../sprocket/match-stats";
 import type {Env} from "../types";
@@ -240,10 +241,7 @@ export async function getActivityStatsPlayer(
   }
 
   const matchData = await getFranchiseSeason20MatchData(env, context.config.franchise_name);
-  const games = matchData.games.filter(game =>
-    game.memberId === player.member_id &&
-    game.mode === mode
-  );
+  const games = playerMatchGamesForMode(matchData.games, player.member_id, mode);
 
   return Response.json({
     player: {
