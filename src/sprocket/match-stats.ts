@@ -180,6 +180,14 @@ export async function getSeason20PlayerMatchGames(env: Env): Promise<PlayerMatch
     .filter((value): value is PlayerMatchGame => value !== null);
 }
 
+export function playerMatchGamesForMode(
+  games: readonly PlayerMatchGame[],
+  memberId: string,
+  mode: MatchStatMode,
+): PlayerMatchGame[] {
+  return games.filter(game => game.memberId === memberId && game.mode === mode);
+}
+
 export async function getScheduleMatches(env: Env): Promise<ScheduleMatch[]> {
   const rows = await fetchCsvDatasetCandidates(env, [
     "matches",

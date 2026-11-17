@@ -6,6 +6,7 @@ import {
   aggregateMatchStatLines,
   aggregatePlayerSeries,
   getFranchiseSeason20MatchData,
+  playerMatchGamesForMode,
   type MatchStatLine,
 } from "../sprocket/match-stats";
 import type {Env} from "../types";
@@ -208,9 +209,14 @@ export async function getActivityStatsPlayer(
   const context = await activityStatsContext(request, env);
   if (context instanceof Response) return context;
 
-  const playerId = new URL(request.url).searchParams.get("player_id")?.trim() ?? "";
+  const url = new URL(request.url);
+  const playerId = url.searchParams.get("player_id")?.trim() ?? "";
+  const mode = url.searchParams.get("mode")?.trim().toLocaleLowerCase("en-US") ?? "";
   if (!playerId) {
     return Response.json({error: "player_id is required."}, {status: 400});
+  }
+  if (mode !== "2s" && mode !== "3s") {
+    return Response.json({error: "mode must be 2s or 3s."}, {status: 400});
   }
 
   const player = snapshotTeamPlayers(context.snapshot, context.config.franchise_name)
@@ -235,7 +241,7 @@ export async function getActivityStatsPlayer(
   }
 
   const matchData = await getFranchiseSeason20MatchData(env, context.config.franchise_name);
-  const games = matchData.games.filter(game => game.memberId === player.member_id);
+  const games = playerMatchGamesForMode(matchData.games, player.member_id, mode);
 
   return Response.json({
     player: {
