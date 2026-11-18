@@ -1,4 +1,4 @@
-import {availabilityCopyLines} from "./availability-copy";
+import {availabilityCopyText} from "./availability-copy";
 import {enableMobileHorizontalScroll} from "./horizontal-scroll";
 export type TeamAvailabilityApi = <T>(path: string, init?: RequestInit) => Promise<T>;
 export type TeamAvailabilityStatus = (
@@ -307,14 +307,14 @@ export function mountTeamAvailabilityPanel(
 
   const copyOverlapTimes = async (threshold: 2 | 3): Promise<void> => {
     if (!data || !data.can_copy_overlaps) return;
-    const lines = availabilityCopyLines(
+    const copied = availabilityCopyText(
       data.players,
       threshold,
       data.window.start_minute,
       data.window.end_minute,
       resolution,
     );
-    if (lines.length === 0) {
+    if (copied.lines.length === 0) {
       setStatus(
         `No ${resolution === 60 ? "hourly" : "30-minute"} times have ${threshold}+ available players.`,
         "normal",
@@ -322,7 +322,7 @@ export function mountTeamAvailabilityPanel(
       return;
     }
 
-    const text = lines.join("\n");
+    const text = copied.text;
     try {
       if (navigator.clipboard?.writeText) {
         await navigator.clipboard.writeText(text);
@@ -339,7 +339,7 @@ export function mountTeamAvailabilityPanel(
         if (!copied) throw new Error("Clipboard copy was blocked.");
       }
       setStatus(
-        `Copied ${lines.length} time${lines.length === 1 ? "" : "s"} with ${threshold}+ available players.`,
+        `Copied ${copied.lines.length} time${copied.lines.length === 1 ? "" : "s"} with ${threshold}+ available players.`,
         "success",
       );
     } catch (error) {
