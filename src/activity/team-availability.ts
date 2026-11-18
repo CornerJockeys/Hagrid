@@ -119,6 +119,7 @@ export async function getTeamAvailability(request: Request, env: Env): Promise<R
   return Response.json({
     week_start: weekStart,
     division: division ?? "all",
+    can_copy_overlaps: access.captainPlus,
     visible_divisions: visibleDivisions,
     window: {
       start_minute: AVAILABILITY_START_MINUTE,

@@ -100,6 +100,20 @@ select:focus, input:focus { border-color: #7b838f; }
 .grid-help { gap: 7px; color: #bec3ca; font-size: 12px; margin: 4px 0 10px; }
 .grid-help .muted { color: #7e8590; margin-left: 8px; }
 .mobile-grid-help { display: none; color: #9aa3ae; }
+.mobile-horizontal-scroll-controls {
+  display: none;
+  gap: 8px;
+  justify-content: space-between;
+  margin: 0 0 8px;
+}
+.mobile-horizontal-scroll-controls .secondary-button {
+  flex: 1 1 0;
+}
+.team-copy-controls {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
 .legend-swatch { width: 13px; height: 13px; border-radius: 3px; background: #7f91aa; border: 1px solid #aab6c6; }
 
 .availability-scroll {
@@ -111,7 +125,7 @@ select:focus, input:focus { border-color: #7b838f; }
   min-height: 340px;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;
-  touch-action: pan-x pan-y;
+  touch-action: pan-y;
 }
 .availability-grid {
   display: grid;
@@ -756,8 +770,13 @@ select:focus, input:focus { border-color: #7b838f; }
 
 
 @media (pointer: coarse) {
-  .drag-cell { touch-action: pan-x pan-y; }
+  .availability-scroll,
+  .drag-cell,
+  .team-heat-cell {
+    touch-action: pan-y;
+  }
   .mobile-grid-help { display: inline; margin-left: 8px; }
+  .mobile-horizontal-scroll-controls { display: flex; }
 }
 
 @media (max-width: 560px) and (pointer: coarse) {
@@ -768,5 +787,11 @@ select:focus, input:focus { border-color: #7b838f; }
   .mobile-grid-help {
     flex-basis: 100%;
     margin-left: 20px;
+  }
+  .team-copy-controls {
+    flex-basis: 100%;
+  }
+  .team-copy-controls .secondary-button {
+    flex: 1 1 calc(50% - 4px);
   }
 }
