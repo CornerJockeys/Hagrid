@@ -22,7 +22,7 @@ test("2+ copy output includes header and only qualifying times", () => {
     player("Player Q", slots(4, 1140, 1170)),
   ];
 
-  const copied = availabilityCopyText(players, 2, 1140, 1260, 60);
+  const copied = availabilityCopyText(players, "FL", 2, 1140, 1260, 60);
 
   assert.deepEqual(copied.lines, [
     "Thursday 7pm, Player X, Player Y, Player Z.",
@@ -30,7 +30,7 @@ test("2+ copy output includes header and only qualifying times", () => {
   ]);
   assert.equal(
     copied.text,
-    "Copy of 2+ times\n\n" +
+    "Copy of FL 2+ times\n\n" +
       "Thursday 7pm, Player X, Player Y, Player Z.\n" +
       "Thursday 8pm, Player X, Player Z.",
   );
@@ -43,14 +43,14 @@ test("3+ copy output excludes times with only two available players", () => {
     player("Player Z", slots(3, 1140, 1170, 1200, 1230)),
   ];
 
-  const copied = availabilityCopyText(players, 3, 1140, 1260, 60);
+  const copied = availabilityCopyText(players, "ML", 3, 1140, 1260, 60);
 
   assert.deepEqual(copied.lines, [
     "Thursday 7pm, Player X, Player Y, Player Z.",
   ]);
   assert.equal(
     copied.text,
-    "Copy of 3+ times\n\nThursday 7pm, Player X, Player Y, Player Z.",
+    "Copy of ML 3+ times\n\nThursday 7pm, Player X, Player Y, Player Z.",
   );
 });
 
