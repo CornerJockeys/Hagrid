@@ -34,13 +34,34 @@ function compactTime(minute: number): string {
     : `${hour12}:${String(mins).padStart(2, "0")}${suffix}`;
 }
 
-export function availabilityCopyLines(
+function compactTimeWithoutSuffix(minute: number): string {
+  const hour24 = Math.floor(minute / 60) % 24;
+  const mins = minute % 60;
+  const hour12 = hour24 % 12 || 12;
+  return mins === 0
+    ? String(hour12)
+    : `${hour12}:${String(mins).padStart(2, "0")}`;
+}
+
+function timeSuffix(minute: number): "am" | "pm" {
+  const hour24 = Math.floor(minute / 60) % 24;
+  return hour24 >= 12 ? "pm" : "am";
+}
+
+function compactRange(startMinute: number, endMinute: number): string {
+  const start = timeSuffix(startMinute) === timeSuffix(endMinute)
+    ? compactTimeWithoutSuffix(startMinute)
+    : compactTime(startMinute);
+  return `${start}-${compactTime(endMinute)}`;
+}
+
+function qualifyingBlocks(
   players: readonly CopyAvailabilityPlayer[],
   threshold: number,
   startMinute: number,
   endMinute: number,
   resolution: 30 | 60,
-): string[] {
+): Array<{day: number; minute: number; names: string[]}> {
   const prepared = players
     .filter(player => player.submitted)
     .map(player => ({
@@ -52,7 +73,7 @@ export function availabilityCopyLines(
       ),
     }));
 
-  const lines: string[] = [];
+  const blocks: Array<{day: number; minute: number; names: string[]}> = [];
   for (let day = 0; day < 7; day += 1) {
     for (let minute = startMinute; minute < endMinute; minute += resolution) {
       const names = prepared
@@ -65,12 +86,69 @@ export function availabilityCopyLines(
         .map(player => player.name);
 
       if (names.length < threshold) continue;
-      lines.push(`${fullDayNames[day]} ${compactTime(minute)}, ${names.join(", ")}.`);
+      blocks.push({day, minute, names});
     }
   }
-  return lines;
+  return blocks;
 }
 
+export function availabilityCopyLines(
+  players: readonly CopyAvailabilityPlayer[],
+  threshold: number,
+  startMinute: number,
+  endMinute: number,
+  resolution: 30 | 60,
+): string[] {
+  return qualifyingBlocks(
+    players,
+    threshold,
+    startMinute,
+    endMinute,
+    resolution,
+  ).map(block =>
+    `${fullDayNames[block.day]} ${compactTime(block.minute)}, ${block.names.join(", ")}.`,
+  );
+}
+
+export function availabilityCopyRangeLines(
+  players: readonly CopyAvailabilityPlayer[],
+  threshold: number,
+  startMinute: number,
+  endMinute: number,
+  resolution: 30 | 60,
+): string[] {
+  const blocks = qualifyingBlocks(
+    players,
+    threshold,
+    startMinute,
+    endMinute,
+    resolution,
+  );
+  const lines: string[] = [];
+
+  for (let day = 0; day < 7; day += 1) {
+    const minutes = blocks
+      .filter(block => block.day === day)
+      .map(block => block.minute);
+    if (minutes.length === 0) continue;
+
+    let rangeStart = minutes[0];
+    let previous = minutes[0];
+
+    for (const minute of minutes.slice(1)) {
+      if (minute === previous + resolution) {
+        previous = minute;
+        continue;
+      }
+      lines.push(`${fullDayNames[day]} ${compactRange(rangeStart, previous + resolution)}`);
+      rangeStart = minute;
+      previous = minute;
+    }
+    lines.push(`${fullDayNames[day]} ${compactRange(rangeStart, previous + resolution)}`);
+  }
+
+  return lines;
+}
 
 export function availabilityCopyText(
   players: readonly CopyAvailabilityPlayer[],
@@ -81,6 +159,27 @@ export function availabilityCopyText(
   resolution: 30 | 60,
 ): {text: string; lines: string[]} {
   const lines = availabilityCopyLines(
+    players,
+    threshold,
+    startMinute,
+    endMinute,
+    resolution,
+  );
+  return {
+    lines,
+    text: `Copy of ${division} ${threshold}+ players\n\n${lines.join("\n")}`,
+  };
+}
+
+export function availabilityTimesCopyText(
+  players: readonly CopyAvailabilityPlayer[],
+  division: "FL" | "AL" | "CL" | "ML",
+  threshold: 2 | 3,
+  startMinute: number,
+  endMinute: number,
+  resolution: 30 | 60,
+): {text: string; lines: string[]} {
+  const lines = availabilityCopyRangeLines(
     players,
     threshold,
     startMinute,

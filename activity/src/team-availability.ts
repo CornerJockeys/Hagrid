@@ -1,4 +1,4 @@
-import {availabilityCopyText} from "./availability-copy";
+import {availabilityCopyText, availabilityTimesCopyText} from "./availability-copy";
 import {enableMobileHorizontalScroll} from "./horizontal-scroll";
 export type TeamAvailabilityApi = <T>(path: string, init?: RequestInit) => Promise<T>;
 export type TeamAvailabilityStatus = (
@@ -206,6 +206,8 @@ export function mountTeamAvailabilityPanel(
       <div id="team-copy-controls" class="team-copy-controls" hidden>
         <button id="copy-2-plus-times" class="secondary-button" type="button">Copy 2+ times</button>
         <button id="copy-3-plus-times" class="secondary-button" type="button">Copy 3+ times</button>
+        <button id="copy-2-plus-players" class="secondary-button" type="button">Copy 2+ players</button>
+        <button id="copy-3-plus-players" class="secondary-button" type="button">Copy 3+ players</button>
       </div>
       <button id="team-refresh" class="secondary-button">Refresh</button>
     </div>
@@ -341,21 +343,34 @@ export function mountTeamAvailabilityPanel(
     textarea?.select();
   };
 
-  const copyOverlapTimes = async (threshold: 2 | 3): Promise<void> => {
+  const copyAvailability = async (
+    threshold: 2 | 3,
+    mode: "times" | "players",
+  ): Promise<void> => {
     if (!data || !data.can_copy_overlaps) return;
     if (selectedDivision === "all") {
       setStatus("Select FL, AL, CL, or ML before copying availability.", "error");
       return;
     }
 
-    const copied = availabilityCopyText(
-      data.players,
-      selectedDivision,
-      threshold,
-      data.window.start_minute,
-      data.window.end_minute,
-      resolution,
-    );
+    const copied = mode === "times"
+      ? availabilityTimesCopyText(
+        data.players,
+        selectedDivision,
+        threshold,
+        data.window.start_minute,
+        data.window.end_minute,
+        resolution,
+      )
+      : availabilityCopyText(
+        data.players,
+        selectedDivision,
+        threshold,
+        data.window.start_minute,
+        data.window.end_minute,
+        resolution,
+      );
+
     if (copied.lines.length === 0) {
       setStatus(
         `No ${resolution === 60 ? "hourly" : "30-minute"} times have ${threshold}+ available players.`,
@@ -365,24 +380,21 @@ export function mountTeamAvailabilityPanel(
     }
 
     const text = copied.text;
+    const successMessage = mode === "times"
+      ? `Copied ${copied.lines.length} summarized availability range${copied.lines.length === 1 ? "" : "s"} with ${threshold}+ players.`
+      : `Copied ${copied.lines.length} qualifying time block${copied.lines.length === 1 ? "" : "s"} with player names.`;
 
     // Mobile Discord/WebViews often expose navigator.clipboard but reject writes.
     // Try the synchronous selection copy first while the button tap is still active.
     if (legacyCopy(text)) {
-      setStatus(
-        `Copied ${copied.lines.length} time${copied.lines.length === 1 ? "" : "s"} with ${threshold}+ available players.`,
-        "success",
-      );
+      setStatus(successMessage, "success");
       return;
     }
 
     try {
       if (!navigator.clipboard?.writeText) throw new Error("Clipboard API unavailable.");
       await navigator.clipboard.writeText(text);
-      setStatus(
-        `Copied ${copied.lines.length} time${copied.lines.length === 1 ? "" : "s"} with ${threshold}+ available players.`,
-        "success",
-      );
+      setStatus(successMessage, "success");
     } catch {
       showManualCopy(text);
       setStatus("Automatic clipboard access is blocked here; the copy text is open for manual copying.", "error");
@@ -502,8 +514,10 @@ export function mountTeamAvailabilityPanel(
     void load();
   });
   panel.querySelector("#team-refresh")?.addEventListener("click", () => void load());
-  panel.querySelector("#copy-2-plus-times")?.addEventListener("click", () => void copyOverlapTimes(2));
-  panel.querySelector("#copy-3-plus-times")?.addEventListener("click", () => void copyOverlapTimes(3));
+  panel.querySelector("#copy-2-plus-times")?.addEventListener("click", () => void copyAvailability(2, "times"));
+  panel.querySelector("#copy-3-plus-times")?.addEventListener("click", () => void copyAvailability(3, "times"));
+  panel.querySelector("#copy-2-plus-players")?.addEventListener("click", () => void copyAvailability(2, "players"));
+  panel.querySelector("#copy-3-plus-players")?.addEventListener("click", () => void copyAvailability(3, "players"));
   for (const button of divisionButtons) {
     button.addEventListener("click", () => {
       const value = button.dataset.teamDivision;
