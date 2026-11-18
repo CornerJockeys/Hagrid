@@ -85,6 +85,15 @@ export function mountPersonalAvailabilityPanel(
   let dragging = false;
   let dragValue = true;
   let lastPaintedKey = "";
+  let touchTap: {
+    pointerId: number;
+    cell: HTMLElement;
+    day: number;
+    minute: number;
+    startX: number;
+    startY: number;
+  } | null = null;
+  const TOUCH_SCROLL_THRESHOLD = 8;
 
   const displayCellSelected = (day: number, minute: number): boolean => {
     for (let offset = 0; offset < resolution; offset += 30) {
@@ -172,6 +181,18 @@ export function mountPersonalAvailabilityPanel(
         return;
       }
       cell.addEventListener("pointerdown", event => {
+        if (event.pointerType === "touch") {
+          touchTap = {
+            pointerId: event.pointerId,
+            cell,
+            day,
+            minute,
+            startX: event.clientX,
+            startY: event.clientY,
+          };
+          return;
+        }
+
         event.preventDefault();
         dragging = true;
         lastPaintedKey = "";
@@ -180,13 +201,34 @@ export function mountPersonalAvailabilityPanel(
       });
     });
 
-    grid.addEventListener("pointermove", event => {
+    grid.onpointermove = event => {
+      if (event.pointerType === "touch" && touchTap?.pointerId === event.pointerId) {
+        const movedX = Math.abs(event.clientX - touchTap.startX);
+        const movedY = Math.abs(event.clientY - touchTap.startY);
+        if (movedX > TOUCH_SCROLL_THRESHOLD || movedY > TOUCH_SCROLL_THRESHOLD) {
+          touchTap = null;
+        }
+        return;
+      }
+
       if (!dragging || editMode !== "drag") return;
       event.preventDefault();
       const target = document.elementFromPoint(event.clientX, event.clientY)?.closest(".availability-cell") as HTMLElement | null;
       if (!target || !grid.contains(target)) return;
       paintCell(target);
-    });
+    };
+
+    grid.onpointerup = event => {
+      if (event.pointerType !== "touch" || touchTap?.pointerId !== event.pointerId) return;
+      const tapped = touchTap;
+      touchTap = null;
+      applyDisplayCell(tapped.day, tapped.minute, !displayCellSelected(tapped.day, tapped.minute));
+      syncCellVisual(tapped.cell, tapped.day, tapped.minute);
+    };
+
+    grid.onpointercancel = event => {
+      if (touchTap?.pointerId === event.pointerId) touchTap = null;
+    };
   };
 
   const load = async (): Promise<void> => {
@@ -260,7 +302,7 @@ export function mountPersonalAvailabilityPanel(
       <label>Edit style<select id="edit-mode-select"><option value="drag">Drag to select</option><option value="checkbox">Checkboxes</option></select></label>
       <button id="copy-previous" class="secondary-button">Copy Previous Week</button><button id="clear-availability" class="secondary-button">Clear</button><button id="save-availability" class="primary-button" disabled>Save Availability</button>
     </div>
-    <div class="grid-help"><span class="legend-swatch"></span><span>Available</span><span class="muted">Selections are stored in 30-minute slots even when the grid is shown hourly.</span></div>
+    <div class="grid-help"><span class="legend-swatch"></span><span>Available</span><span class="muted">Selections are stored in 30-minute slots even when the grid is shown hourly.</span><span class="mobile-grid-help">On phones: swipe to scroll, tap a block to toggle it.</span></div>
     <div class="availability-scroll"><div id="availability-grid" class="availability-grid"></div></div>`;
 
   panel.querySelector<HTMLSelectElement>("#resolution-select")?.addEventListener("change", event => {
@@ -282,13 +324,15 @@ export function mountPersonalAvailabilityPanel(
   });
   panel.querySelector("#save-availability")?.addEventListener("click", () => void save());
 
-  window.addEventListener("pointerup", () => {
+  window.addEventListener("pointerup", event => {
     dragging = false;
     lastPaintedKey = "";
+    if (touchTap?.pointerId === event.pointerId) touchTap = null;
   });
-  window.addEventListener("pointercancel", () => {
+  window.addEventListener("pointercancel", event => {
     dragging = false;
     lastPaintedKey = "";
+    if (touchTap?.pointerId === event.pointerId) touchTap = null;
   });
   window.addEventListener("focus", () => {
     if (!followsCurrentWeek || dirty) return;
