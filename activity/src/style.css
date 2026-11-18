@@ -795,3 +795,35 @@ select:focus, input:focus { border-color: #7b838f; }
     flex: 1 1 calc(50% - 4px);
   }
 }
+
+
+/* Keep wide availability grids from widening the Team Overview page itself. */
+.team-hub-page,
+.team-hub-stack,
+.team-hub-stack > div,
+#combined-my-availability,
+#combined-team-availability {
+  min-width: 0;
+  max-width: 100%;
+}
+[data-team-page-panel="availability"] {
+  overflow-x: hidden;
+}
+[data-team-page-panel="availability"] .availability-scroll {
+  width: 100%;
+  max-width: 100%;
+}
+
+.manual-copy-textarea {
+  width: 100%;
+  min-height: 240px;
+  margin-top: 12px;
+  padding: 12px;
+  resize: vertical;
+  border: 1px solid #383d47;
+  border-radius: 8px;
+  background: #111419;
+  color: #eef0f3;
+  font: 13px/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  white-space: pre-wrap;
+}
