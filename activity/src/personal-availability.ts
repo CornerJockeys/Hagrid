@@ -1,3 +1,4 @@
+import {enableMobileHorizontalScroll} from "./horizontal-scroll";
 export type PersonalAvailabilityApi = <T>(path: string, init?: RequestInit) => Promise<T>;
 export type PersonalAvailabilityStatus = (
   message: string,
@@ -302,8 +303,21 @@ export function mountPersonalAvailabilityPanel(
       <label>Edit style<select id="edit-mode-select"><option value="drag">Drag to select</option><option value="checkbox">Checkboxes</option></select></label>
       <button id="copy-previous" class="secondary-button">Copy Previous Week</button><button id="clear-availability" class="secondary-button">Clear</button><button id="save-availability" class="primary-button" disabled>Save Availability</button>
     </div>
-    <div class="grid-help"><span class="legend-swatch"></span><span>Available</span><span class="muted">Selections are stored in 30-minute slots even when the grid is shown hourly.</span><span class="mobile-grid-help">On phones: swipe to scroll, tap a block to toggle it.</span></div>
-    <div class="availability-scroll"><div id="availability-grid" class="availability-grid"></div></div>`;
+    <div class="grid-help"><span class="legend-swatch"></span><span>Available</span><span class="muted">Selections are stored in 30-minute slots even when the grid is shown hourly.</span><span class="mobile-grid-help">On phones: swipe sideways or use the arrows below; tap a block to toggle it.</span></div>
+    <div class="mobile-horizontal-scroll-controls" aria-label="Availability horizontal scroll controls">
+      <button type="button" id="availability-scroll-left" class="secondary-button">← Left</button>
+      <button type="button" id="availability-scroll-right" class="secondary-button">Right →</button>
+    </div>
+    <div id="personal-availability-scroll" class="availability-scroll"><div id="availability-grid" class="availability-grid"></div></div>`;
+
+  const personalScroller = panel.querySelector<HTMLElement>("#personal-availability-scroll");
+  if (personalScroller) {
+    enableMobileHorizontalScroll(
+      personalScroller,
+      panel.querySelector<HTMLButtonElement>("#availability-scroll-left"),
+      panel.querySelector<HTMLButtonElement>("#availability-scroll-right"),
+    );
+  }
 
   panel.querySelector<HTMLSelectElement>("#resolution-select")?.addEventListener("change", event => {
     resolution = Number((event.target as HTMLSelectElement).value) as Resolution;
