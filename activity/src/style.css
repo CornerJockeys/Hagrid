@@ -99,9 +99,20 @@ select:focus, input:focus { border-color: #7b838f; }
 .availability-toolbar > button { min-height: 36px; }
 .grid-help { gap: 7px; color: #bec3ca; font-size: 12px; margin: 4px 0 10px; }
 .grid-help .muted { color: #7e8590; margin-left: 8px; }
+.mobile-grid-help { display: none; color: #9aa3ae; }
 .legend-swatch { width: 13px; height: 13px; border-radius: 3px; background: #7f91aa; border: 1px solid #aab6c6; }
 
-.availability-scroll { overflow: auto; border: 1px solid #292e37; border-radius: 10px; max-height: calc(100vh - 310px); min-height: 340px; }
+.availability-scroll {
+  overflow: auto;
+  max-width: 100%;
+  border: 1px solid #292e37;
+  border-radius: 10px;
+  max-height: calc(100vh - 310px);
+  min-height: 340px;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  touch-action: pan-x pan-y;
+}
 .availability-grid {
   display: grid;
   grid-template-columns: 94px repeat(7, minmax(76px, 1fr));
@@ -741,4 +752,21 @@ select:focus, input:focus { border-color: #7b838f; }
 }
 .usage-detail-player.high-usage-player {
   border-color: #66562d;
+}
+
+
+@media (pointer: coarse) {
+  .drag-cell { touch-action: pan-x pan-y; }
+  .mobile-grid-help { display: inline; margin-left: 8px; }
+}
+
+@media (max-width: 560px) and (pointer: coarse) {
+  .grid-help {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+  .mobile-grid-help {
+    flex-basis: 100%;
+    margin-left: 20px;
+  }
 }
