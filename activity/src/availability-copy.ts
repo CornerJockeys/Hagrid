@@ -74,6 +74,7 @@ export function availabilityCopyLines(
 
 export function availabilityCopyText(
   players: readonly CopyAvailabilityPlayer[],
+  division: "FL" | "AL" | "CL" | "ML",
   threshold: 2 | 3,
   startMinute: number,
   endMinute: number,
@@ -88,6 +89,6 @@ export function availabilityCopyText(
   );
   return {
     lines,
-    text: `Copy of ${threshold}+ times\n\n${lines.join("\n")}`,
+    text: `Copy of ${division} ${threshold}+ times\n\n${lines.join("\n")}`,
   };
 }

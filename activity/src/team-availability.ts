@@ -305,10 +305,52 @@ export function mountTeamAvailabilityPanel(
     bindClose();
   };
 
+  const legacyCopy = (text: string): boolean => {
+    const textarea = document.createElement("textarea");
+    textarea.value = text;
+    textarea.setAttribute("readonly", "");
+    textarea.style.position = "fixed";
+    textarea.style.left = "-9999px";
+    textarea.style.top = "0";
+    textarea.style.width = "1px";
+    textarea.style.height = "1px";
+    document.body.appendChild(textarea);
+    textarea.focus({preventScroll: true});
+    textarea.select();
+    textarea.setSelectionRange(0, textarea.value.length);
+    let copied = false;
+    try {
+      copied = document.execCommand("copy");
+    } catch {
+      copied = false;
+    }
+    textarea.remove();
+    return copied;
+  };
+
+  const showManualCopy = (text: string): void => {
+    detailRoot.innerHTML = detailModal(
+      "Copy availability",
+      `<p class="muted-copy">Automatic clipboard access is blocked by this mobile view. Long-press the text below and copy it manually.</p>
+       <textarea id="manual-availability-copy" class="manual-copy-textarea" readonly>${escapeHtml(text)}</textarea>`,
+    );
+    document.body.classList.add("modal-open");
+    bindClose();
+    const textarea = detailRoot.querySelector<HTMLTextAreaElement>("#manual-availability-copy");
+    textarea?.focus({preventScroll: true});
+    textarea?.select();
+  };
+
   const copyOverlapTimes = async (threshold: 2 | 3): Promise<void> => {
     if (!data || !data.can_copy_overlaps) return;
+    if (selectedDivision === "all") {
+      setStatus("Select FL, AL, CL, or ML before copying availability.", "error");
+      return;
+    }
+
     const copied = availabilityCopyText(
       data.players,
+      selectedDivision,
       threshold,
       data.window.start_minute,
       data.window.end_minute,
@@ -323,30 +365,27 @@ export function mountTeamAvailabilityPanel(
     }
 
     const text = copied.text;
-    try {
-      if (navigator.clipboard?.writeText) {
-        await navigator.clipboard.writeText(text);
-      } else {
-        const textarea = document.createElement("textarea");
-        textarea.value = text;
-        textarea.setAttribute("readonly", "");
-        textarea.style.position = "fixed";
-        textarea.style.opacity = "0";
-        document.body.appendChild(textarea);
-        textarea.select();
-        const copied = document.execCommand("copy");
-        textarea.remove();
-        if (!copied) throw new Error("Clipboard copy was blocked.");
-      }
+
+    // Mobile Discord/WebViews often expose navigator.clipboard but reject writes.
+    // Try the synchronous selection copy first while the button tap is still active.
+    if (legacyCopy(text)) {
       setStatus(
         `Copied ${copied.lines.length} time${copied.lines.length === 1 ? "" : "s"} with ${threshold}+ available players.`,
         "success",
       );
-    } catch (error) {
+      return;
+    }
+
+    try {
+      if (!navigator.clipboard?.writeText) throw new Error("Clipboard API unavailable.");
+      await navigator.clipboard.writeText(text);
       setStatus(
-        `Could not copy automatically: ${error instanceof Error ? error.message : String(error)}`,
-        "error",
+        `Copied ${copied.lines.length} time${copied.lines.length === 1 ? "" : "s"} with ${threshold}+ available players.`,
+        "success",
       );
+    } catch {
+      showManualCopy(text);
+      setStatus("Automatic clipboard access is blocked here; the copy text is open for manual copying.", "error");
     }
   };
 
@@ -355,6 +394,10 @@ export function mountTeamAvailabilityPanel(
     label.textContent = formatWeek(data.week_start);
     syncDivisionButtons();
     copyControls.hidden = !data.can_copy_overlaps;
+    copyControls.querySelectorAll<HTMLButtonElement>("button").forEach(button => {
+      button.disabled = selectedDivision === "all";
+      button.title = selectedDivision === "all" ? "Select a division before copying." : "";
+    });
 
     const submitted = data.players.filter(player => player.submitted).length;
     const linked = data.players.filter(player => player.linked).length;
