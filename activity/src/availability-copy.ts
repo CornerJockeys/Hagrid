@@ -70,3 +70,24 @@ export function availabilityCopyLines(
   }
   return lines;
 }
+
+
+export function availabilityCopyText(
+  players: readonly CopyAvailabilityPlayer[],
+  threshold: 2 | 3,
+  startMinute: number,
+  endMinute: number,
+  resolution: 30 | 60,
+): {text: string; lines: string[]} {
+  const lines = availabilityCopyLines(
+    players,
+    threshold,
+    startMinute,
+    endMinute,
+    resolution,
+  );
+  return {
+    lines,
+    text: `Copy of ${threshold}+ times\n\n${lines.join("\n")}`,
+  };
+}
