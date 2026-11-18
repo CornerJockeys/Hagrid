@@ -48,11 +48,12 @@ function timeSuffix(minute: number): "am" | "pm" {
   return hour24 >= 12 ? "pm" : "am";
 }
 
-function compactRange(startMinute: number, endMinute: number): string {
-  const start = timeSuffix(startMinute) === timeSuffix(endMinute)
+function compactRange(startMinute: number, lastStartMinute: number): string {
+  if (startMinute === lastStartMinute) return compactTime(startMinute);
+  const start = timeSuffix(startMinute) === timeSuffix(lastStartMinute)
     ? compactTimeWithoutSuffix(startMinute)
     : compactTime(startMinute);
-  return `${start}-${compactTime(endMinute)}`;
+  return `${start}-${compactTime(lastStartMinute)}`;
 }
 
 function qualifyingBlocks(
@@ -140,11 +141,11 @@ export function availabilityCopyRangeLines(
         previous = minute;
         continue;
       }
-      lines.push(`${fullDayNames[day]} ${compactRange(rangeStart, previous + resolution)}`);
+      lines.push(`${fullDayNames[day]} ${compactRange(rangeStart, previous)}`);
       rangeStart = minute;
       previous = minute;
     }
-    lines.push(`${fullDayNames[day]} ${compactRange(rangeStart, previous + resolution)}`);
+    lines.push(`${fullDayNames[day]} ${compactRange(rangeStart, previous)}`);
   }
 
   return lines;

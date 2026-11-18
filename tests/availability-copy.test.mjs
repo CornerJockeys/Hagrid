@@ -91,12 +91,12 @@ test("time summary merges consecutive qualifying blocks into day ranges", () => 
   const copied = availabilityTimesCopyText(players, "FL", 2, 1080, 1380, 60);
 
   assert.deepEqual(copied.lines, [
-    "Thursday 7-10pm",
-    "Friday 6-11pm",
+    "Thursday 7-9pm",
+    "Friday 6-10pm",
   ]);
   assert.equal(
     copied.text,
-    "Copy of FL 2+ times\n\nThursday 7-10pm\nFriday 6-11pm",
+    "Copy of FL 2+ times\n\nThursday 7-9pm\nFriday 6-10pm",
   );
 });
 
@@ -115,8 +115,8 @@ test("time summary keeps separate ranges when a qualifying gap exists", () => {
   assert.deepEqual(
     availabilityCopyRangeLines(players, 2, 1140, 1320, 60),
     [
-      "Thursday 7-8pm",
-      "Thursday 9-10pm",
+      "Thursday 7pm",
+      "Thursday 9pm",
     ],
   );
 });
@@ -129,6 +129,19 @@ test("30-minute time summary merges half-hour blocks cleanly", () => {
 
   assert.deepEqual(
     availabilityCopyRangeLines(players, 2, 1140, 1260, 30),
-    ["Thursday 7-8:30pm"],
+    ["Thursday 7-8pm"],
+  );
+});
+
+
+test("time summary shows a single qualifying block as a single start time", () => {
+  const players = [
+    player("Player X", slotRange(3, 1140, 1200)),
+    player("Player Y", slotRange(3, 1140, 1200)),
+  ];
+
+  assert.deepEqual(
+    availabilityCopyRangeLines(players, 2, 1140, 1260, 60),
+    ["Thursday 7pm"],
   );
 });
