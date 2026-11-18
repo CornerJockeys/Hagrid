@@ -1,3 +1,5 @@
+import {availabilityCopyLines} from "./availability-copy";
+import {enableMobileHorizontalScroll} from "./horizontal-scroll";
 export type TeamAvailabilityApi = <T>(path: string, init?: RequestInit) => Promise<T>;
 export type TeamAvailabilityStatus = (
   message: string,
@@ -34,6 +36,7 @@ interface TeamPlayer {
 interface TeamAvailabilityResponse {
   week_start: string;
   division: string;
+  can_copy_overlaps: boolean;
   visible_divisions: Exclude<TeamDivisionFilter, "all">[];
   window: {
     start_minute: number;
@@ -200,11 +203,19 @@ export function mountTeamAvailabilityPanel(
         </div>
       </div>
       <label>Time blocks<select id="team-resolution"><option value="60">1 hour</option><option value="30">30 minutes</option></select></label>
+      <div id="team-copy-controls" class="team-copy-controls" hidden>
+        <button id="copy-2-plus-times" class="secondary-button" type="button">Copy 2+ times</button>
+        <button id="copy-3-plus-times" class="secondary-button" type="button">Copy 3+ times</button>
+      </div>
       <button id="team-refresh" class="secondary-button">Refresh</button>
     </div>
     <div id="team-summary" class="staff-summary"></div>
     <div id="team-missing" class="missing-card"></div>
-    <div class="availability-scroll team-availability-scroll"><div id="team-availability-grid" class="availability-grid team-grid"></div></div>
+    <div class="mobile-horizontal-scroll-controls" aria-label="Team availability horizontal scroll controls">
+      <button type="button" id="team-scroll-left" class="secondary-button">← Left</button>
+      <button type="button" id="team-scroll-right" class="secondary-button">Right →</button>
+    </div>
+    <div id="team-availability-scroll" class="availability-scroll team-availability-scroll"><div id="team-availability-grid" class="availability-grid team-grid"></div></div>
     <div class="table-card team-roster-card" id="team-roster"></div>
     <div id="team-detail-root"></div>`;
 
@@ -216,7 +227,15 @@ export function mountTeamAvailabilityPanel(
   const grid = panel.querySelector<HTMLElement>("#team-availability-grid");
   const roster = panel.querySelector<HTMLElement>("#team-roster");
   const detailRoot = panel.querySelector<HTMLElement>("#team-detail-root");
-  if (!resolutionSelect || !label || !summary || !missing || !grid || !roster || !detailRoot) return;
+  const copyControls = panel.querySelector<HTMLElement>("#team-copy-controls");
+  const scroller = panel.querySelector<HTMLElement>("#team-availability-scroll");
+  if (!resolutionSelect || !label || !summary || !missing || !grid || !roster || !detailRoot || !copyControls || !scroller) return;
+
+  enableMobileHorizontalScroll(
+    scroller,
+    panel.querySelector<HTMLButtonElement>("#team-scroll-left"),
+    panel.querySelector<HTMLButtonElement>("#team-scroll-right"),
+  );
 
   const syncDivisionButtons = (): void => {
     const visibleDivisions = data?.visible_divisions ?? [];
@@ -286,10 +305,56 @@ export function mountTeamAvailabilityPanel(
     bindClose();
   };
 
+  const copyOverlapTimes = async (threshold: 2 | 3): Promise<void> => {
+    if (!data || !data.can_copy_overlaps) return;
+    const lines = availabilityCopyLines(
+      data.players,
+      threshold,
+      data.window.start_minute,
+      data.window.end_minute,
+      resolution,
+    );
+    if (lines.length === 0) {
+      setStatus(
+        `No ${resolution === 60 ? "hourly" : "30-minute"} times have ${threshold}+ available players.`,
+        "normal",
+      );
+      return;
+    }
+
+    const text = lines.join("\n");
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(text);
+      } else {
+        const textarea = document.createElement("textarea");
+        textarea.value = text;
+        textarea.setAttribute("readonly", "");
+        textarea.style.position = "fixed";
+        textarea.style.opacity = "0";
+        document.body.appendChild(textarea);
+        textarea.select();
+        const copied = document.execCommand("copy");
+        textarea.remove();
+        if (!copied) throw new Error("Clipboard copy was blocked.");
+      }
+      setStatus(
+        `Copied ${lines.length} time${lines.length === 1 ? "" : "s"} with ${threshold}+ available players.`,
+        "success",
+      );
+    } catch (error) {
+      setStatus(
+        `Could not copy automatically: ${error instanceof Error ? error.message : String(error)}`,
+        "error",
+      );
+    }
+  };
+
   const render = (): void => {
     if (!data) return;
     label.textContent = formatWeek(data.week_start);
     syncDivisionButtons();
+    copyControls.hidden = !data.can_copy_overlaps;
 
     const submitted = data.players.filter(player => player.submitted).length;
     const linked = data.players.filter(player => player.linked).length;
@@ -394,6 +459,8 @@ export function mountTeamAvailabilityPanel(
     void load();
   });
   panel.querySelector("#team-refresh")?.addEventListener("click", () => void load());
+  panel.querySelector("#copy-2-plus-times")?.addEventListener("click", () => void copyOverlapTimes(2));
+  panel.querySelector("#copy-3-plus-times")?.addEventListener("click", () => void copyOverlapTimes(3));
   for (const button of divisionButtons) {
     button.addEventListener("click", () => {
       const value = button.dataset.teamDivision;
