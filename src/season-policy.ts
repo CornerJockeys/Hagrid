@@ -14,12 +14,9 @@ export interface DivisionPolicy {
 // Season 20 League Operations Rulebook policy.
 //
 // AL/CL/ML: eight active-roster slots, top five salaries, 6/8/12 usage.
-// FL permits five active-roster slots while Team Salary still counts the
-// top four salaries. FL usage remains 6/9/15 regardless of whether a team
-// uses four or five roster slots.
-// PL remains four active-roster slots, top four salaries, 6/9/15 usage.
+// FL/PL: four active-roster slots (A-D), top four salaries, 6/9/15 usage.
 export const S20_DIVISION_POLICY: Record<MleDivision, DivisionPolicy> = {
-  FL: {rosterSlots: 5, teamSalaryPlayers: 4, salaryCap: 34.5, doublesLimit: 6, standardLimit: 9, combinedLimit: 15},
+  FL: {rosterSlots: 4, teamSalaryPlayers: 4, salaryCap: 34.5, doublesLimit: 6, standardLimit: 9, combinedLimit: 15},
   AL: {rosterSlots: 8, teamSalaryPlayers: 5, salaryCap: 62.5, doublesLimit: 6, standardLimit: 8, combinedLimit: 12},
   CL: {rosterSlots: 8, teamSalaryPlayers: 5, salaryCap: 74.5, doublesLimit: 6, standardLimit: 8, combinedLimit: 12},
   ML: {rosterSlots: 8, teamSalaryPlayers: 5, salaryCap: 86.5, doublesLimit: 6, standardLimit: 8, combinedLimit: 12},
