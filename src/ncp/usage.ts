@@ -1,12 +1,13 @@
-import {teamDivision, type TeamDivision} from "../league/view";
+import {teamDivision, type TeamDivision} from "../league/view.ts";
 import type {LeagueUsageRow} from "../league/db";
 import type {RoleUsage} from "../sprocket/role-usages";
 import type {D1Database} from "../types";
 
-interface NcpRecordRow {
+export interface NcpUsageRecordRow {
   division: string;
   mode: string;
   slots_json: string;
+  voided_at: string | null;
 }
 
 interface NcpUsageAdjustment {
@@ -28,22 +29,12 @@ function division(value: string): TeamDivision | null {
     : null;
 }
 
-export async function getNcpUsageAdjustments(
-  db: D1Database,
-  franchiseName: string,
-  seasonNumber: number,
-): Promise<NcpUsageAdjustment[]> {
-  const result = await db.prepare(
-    `SELECT division, mode, slots_json
-     FROM ncp_records
-     WHERE LOWER(franchise_name) = LOWER(?)
-       AND season_number = ?
-       AND status = 'approved'
-     ORDER BY id`,
-  ).bind(franchiseName, seasonNumber).all<NcpRecordRow>();
-
+export function ncpUsageAdjustmentsFromRows(
+  rows: readonly NcpUsageRecordRow[],
+): NcpUsageAdjustment[] {
   const byKey = new Map<string, NcpUsageAdjustment>();
-  for (const row of result.results) {
+  for (const row of rows) {
+    if (row.voided_at) continue;
     const div = division(row.division);
     if (!div || (row.mode !== "2s" && row.mode !== "3s")) continue;
     let slots: unknown;
@@ -62,6 +53,23 @@ export async function getNcpUsageAdjustments(
     }
   }
   return [...byKey.values()];
+}
+
+export async function getNcpUsageAdjustments(
+  db: D1Database,
+  franchiseName: string,
+  seasonNumber: number,
+): Promise<NcpUsageAdjustment[]> {
+  const result = await db.prepare(
+    `SELECT division, mode, slots_json, voided_at
+     FROM ncp_records
+     WHERE LOWER(franchise_name) = LOWER(?)
+       AND season_number = ?
+       AND status = 'approved'
+     ORDER BY id`,
+  ).bind(franchiseName, seasonNumber).all<NcpUsageRecordRow>();
+
+  return ncpUsageAdjustmentsFromRows(result.results);
 }
 
 export async function applyNcpToLeagueUsage(
