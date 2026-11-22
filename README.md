@@ -74,7 +74,7 @@ The regular `/remind` command keeps its zero-option guided entry point. Reminder
 
 Hagrid centralizes the current Season 20 rules instead of duplicating limits in commands and reports:
 
-- **FL:** up to **5 active slots** under the Season 20 scheduling exception, Team Salary uses the top 4 salaries, cap **34.5**, usage **6 Doubles / 9 Standard / 15 combined**.
+- **FL:** up to **5 active slots** under the Season 20 scheduling exception. Team Salary uses the top 4 salaries; four-player FL uses **6 Doubles / 9 Standard / 15 combined**, while five-player FL uses **6 / 8 / 12**.
 - **AL:** 8 active slots, Team Salary uses the top 5 salaries, cap **62.5**, usage **6 / 8 / 12**
 - **CL:** 8 active slots, Team Salary uses the top 5 salaries, cap **74.5**, usage **6 / 8 / 12**
 - **ML:** 8 active slots, Team Salary uses the top 5 salaries, cap **86.5**, usage **6 / 8 / 12**
