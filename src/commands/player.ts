@@ -9,7 +9,6 @@ import {
 } from "../league/cache";
 import {getCachedScoutingSnapshot} from "../scouting/cache";
 import {
-  flFiveSlotUsageActive,
   formatEasternTimestamp,
   formatSalary,
   remainingUsage,
@@ -244,17 +243,8 @@ async function fetchAndRespond(
         const usage = usageForPlayer(player, usages);
         if (usage) {
           const division = teamDivision(player.skill_group)!;
-          const extendedFl = division === "FL" && flFiveSlotUsageActive(
-            current.players
-              .filter(value =>
-                current.rosteredIds.has(value.sprocket_player_id) &&
-                value.franchise_name.localeCompare(player.franchise_name, "en-US", {sensitivity: "base"}) === 0
-              )
-              .map(value => ({slot: value.slot, skill_group: value.skill_group})),
-            usages,
-          );
-          const policy = usagePolicyForDivision(division, extendedFl);
-          const remaining = remainingUsage(usage, division, extendedFl);
+          const policy = usagePolicyForDivision(division);
+          const remaining = remainingUsage(usage, division);
           lines.push(
             `Current slot usage: 2s ${usage.doubles_uses}/${policy.doublesLimit} (${remaining.doubles} left) · 3s ${usage.standard_uses}/${policy.standardLimit} (${remaining.standard} left) · total ${usage.total_uses}/${policy.combinedLimit} (${remaining.combined} left)${remaining.combined === 0 ? " · ⛔ exhausted" : ""}`,
           );
