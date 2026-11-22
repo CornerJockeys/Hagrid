@@ -1,4 +1,4 @@
-import {usagePolicyForDivision, type TeamDivision} from "../league/view.ts";
+import {flFiveSlotUsageActive, usagePolicyForDivision, type TeamDivision} from "../league/view.ts";
 import type {FranchisePlayer} from "../sprocket/players";
 import type {RoleUsage} from "../sprocket/role-usages";
 
@@ -19,8 +19,9 @@ function slotSortLabel(value: string): string {
 function effectiveRemaining(
   usage: Pick<RoleUsage, "doublesUses" | "standardUses" | "totalUses">,
   division: TeamDivision,
+  flFiveSlotActive = false,
 ): {doubles: number; standard: number; combined: number} {
-  const policy = usagePolicyForDivision(division);
+  const policy = usagePolicyForDivision(division, flFiveSlotActive);
   const combined = Math.max(0, policy.combinedLimit - usage.totalUses);
   return {
     doubles: Math.max(0, Math.min(policy.doublesLimit - usage.doublesUses, combined)),
@@ -99,12 +100,16 @@ export function buildUsageAlerts(
   );
 
   const bySlot = new Map(roster.map(player => [roleKey(player.slot), player]));
+  const extendedFl = division === "FL" && flFiveSlotUsageActive(
+    roster.map(player => ({slot: player.slot, skillGroup: player.skillGroup})),
+    usages,
+  );
 
   return usages
     .filter(usage => normalizeDivision(usage.league) === division)
     .map(usage => {
       const slot = roleKey(usage.role);
-      const remaining = effectiveRemaining(usage, division);
+      const remaining = effectiveRemaining(usage, division, extendedFl);
       const text = sentenceForRemaining(remaining.doubles, remaining.standard, remaining.combined);
       return {
         slot,
@@ -150,7 +155,11 @@ export function buildSlotUsagePlayers(
       .filter(usage => normalizeDivision(usage.league) === division)
       .map(usage => [roleKey(usage.role), usage]),
   );
-  const policy = usagePolicyForDivision(division);
+  const extendedFl = division === "FL" && flFiveSlotUsageActive(
+    roster.map(player => ({slot: player.slot, skillGroup: player.skillGroup})),
+    usages,
+  );
+  const policy = usagePolicyForDivision(division, extendedFl);
 
   return roster
     .map(player => {
@@ -167,6 +176,7 @@ export function buildSlotUsagePlayers(
           totalUses: usage.totalUses,
         },
         division,
+        extendedFl,
       );
       return {
         slot,
