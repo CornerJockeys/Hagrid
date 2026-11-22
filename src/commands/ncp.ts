@@ -89,6 +89,18 @@ interface NcpRecordRow {
   reviewed_at: string | null;
 }
 
+function parseStoredSlots(record: NcpRecordRow): string[] {
+  try {
+    const value = JSON.parse(record.slots_json) as unknown;
+    if (!Array.isArray(value)) return [];
+    return value
+      .filter((slot): slot is string => typeof slot === "string" && slot.trim().length > 0)
+      .map(slot => slot.trim().replace(/^PLAYER/i, "").toLocaleUpperCase("en-US"));
+  } catch {
+    return [];
+  }
+}
+
 function parseStoredPlayers(record: NcpRecordRow): NcpStoredPlayer[] {
   try {
     const value = JSON.parse(record.players_json) as unknown;
@@ -290,6 +302,189 @@ function playerReview(
   return lines.join("\n");
 }
 
+function ncpRemovalSelectComponents(
+  userId: string,
+  records: NcpRecordRow[],
+): unknown[] {
+  return [{
+    type: 1,
+    components: [{
+      type: 3,
+      custom_id: `ncp:remove:select:${userId}`,
+      placeholder: "Choose an approved NCP to remove",
+      min_values: 1,
+      max_values: 1,
+      options: records.slice(0, 25).map(record => {
+        const slots = parseStoredSlots(record);
+        const scope = record.ncp_game_count === 1 ? "1 game" : record.ncp_game_count === 5 ? "full series" : "historical";
+        return {
+          label: `${record.division} ${record.mode} · Slots ${slots.join("/") || "unknown"}`.slice(0, 100),
+          value: record.interaction_id,
+          description: `${scope} · requested ${record.created_at}`.slice(0, 100),
+        };
+      }),
+    }],
+  }];
+}
+
+function ncpRemovalConfirmComponents(userId: string, requestId: string): unknown[] {
+  return [{
+    type: 1,
+    components: [
+      {
+        type: 2,
+        style: 4,
+        label: "Remove NCP Usage",
+        custom_id: `ncp:remove:confirm:${userId}:${requestId}`,
+      },
+      {
+        type: 2,
+        style: 2,
+        label: "Cancel",
+        custom_id: `ncp:remove:cancel:${userId}`,
+      },
+    ],
+  }];
+}
+
+function ncpRemovalReview(record: NcpRecordRow): string {
+  const players = parseStoredPlayers(record);
+  const slots = parseStoredSlots(record);
+  return [
+    `**Remove approved NCP — ${record.franchise_name} · ${record.division} · ${record.mode}**`,
+    "",
+    `Scope: **${record.ncp_game_count === 1 ? "1 game" : record.ncp_game_count === 5 ? "full 5-game series" : "unknown historical scope"}**`,
+    `Slots currently charged: **${slots.length > 0 ? slots.join(", ") : "unknown"}**`,
+    ...(players.length > 0 ? ["", "**Players**", ...players.map(player => `• Slot ${player.slot} — ${player.name}`)] : []),
+    "",
+    "Removing this record will stop Hagrid from adding its local +1 NCP usage to those slots.",
+    "**The original NCP record and approval history will be retained for audit purposes.**",
+  ].join("\n");
+}
+
+function ncpVoidedAuditSummary(record: NcpRecordRow, actorId: string): string {
+  const slots = parseStoredSlots(record);
+  return [
+    `**NCP Usage Correction — ${record.franchise_name} · ${record.division} · ${record.mode}**`,
+    "",
+    `Removed Hagrid's local NCP usage adjustment for slot${slots.length === 1 ? "" : "s"} **${slots.join(", ") || "unknown"}**.`,
+    "The approved NCP record was retained and marked voided; it no longer affects Hagrid usage totals.",
+    `Corrected by: <@${actorId}>`,
+  ].join("\n");
+}
+
+async function activeApprovedNcps(
+  env: Env,
+  guildId: string,
+  franchiseName: string,
+): Promise<NcpRecordRow[]> {
+  const result = await env.DB.prepare(
+    `SELECT interaction_id, guild_id, franchise_name, season_number, division, mode, ncp_game_count, franchise_fault,
+            players_json, slots_json, created_by_discord_id, created_at, status,
+            reviewed_by_discord_id, reviewed_at
+     FROM ncp_records
+     WHERE guild_id = ?
+       AND LOWER(franchise_name) = LOWER(?)
+       AND season_number = ?
+       AND status = 'approved'
+       AND voided_at IS NULL
+     ORDER BY reviewed_at DESC, created_at DESC
+     LIMIT 25`,
+  ).bind(guildId, franchiseName, CURRENT_MLE_SEASON).all<NcpRecordRow>();
+  return result.results;
+}
+
+async function activeApprovedNcp(
+  env: Env,
+  guildId: string,
+  franchiseName: string,
+  requestId: string,
+): Promise<NcpRecordRow | null> {
+  return env.DB.prepare(
+    `SELECT interaction_id, guild_id, franchise_name, season_number, division, mode, ncp_game_count, franchise_fault,
+            players_json, slots_json, created_by_discord_id, created_at, status,
+            reviewed_by_discord_id, reviewed_at
+     FROM ncp_records
+     WHERE interaction_id = ?
+       AND guild_id = ?
+       AND LOWER(franchise_name) = LOWER(?)
+       AND season_number = ?
+       AND status = 'approved'
+       AND voided_at IS NULL`,
+  ).bind(requestId, guildId, franchiseName, CURRENT_MLE_SEASON).first<NcpRecordRow>();
+}
+
+async function handleNcpRemoveComponent(
+  interaction: DiscordInteraction,
+  env: Env,
+  parts: string[],
+): Promise<Response> {
+  if (!interaction.guild_id) return discordMessage("That NCP removal control is no longer valid.");
+  const action = parts[2];
+  const userId = parts[3];
+  const actorId = invokerId(interaction);
+  if (!actorId || actorId !== userId) {
+    return discordMessage("Only the AGM+ staff member who started this correction can continue it.");
+  }
+  if (!hasAgmPlusRole(interaction)) {
+    return discordMessage("Only AGM, GM, or FM staff can remove an approved NCP usage adjustment.");
+  }
+
+  if (action === "cancel") {
+    return discordUpdateMessage("NCP removal cancelled.", []);
+  }
+
+  const config = await getCachedGuildConfig(env, interaction.guild_id);
+  if (!config) return discordMessage("No franchise is configured for this Discord server.");
+
+  if (action === "select") {
+    const requestId = selectedValue(interaction);
+    if (!requestId) return discordMessage("Choose an approved NCP to remove.");
+    const record = await activeApprovedNcp(env, interaction.guild_id, config.franchise_name, requestId);
+    if (!record) {
+      return discordUpdateMessage("That approved NCP is no longer active in Hagrid's usage overlay.", []);
+    }
+    return discordUpdateMessage(
+      ncpRemovalReview(record),
+      ncpRemovalConfirmComponents(userId, record.interaction_id),
+    );
+  }
+
+  if (action === "confirm") {
+    const requestId = parts[4];
+    if (!requestId) return discordMessage("That NCP removal control is no longer valid.");
+    const record = await activeApprovedNcp(env, interaction.guild_id, config.franchise_name, requestId);
+    if (!record) {
+      return discordUpdateMessage("That approved NCP was already removed or is no longer active.", []);
+    }
+
+    const update = await env.DB.prepare(
+      `UPDATE ncp_records
+       SET voided_by_discord_id = ?, voided_at = CURRENT_TIMESTAMP
+       WHERE interaction_id = ?
+         AND guild_id = ?
+         AND status = 'approved'
+         AND voided_at IS NULL`,
+    ).bind(actorId, requestId, interaction.guild_id).run();
+    if (!update.success) {
+      return discordUpdateMessage("Hagrid could not remove that NCP usage adjustment.", []);
+    }
+
+    try {
+      await sendDiscordThreadMessage(env, NCP_THREAD_ID, ncpVoidedAuditSummary(record, actorId));
+    } catch (error) {
+      console.error("NCP usage correction succeeded but audit post failed.", error);
+    }
+
+    return discordUpdateMessage(
+      `✅ Removed the approved **${record.division} ${record.mode}** NCP from Hagrid's usage overlay. The original record is retained as voided for audit history.`,
+      [],
+    );
+  }
+
+  return discordMessage("That NCP removal control is no longer valid.");
+}
+
 function approvalComponents(requestId: string): unknown[] {
   return [{
     type: 1,
@@ -438,6 +633,33 @@ async function handleNcpReview(
     [],
   );
 }
+export async function handleNcpRemoveCommand(
+  interaction: DiscordInteraction,
+  env: Env,
+): Promise<Response> {
+  if (!interaction.guild_id || !interaction.channel_id) {
+    return discordMessage("NCP corrections can only be used inside a Discord server channel.");
+  }
+  const userId = invokerId(interaction);
+  if (!userId) return discordMessage("Hagrid could not identify your Discord account.");
+  if (!hasAgmPlusRole(interaction)) {
+    return discordMessage("Only AGM, GM, or FM staff can remove an approved NCP usage adjustment.");
+  }
+
+  const config = await getCachedGuildConfig(env, interaction.guild_id);
+  if (!config) return discordMessage("No franchise is configured for this Discord server.");
+  const records = await activeApprovedNcps(env, interaction.guild_id, config.franchise_name);
+  if (records.length === 0) {
+    return discordMessage("There are no active approved NCPs in Hagrid's usage overlay to remove.");
+  }
+
+  return discordMessage(
+    "**Remove approved NCP usage**\nChoose the NCP that should no longer be added to Hagrid's usage totals. The original record will be retained as voided.",
+    true,
+    ncpRemovalSelectComponents(userId, records),
+  );
+}
+
 export async function handleNcpDummyCommand(
   interaction: DiscordInteraction,
   env: Env,
@@ -490,6 +712,9 @@ export async function handleNcpComponent(
 
   if (parts[1] === "review") {
     return handleNcpReview(interaction, env, parts[2] ?? "", parts[3] ?? "");
+  }
+  if (parts[1] === "remove") {
+    return handleNcpRemoveComponent(interaction, env, parts);
   }
 
   const userId = parts[2];
