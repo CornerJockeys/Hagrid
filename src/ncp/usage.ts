@@ -1,4 +1,4 @@
-import {teamDivision, type TeamDivision} from "../league/view";
+import {teamDivision, type TeamDivision} from "../league/view.ts";
 import type {LeagueUsageRow} from "../league/db";
 import type {RoleUsage} from "../sprocket/role-usages";
 import type {D1Database} from "../types";
