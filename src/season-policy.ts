@@ -26,6 +26,11 @@ export const S20_DIVISION_POLICY: Record<MleDivision, DivisionPolicy> = {
   PL: {rosterSlots: 4, teamSalaryPlayers: 4, salaryCap: 79.0, doublesLimit: 6, standardLimit: 9, combinedLimit: 15},
 };
 
+export const S20_FL_FIVE_SLOT_USAGE = {
+  doublesLimit: 6,
+  standardLimit: 8,
+  combinedLimit: 12,
+} as const;
 
 export function divisionPolicy(division: MleDivision): DivisionPolicy {
   return S20_DIVISION_POLICY[division];
