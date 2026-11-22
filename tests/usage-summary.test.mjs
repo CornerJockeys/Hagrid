@@ -48,6 +48,21 @@ test("four-slot FL reminders retain the 6/9/15 Season 20 usage policy", () => {
 });
 
 
+test("five-slot FL reminders use reduced 6/8/12 limits once slot E is active", () => {
+  const flPlayers = [
+    {sprocketPlayerId:"a",memberId:null,discordId:"10",name:"A",salary:0,skillGroup:"Foundation League",gameId:null,gameTitle:"Rocket League",franchise:"Wizards",staffPosition:null,slot:"PLAYERA",currentScrimPoints:0,eligibleThrough:null,sourceAsOf:null},
+    {sprocketPlayerId:"e",memberId:null,discordId:"11",name:"E",salary:0,skillGroup:"Foundation League",gameId:null,gameTitle:"Rocket League",franchise:"Wizards",staffPosition:null,slot:"PLAYERE",currentScrimPoints:0,eligibleThrough:null,sourceAsOf:null},
+  ];
+  const alerts = buildUsageAlerts("FL", flPlayers, [
+    {doublesUses:4,standardUses:7,totalUses:10,seasonNumber:20,teamName:"Wizards",league:"Foundation League",role:"PLAYERA",sourceAsOf:null},
+    {doublesUses:0,standardUses:0,totalUses:0,seasonNumber:20,teamName:"Wizards",league:"Foundation League",role:"PLAYERE",sourceAsOf:null},
+  ]);
+  const a = alerts.find(value => value.slot === "A");
+  assert.equal(a?.doublesRemaining, 2);
+  assert.equal(a?.standardRemaining, 1);
+  assert.equal(a?.combinedRemaining, 2);
+});
+
 test("High Usage includes players with two or fewer mode uses remaining", () => {
   const high = buildHighUsagePlayers("ML", players, [
     usage("B",4,4,8),
@@ -62,21 +77,24 @@ test("High Usage includes players with two or fewer mode uses remaining", () => 
   assert.equal(bySlot.get("D")?.standardRemaining, 2);
 });
 
-test("High Usage shows exact 6/9/15 limits for four-slot FL", () => {
+test("High Usage shows exact five-slot FL limits", () => {
   const flPlayers = [
     {sprocketPlayerId:"a",memberId:null,discordId:"10",name:"A",salary:0,skillGroup:"Foundation League",gameId:null,gameTitle:"Rocket League",franchise:"Wizards",staffPosition:null,slot:"PLAYERA",currentScrimPoints:0,eligibleThrough:null,sourceAsOf:null},
+    {sprocketPlayerId:"e",memberId:null,discordId:"11",name:"E",salary:0,skillGroup:"Foundation League",gameId:null,gameTitle:"Rocket League",franchise:"Wizards",staffPosition:null,slot:"PLAYERE",currentScrimPoints:0,eligibleThrough:null,sourceAsOf:null},
   ];
   const high = buildHighUsagePlayers("FL", flPlayers, [
     {doublesUses:4,standardUses:6,totalUses:9,seasonNumber:20,teamName:"Wizards",league:"Foundation League",role:"PLAYERA",sourceAsOf:null},
+    {doublesUses:0,standardUses:0,totalUses:0,seasonNumber:20,teamName:"Wizards",league:"Foundation League",role:"PLAYERE",sourceAsOf:null},
   ]);
   const a = high.find(value => value.slot === "A");
   assert.equal(a?.doublesLimit, 6);
-  assert.equal(a?.standardLimit, 9);
-  assert.equal(a?.combinedLimit, 15);
+  assert.equal(a?.standardLimit, 8);
+  assert.equal(a?.combinedLimit, 12);
   assert.equal(a?.doublesRemaining, 2);
-  assert.equal(a?.standardRemaining, 3);
-  assert.equal(a?.combinedRemaining, 6);
+  assert.equal(a?.standardRemaining, 2);
+  assert.equal(a?.combinedRemaining, 3);
 });
+
 
 test("slot usage overview includes every occupied slot with high usage first", () => {
   const all = buildSlotUsagePlayers("ML", players, [
