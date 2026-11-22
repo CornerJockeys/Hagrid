@@ -14,9 +14,10 @@ export interface DivisionPolicy {
 // Season 20 League Operations Rulebook policy.
 //
 // AL/CL/ML: eight active-roster slots, top five salaries, 6/8/12 usage.
-// FL has an S20 operational exception allowing five active-roster slots to
-// ease scheduling. Team Salary still counts the top four salaries, and FL
-// slot usage remains 6/9/15. PL remains four slots with 6/9/15 usage.
+// FL permits up to five active-roster slots for the S20 scheduling exception.
+// Team Salary still counts the top four salaries. Four-player FL teams use
+// 6/9/15 slot usage; once a team carries five active FL players, usage becomes
+// 6/8/12, matching AL/CL/ML. PL remains four slots with 6/9/15 usage.
 export const S20_DIVISION_POLICY: Record<MleDivision, DivisionPolicy> = {
   FL: {rosterSlots: 5, teamSalaryPlayers: 4, salaryCap: 34.5, doublesLimit: 6, standardLimit: 9, combinedLimit: 15},
   AL: {rosterSlots: 8, teamSalaryPlayers: 5, salaryCap: 62.5, doublesLimit: 6, standardLimit: 8, combinedLimit: 12},
