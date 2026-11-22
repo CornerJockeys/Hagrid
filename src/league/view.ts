@@ -20,7 +20,6 @@ export interface UsageRemaining {
 
 export function usagePolicyForDivision(
   division: TeamDivision,
-  _flFiveSlotActive = false,
 ): UsagePolicy {
   const policy = divisionPolicy(division);
   return {
@@ -35,30 +34,11 @@ function usageRoleKey(value: string): string {
   return value.trim().replace(/^PLAYER/i, "").toLocaleUpperCase("en-US");
 }
 
-export function flFiveSlotUsageActive(
-  players: Array<{slot: string | null; skill_group?: string | null; skillGroup?: string | null}>,
-  usages: Array<{role: string; league: string}> = [],
-): boolean {
-  const flPlayers = players.filter(player =>
-    teamDivision(player.skill_group ?? player.skillGroup ?? null) === "FL" &&
-    isCompetitiveSlot(player.slot ?? null)
-  );
-  if (flPlayers.length >= 5) return true;
-
-  const hasSlotE = flPlayers.some(player => usageRoleKey(player.slot ?? "") === "E");
-  if (hasSlotE) return true;
-
-  return usages.some(usage =>
-    teamDivision(usage.league) === "FL" && usageRoleKey(usage.role) === "E"
-  );
-}
-
 export function remainingUsage(
   usage: LeagueUsageRow,
   division: TeamDivision,
-  flFiveSlotActive = false,
 ): UsageRemaining {
-  const policy = usagePolicyForDivision(division, flFiveSlotActive);
+  const policy = usagePolicyForDivision(division);
   const combined = Math.max(0, policy.combinedLimit - usage.total_uses);
   return {
     doubles: Math.max(0, Math.min(policy.doublesLimit - usage.doubles_uses, combined)),
