@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  flFiveSlotUsageActive,
   formatSalary,
   isCompetitiveSlot,
   remainingUsage,
@@ -56,12 +57,18 @@ test("usage resolves by current division and slot", () => {
 });
 
 
-test("S20 FL uses the five-slot scheduling exception with 6/9/15 usage", () => {
+test("S20 usage policy keeps four-slot FL limits but reduces usage when slot E is active", () => {
   assert.deepEqual(usagePolicyForDivision("FL"), {
     rosterSlots: 5,
     doublesLimit: 6,
     standardLimit: 9,
     combinedLimit: 15,
+  });
+  assert.deepEqual(usagePolicyForDivision("FL", true), {
+    rosterSlots: 5,
+    doublesLimit: 6,
+    standardLimit: 8,
+    combinedLimit: 12,
   });
   assert.deepEqual(usagePolicyForDivision("CL"), {
     rosterSlots: 8,
@@ -87,5 +94,49 @@ test("combined cap constrains otherwise-remaining mode usage", () => {
     doubles: 0,
     standard: 0,
     combined: 0,
+  });
+});
+
+
+test("FL five-slot usage activates from current slot E or historical role E usage", () => {
+  assert.equal(
+    flFiveSlotUsageActive([
+      {slot: "PLAYERA", skill_group: "Foundation League"},
+      {slot: "PLAYERE", skill_group: "Foundation League"},
+    ]),
+    true,
+  );
+  assert.equal(
+    flFiveSlotUsageActive(
+      [{slot: "PLAYERA", skill_group: "Foundation League"}],
+      [{role: "PLAYERE", league: "Foundation League"}],
+    ),
+    true,
+  );
+  assert.equal(
+    flFiveSlotUsageActive(
+      [{slot: "PLAYERD", skill_group: "Foundation League"}],
+      [{role: "PLAYERD", league: "Foundation League"}],
+    ),
+    false,
+  );
+});
+
+
+test("five-player FL roster activates 6/8/12 even without a literal slot E label", () => {
+  const players = [
+    {slot: "PLAYERA", skill_group: "Foundation League"},
+    {slot: "PLAYERB", skill_group: "Foundation League"},
+    {slot: "PLAYERC", skill_group: "Foundation League"},
+    {slot: "PLAYERD", skill_group: "Foundation League"},
+    {slot: "PLAYERF", skill_group: "Foundation League"},
+  ];
+
+  assert.equal(flFiveSlotUsageActive(players), true);
+  assert.deepEqual(usagePolicyForDivision("FL", flFiveSlotUsageActive(players)), {
+    rosterSlots: 5,
+    doublesLimit: 6,
+    standardLimit: 8,
+    combinedLimit: 12,
   });
 });
