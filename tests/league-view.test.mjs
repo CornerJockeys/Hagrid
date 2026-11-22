@@ -56,9 +56,9 @@ test("usage resolves by current division and slot", () => {
 });
 
 
-test("S20 FL uses the rulebook four-slot 6/9/15 policy", () => {
+test("S20 FL uses the five-slot scheduling exception with 6/9/15 usage", () => {
   assert.deepEqual(usagePolicyForDivision("FL"), {
-    rosterSlots: 4,
+    rosterSlots: 5,
     doublesLimit: 6,
     standardLimit: 9,
     combinedLimit: 15,
