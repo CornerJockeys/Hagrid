@@ -3,7 +3,7 @@ import {runScheduledAutoRole} from "./auto-role";
 import {handleFranchiseCommand} from "./commands/franchise";
 import {handleFaCommand, handleFaComponent} from "./commands/pool";
 import {handlePlayerAutocomplete, handlePlayerCommand} from "./commands/player";
-import {handleNcpCommand, handleNcpComponent, handleNcpDummyCommand} from "./commands/ncp";
+import {handleNcpCommand, handleNcpComponent, handleNcpDummyCommand, handleNcpRemoveCommand} from "./commands/ncp";
 import {handleReplayCommand} from "./commands/replay";
 import {handleRulebookWatchCommand} from "./commands/rulebook-watch";
 import {handleRemindCommand, handleRemindComponent, handleRemindDummyCommand, handleRemindModal} from "./commands/remind";
@@ -98,6 +98,8 @@ async function handleInteraction(
         return await handleNcpCommand(interaction, env);
       case "ncpdummy":
         return await handleNcpDummyCommand(interaction, env);
+      case "ncpremove":
+        return await handleNcpRemoveCommand(interaction, env);
       case "fa":
         return await handleFaCommand(interaction, env, ctx);
       case "player":
