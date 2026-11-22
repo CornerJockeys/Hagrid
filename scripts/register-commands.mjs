@@ -117,6 +117,11 @@ const commands = [
     type: 1,
   },
   {
+    name: "ncpremove",
+    description: "Remove an approved NCP from Hagrid usage totals (AGM+).",
+    type: 1,
+  },
+  {
     name: "player",
     description: "Show a league player profile and S20 game or scrim stats.",
     type: 1,
