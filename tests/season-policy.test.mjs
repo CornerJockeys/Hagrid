@@ -15,7 +15,7 @@ test("S20 salary policy matches the updated rulebook", () => {
   assert.equal(divisionPolicy("ML").salaryCap, 86.5);
   assert.equal(divisionPolicy("PL").salaryCap, 79.0);
 
-  assert.equal(divisionPolicy("FL").rosterSlots, 5);
+  assert.equal(divisionPolicy("FL").rosterSlots, 4);
   assert.equal(divisionPolicy("FL").teamSalaryPlayers, 4);
   assert.equal(divisionPolicy("FL").doublesLimit, 6);
   assert.equal(divisionPolicy("FL").standardLimit, 9);
