@@ -4,7 +4,7 @@ import {
   snapshotFranchisePlayers,
   snapshotFranchiseRoleUsages,
 } from "../league/cache";
-import {flFiveSlotUsageActive, remainingUsage, slotLabel, teamDivision, usagePolicyForDivision, type TeamDivision} from "../league/view";
+import {remainingUsage, slotLabel, teamDivision, usagePolicyForDivision, type TeamDivision} from "../league/view";
 import {getFranchisePlayers} from "../sprocket/players";
 import {getFranchiseRoleUsagesForSeason} from "../sprocket/role-usages";
 import {
@@ -111,10 +111,6 @@ export async function buildDumpMessages(
         .filter(usage => teamDivision(usage.league) === division)
         .sort((a, b) => roleKey(a.role).localeCompare(roleKey(b.role), "en-US", {numeric: true}));
       if (rows.length === 0) continue;
-      const extendedFl = division === "FL" && flFiveSlotUsageActive(
-        roster.map(player => ({slot: player.slot, skillGroup: player.skillGroup})),
-        rows,
-      );
       lines.push(`**${DIVISION_NAMES[division]}**`);
       for (const usage of rows) {
         const remaining = remainingUsage({
@@ -127,9 +123,9 @@ export async function buildDumpMessages(
           total_uses: usage.totalUses,
           source_as_of: usage.sourceAsOf,
           refreshed_at: "",
-        }, division, extendedFl);
+        }, division);
         const player = bySlot.get(roleKey(usage.role));
-        const policy = usagePolicyForDivision(division, extendedFl);
+        const policy = usagePolicyForDivision(division);
         lines.push(
           `${roleKey(usage.role)} · ${player?.name ?? "Open/unknown slot"} · 2s ${usage.doublesUses}/${policy.doublesLimit} (${remaining.doubles} left) · 3s ${usage.standardUses}/${policy.standardLimit} (${remaining.standard} left) · total ${usage.totalUses}/${policy.combinedLimit} (${remaining.combined} left)`,
         );
